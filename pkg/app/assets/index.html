@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Trending links and news stories on Bluesky"
+    />
+    <meta name="author" content="George Black" />
+    <title>The Blue Report</title>
+    <!-- Open Graph tags -->
+    <meta property="og:title" content="The Blue Report" />
+    <meta property="og:url" content="https://theblue.report" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:description"
+      content="Trending links and news stories on Bluesky"
+    />
+    <style>
+      :root {
+        /* defined widths */
+        --page-max-width: 64rem;
+
+        /* primary fonts */
+        --primary-font: system-ui, -apple-system, BlinkMacSystemFont, Roboto,
+          Helvetica, sans-serif;
+        --primary-font-rounded: ui-rounded, system-ui, -apple-system,
+          BlinkMacSystemFont, Roboto, Helvetica, sans-serif;
+
+        /* font weights */
+        --font-weight-bold: 900;
+        --font-weight-normal: 400;
+
+        /* general purpose colors */
+        --background-color: #f0ece9;
+        --blockquote-border-color: #e4e1de;
+        --line-separator-color: rgba(0, 0, 0, 0.05);
+
+        /* header colors */
+        --nav-link-color: rgba(0, 0, 0, 0.5);
+        --nav-link-hover-color: #302b29;
+
+        /* text colors */
+        --header-color: #2e2e2e;
+        --header-link-color: #284273;
+        --header-link-hover-color: #35589c;
+        --body-color: #242424;
+        --link-color: #35589c;
+        --link-hover-color: #302b29;
+        --faded-text-color: rgba(0, 0, 0, 0.4);
+
+        /* specific section colors */
+        --search-background-color: rgba(255, 255, 255, 0.75);
+      }
+
+      /* dark mode */
+      @media screen and (prefers-color-scheme: dark) {
+        :root {
+          /* general purpose colors */
+          --background-color: #101212;
+          --blockquote-border-color: #313641;
+          --line-separator-color: rgba(255, 255, 255, 0.05);
+
+          /* header colors */
+          --nav-link-color: rgba(255, 255, 255, 0.5);
+          --nav-link-hover-color: #dddddd;
+
+          /* text colors */
+          --header-color: #dddddd;
+          --header-link-color: #799cff;
+          --header-link-hover-color: #5e84ff;
+          --body-color: #f7f7f7;
+          --link-color: #799cff;
+          --link-hover-color: #5e84ff;
+          --faded-text-color: rgba(255, 255, 255, 0.4);
+
+          /* specific section colors */
+          --search-background-color: rgba(255, 255, 255, 0.1);
+        }
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0 auto;
+        padding: 0 1em;
+        max-width: var(--page-max-width);
+        font-family: var(--primary-font);
+        background-color: var(--background-color);
+      }
+
+      header {
+        margin: 2em 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        color: var(--header-color);
+      }
+
+      :is(h1, h2, h3) a {
+        color: var(--header-link-color);
+      }
+
+      :is(h1, h2, h3) a:hover {
+        color: var(--header-link-hover-color);
+      }
+
+      h1 {
+        font-size: 2em;
+      }
+
+      h2 {
+        font-size: 1.5em;
+      }
+
+      p,
+      li,
+      blockquote {
+        font-size: 1.125em;
+        color: var(--body-color);
+      }
+
+      a {
+        text-decoration: none;
+        color: var(--link-color);
+      }
+
+      a:hover {
+        color: var(--link-hover-color);
+      }
+
+      /* links */
+      .link-group {
+        border-radius: 1em;
+        background-color: #313131;
+      }
+
+      .link {
+        padding: 1.5em;
+        cursor: pointer;
+        display: flex;
+        justify-items: center;
+        gap: 2em;
+      }
+
+      .link:hover {
+        background-color: #424242;
+      }
+
+      .link .image {
+        min-width: 8em;
+        max-width: 8em;
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .link .image img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: cover;
+        object-position: center;
+        border-radius: 0.5em;
+      }
+
+      .link .title {
+        padding: 0.25em 0;
+        font-size: 1.25em;
+        font-weight: var(--font-weight-bold);
+      }
+
+      .link .url {
+        font-family: ui-monospace;
+      }
+
+      .link .metadata {
+        margin: 1em 0 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>The Blue Report 🦋</h1>
+      <p class="subtitle">
+        The top links on Bluesky over the last 24 hours. Updated every five
+        minutes.
+      </p>
+    </header>
+    <main>
+      <div class="link-group">
+        {{ range . }}
+        <div class="link">
+          <div class="image">
+            <img src="{{ .ImageURL }}" />
+          </div>
+          <div>
+            <p class="title">{{ .Title }}</p>
+            <p class="url">
+              <a href="{{ .URL }}">{{ .URL }}</a>
+            </p>
+            <p class="metadata">{{ .Count }} posts & reposts</p>
+          </div>
+        </div>
+        {{ end }}
+      </div>
+    </main>
+  </body>
+</html>

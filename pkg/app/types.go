@@ -1,0 +1,59 @@
+package app
+
+type StreamEvent struct {
+	DID    string `json:"did"`
+	Kind   string `json:"kind"`
+	Commit Commit `json:"commit"`
+}
+
+type Commit struct {
+	Operation string `json:"operation"`
+	Record    Record `json:"record"`
+	CID       string `json:"cid"`
+}
+
+type Record struct {
+	Type      string   `json:"$type"`
+	Languages []string `json:"langs"`
+	Embed     Embed    `json:"embed"`
+	Facets    []Facet  `json:"facets"`
+	Subject   Subject  `json:"subject"`
+}
+
+type Embed struct {
+	Type     string   `json:"$type"`
+	External External `json:"external"`
+}
+
+type External struct {
+	URI string `json:"uri"`
+}
+
+type Facet struct {
+	Features []Feature `json:"features"`
+}
+
+type Subject struct {
+	CID string `json:"cid"`
+	URI string `json:"uri"`
+}
+
+type Feature struct {
+	Type string `json:"$type"`
+	URI  string `json:"uri"`
+}
+
+type Aggregation struct {
+	Items []AggregationItem
+}
+
+type AggregationItem struct {
+	URL   string
+	Count int
+}
+
+type InternalRecord struct {
+	Type int    `json:"type"` // 0: post, 1: repost
+	URL  string `json:"url"`
+	DID  string `json:"did"`
+}
