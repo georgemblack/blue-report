@@ -12,7 +12,7 @@ import (
 
 const (
 	WorkerPoolSize   = 3
-	WorkerCheckpoint = 1000 // Log a checkpoint every # of events
+	WorkerCheckpoint = 200 // Log a checkpoint every # of events
 	JetstreamURL     = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost"
 )
 
@@ -142,7 +142,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client valk
 
 		// Log a checkpoint every number of successful of events
 		if successCount >= WorkerCheckpoint || errorCount >= WorkerCheckpoint {
-			slog.Info("worker checkpoint", "worker", id, "success", successCount, "skipped", skippedCount, "error", errorCount)
+			slog.Info("worker checkpoint", "worker", id, "success", successCount, "skipped", skippedCount, "error", errorCount, "queue", len(stream))
 			successCount = 0
 			skippedCount = 0
 			errorCount = 0
