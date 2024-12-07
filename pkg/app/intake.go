@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	WorkerPoolSize = 3
-	JetstreamURL   = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost"
+	WorkerPoolSize   = 3
+	WorkerCheckpoint = 1000 // Log a checkpoint every # of events
+	JetstreamURL     = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost"
 )
 
 func Intake() error {
@@ -64,6 +65,10 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client valk
 	slog.Info(fmt.Sprintf("starting worker %d", id))
 	defer wg.Done()
 
+	successCount := 0
+	skippedCount := 0
+	errorCount := 0
+
 	for {
 		event := StreamEvent{}
 		ok := true
@@ -80,6 +85,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client valk
 		}
 
 		if !valid(event) {
+			skippedCount++
 			continue
 		}
 
@@ -90,12 +96,13 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client valk
 		if isPost(event) {
 			url := findURL(event)
 			if url == "" {
+				skippedCount++
 				continue
 			}
 
 			record = InternalRecord{
 				Type: 0,
-				URL:  findURL(event),
+				URL:  url,
 				DID:  event.DID,
 			}
 		}
@@ -106,6 +113,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client valk
 			postKey := event.Commit.Record.Subject.CID
 			postRecord, err := read(client, postKey)
 			if err != nil {
+				skippedCount++
 				continue
 			}
 
@@ -118,13 +126,26 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client valk
 
 		// Filter out unwanted URLs
 		if !include(record.URL) {
+			skippedCount++
 			continue
 		}
 
 		err := save(client, key, record)
-		fmt.Println(record.URL) // TODO: remove
 		if err != nil {
+			errorCount++
 			slog.Error(err.Error())
+		} else {
+			successCount++
+		}
+
+		slog.Debug("saved record", "worker", id, "key", key, "record", record)
+
+		// Log a checkpoint every number of successful of events
+		if successCount >= WorkerCheckpoint || errorCount >= WorkerCheckpoint {
+			slog.Info("worker checkpoint", "worker", id, "success", successCount, "skipped", skippedCount, "error", errorCount)
+			successCount = 0
+			skippedCount = 0
+			errorCount = 0
 		}
 	}
 }
