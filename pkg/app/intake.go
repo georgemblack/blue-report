@@ -7,12 +7,11 @@ import (
 	"sync"
 
 	"github.com/gorilla/websocket"
-	"github.com/valkey-io/valkey-go"
 )
 
 const (
-	WorkerPoolSize   = 3
-	WorkerCheckpoint = 200 // Log a checkpoint every # of events
+	WorkerPoolSize   = 1
+	WorkerCheckpoint = 1000 // Log a checkpoint every number of events
 	JetstreamURL     = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost"
 )
 
@@ -20,7 +19,7 @@ func Intake() error {
 	slog.Info("starting intake")
 
 	// Build Valkey client
-	client, err := valkeyClient()
+	client, err := cacheClient()
 	if err != nil {
 		return wrapErr("failed to create valkey client", err)
 	}
@@ -61,7 +60,7 @@ func Intake() error {
 }
 
 // Process posts by extracting URIs and saving them to Valkey.
-func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client valkey.Client, wg *sync.WaitGroup) {
+func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Cache, wg *sync.WaitGroup) {
 	slog.Info(fmt.Sprintf("starting worker %d", id))
 	defer wg.Done()
 
@@ -93,7 +92,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client valk
 		record := InternalRecord{}
 
 		// If the event is a post, save metadata to Valkey.
-		if isPost(event) {
+		if event.isPost() {
 			url := findURL(event)
 			if url == "" {
 				skippedCount++
@@ -109,9 +108,9 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client valk
 
 		// If the event is a repost, attempt to find the original post in Valkey.
 		// If it exists, extract the URI and save it.
-		if isRepost(event) {
+		if event.isRepost() {
 			postKey := event.Commit.Record.Subject.CID
-			postRecord, err := read(client, postKey)
+			postRecord, err := client.Read(postKey)
 			if err != nil {
 				skippedCount++
 				continue
@@ -130,7 +129,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client valk
 			continue
 		}
 
-		err := save(client, key, record)
+		err := client.Save(key, record)
 		if err != nil {
 			errorCount++
 			slog.Error(err.Error())
@@ -157,21 +156,13 @@ func valid(event StreamEvent) bool {
 	if event.Commit.Operation != "create" {
 		return false
 	}
-	if !isPost(event) && !isRepost(event) {
+	if !event.isPost() && !event.isRepost() {
 		return false
 	}
-	if isPost(event) && !contains(event.Commit.Record.Languages, "en") {
+	if event.isPost() && !event.isEnglish() {
 		return false
 	}
 	return true
-}
-
-func isPost(event StreamEvent) bool {
-	return event.Commit.Record.Type == "app.bsky.feed.post"
-}
-
-func isRepost(event StreamEvent) bool {
-	return event.Commit.Record.Type == "app.bsky.feed.repost"
 }
 
 // Extract a single URL from a post. First search the facets, followed by the embed.
@@ -205,7 +196,7 @@ func include(url string) bool {
 	}
 
 	// Ignore image hosts
-	if strings.HasPrefix(url, "https://media.tenor.com/") {
+	if strings.HasPrefix(url, "https://media.tenor.com") {
 		return false
 	}
 

@@ -1,5 +1,7 @@
 package app
 
+// StreamEvent (and subtypes) represent a message from the Jetstream.
+// Fields for both posts and reposts are included.
 type StreamEvent struct {
 	DID    string `json:"did"`
 	Kind   string `json:"kind"`
@@ -35,7 +37,6 @@ type Facet struct {
 
 type Subject struct {
 	CID string `json:"cid"`
-	URI string `json:"uri"`
 }
 
 type Feature struct {
@@ -43,6 +44,19 @@ type Feature struct {
 	URI  string `json:"uri"`
 }
 
+func (s *StreamEvent) isPost() bool {
+	return s.Commit.Record.Type == "app.bsky.feed.post"
+}
+
+func (s *StreamEvent) isRepost() bool {
+	return s.Commit.Record.Type == "app.bsky.feed.repost"
+}
+
+func (s *StreamEvent) isEnglish() bool {
+	return contains(s.Commit.Record.Languages, "en")
+}
+
+// Aggregration represents a set of URLs and metadata for each.
 type Aggregation struct {
 	Items []AggregationItem
 }
@@ -52,6 +66,7 @@ type AggregationItem struct {
 	Count int
 }
 
+// InternalRecord represents a record stored in Valkey.
 type InternalRecord struct {
 	Type int    `json:"type"` // 0: post, 1: repost
 	URL  string `json:"url"`

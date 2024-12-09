@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"context"
 	"embed"
 	"fmt"
 	"hash/fnv"
@@ -18,54 +17,22 @@ import (
 var indexTemplate embed.FS
 
 const (
-	ListSize = 10
+	ListSize = 20
 )
 
 func Aggregate() error {
 	slog.Info("starting aggregation")
 
 	// Build Valkey client
-	client, err := valkeyClient()
+	client, err := cacheClient()
 	if err != nil {
 		return wrapErr("failed to create valkey client", err)
 	}
 	defer client.Close()
 
-	ctx := context.Background()
-	cursor := uint64(0)
-	first := true
-	keys := mapset.NewSet[string]()
-
-	// Collect a set of all keys in Valkey.
-	for cursor != 0 || first {
-		first = false
-
-		cmd := client.B().Scan().Cursor(cursor).Build()
-		resp := client.Do(ctx, cmd)
-		if err := resp.Error(); err != nil {
-			return wrapErr("failed to execute scan command", err)
-		}
-
-		// Valkey returns an array of two items: next cursor and a list of keys
-		items, err := resp.ToArray()
-		if err != nil {
-			return wrapErr("failed to convert response to array", err)
-		}
-		if len(items) != 2 {
-			return wrapErr("unexpected number of items in response", nil)
-		}
-		cursor, err = items[0].AsUint64()
-		if err != nil {
-			return wrapErr("failed to convert cursor to int64", err)
-		}
-		toAdd, err := items[1].AsStrSlice()
-		if err != nil {
-			return wrapErr("failed to convert keys to string slice", err)
-		}
-
-		for _, key := range toAdd {
-			keys.Add(key)
-		}
+	keys, err := client.Keys()
+	if err != nil {
+		return wrapErr("failed to list keys", err)
 	}
 
 	slog.Info("found keys", "count", keys.Cardinality())
@@ -74,7 +41,7 @@ func Aggregate() error {
 	fingerprints := mapset.NewSet[string]()
 
 	for key := range keys.Iter() {
-		record, err := read(client, key)
+		record, err := client.Read(key)
 		if err != nil {
 			slog.Warn(wrapErr("failed to read record", err).Error())
 			continue
