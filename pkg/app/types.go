@@ -68,7 +68,7 @@ type AggregationItem struct {
 
 // InternalRecord represents a record stored in Valkey.
 type InternalRecord struct {
-	Type int    `json:"type"` // 0: post, 1: repost
-	URL  string `json:"url"`
-	DID  string `json:"did"`
+	Type int // 0: post, 1: repost
+	URL  string
+	DID  string
 }
