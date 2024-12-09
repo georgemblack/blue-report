@@ -3,11 +3,11 @@ package app
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/valkey-io/valkey-go"
+	"github.com/vmihailenco/msgpack/v5"
 )
 
 type Cache struct {
@@ -40,7 +40,7 @@ func cacheClient() (Cache, error) {
 func (v Cache) Save(key string, record InternalRecord) error {
 	ctx := context.Background()
 
-	bytes, err := json.Marshal(record)
+	bytes, err := msgpack.Marshal(record)
 	if err != nil {
 		return wrapErr("failed to marshal record", err)
 	}
@@ -69,7 +69,7 @@ func (v Cache) Read(key string) (InternalRecord, error) {
 	}
 
 	var record InternalRecord
-	err = json.Unmarshal(bytes, &record)
+	err = msgpack.Unmarshal(bytes, &record)
 	if err != nil {
 		return InternalRecord{}, wrapErr("failed to unmarshal record", err)
 	}
