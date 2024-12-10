@@ -7,6 +7,7 @@ import (
 	"hash/fnv"
 	"log/slog"
 	"sort"
+	"strconv"
 	"text/template"
 	"time"
 
@@ -35,7 +36,7 @@ func Aggregate() error {
 	if err != nil {
 		return wrapErr("failed to list keys", err)
 	}
-	slog.Info("found keys", "count", keys.Cardinality())
+	slog.Info("found keys", "keys", keys.Cardinality())
 
 	count := make(map[string]int)           // Track instances each URL is shared
 	fingerprints := mapset.NewSet[string]() // Track unique DID and URL combinations
@@ -70,6 +71,8 @@ func Aggregate() error {
 		fingerprints.Add(print)
 	}
 
+	slog.Info("finished generating count", "urls", len(count))
+
 	// Result represents a single item to be rendered on the webpage
 	type Result struct {
 		Rank             int
@@ -77,13 +80,13 @@ func Aggregate() error {
 		Title            string
 		ImageURL         string
 		PlaceholderImage bool
-		Count            int
+		Count            string
 	}
 
 	// Convert the map containing the count to the results
 	formatted := make([]Result, 0, len(count))
 	for k, v := range count {
-		formatted = append(formatted, Result{URL: k, Count: v})
+		formatted = append(formatted, Result{URL: k, Count: strconv.FormatInt(int64(v), 10)})
 	}
 
 	// Sort results, and only keep top number of items
