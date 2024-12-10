@@ -56,28 +56,32 @@ func hasYouTubePrefix(url string) bool {
 	return false
 }
 
-// Make an HTTP request to a website, and parse the HTML for open grpah tags.
-// Also fetch the open graph image URL.
-func fetchURLMetadata(url string) (title, description, img string, err error) {
+// Make an HTTP request to a website, and parse the HTML for title and image preview.
+// Use OpenGraph tags if available, otherwise fall back to HTML title tag.
+func fetchURLMetadata(url string) (title, img string, err error) {
 	resp, err := http.Get(url)
 	if err != nil {
-		return "", "", "", fmt.Errorf("error fetching URL: %w", err)
+		return "", "", fmt.Errorf("error fetching url: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", "", "", fmt.Errorf("HTTP error: status code %d", resp.StatusCode)
+		return "", "", fmt.Errorf("http error: status code %d", resp.StatusCode)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return "", "", "", fmt.Errorf("error parsing HTML: %w", err)
+		return "", "", fmt.Errorf("error parsing html: %w", err)
 	}
 
 	// Extract OpenGraph title and description
 	title, _ = doc.Find(`meta[property="og:title"]`).Attr("content")
-	description, _ = doc.Find(`meta[property="og:description"]`).Attr("content")
 	image, _ := doc.Find(`meta[property="og:image"]`).Attr("content")
 
-	return title, description, image, nil
+	// Fall back to HTML title tag
+	if title == "" {
+		title = doc.Find("title").Text()
+	}
+
+	return title, image, nil
 }

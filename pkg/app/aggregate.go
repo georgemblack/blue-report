@@ -71,7 +71,6 @@ func Aggregate() error {
 		Rank             int
 		URL              string
 		Title            string
-		Description      string
 		ImageURL         string
 		PlaceholderImage bool
 		Count            int
@@ -98,14 +97,13 @@ func Aggregate() error {
 		slog.Info("hydrating result", "url", top[i].URL)
 
 		url := top[i].URL
-		title, desc, img, err := fetchURLMetadata(url)
+		title, img, err := fetchURLMetadata(url)
 		if err != nil {
 			slog.Warn(wrapErr("failed to fetch open graph data", err).Error())
 			continue
 		}
 
 		top[i].Title = title
-		top[i].Description = desc
 		top[i].ImageURL = img
 
 		if top[i].Title == "" {
