@@ -72,3 +72,16 @@ type InternalRecord struct {
 	URL  string
 	DID  string
 }
+
+func (r InternalRecord) Valid() bool {
+	if r.Type != 0 && r.Type != 1 {
+		return false
+	}
+	if r.URL == "" {
+		return false
+	}
+	if r.DID == "" {
+		return false
+	}
+	return true
+}

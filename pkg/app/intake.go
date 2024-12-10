@@ -111,7 +111,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Cach
 		if event.isRepost() {
 			postKey := event.Commit.Record.Subject.CID
 			postRecord, err := client.Read(postKey)
-			if err != nil {
+			if err != nil || !postRecord.Valid() {
 				skippedCount++
 				continue
 			}

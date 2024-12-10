@@ -49,6 +49,10 @@ func Aggregate() error {
 			continue
 		}
 
+		if !record.Valid() {
+			continue
+		}
+
 		if !include(record.URL) {
 			continue
 		}

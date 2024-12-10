@@ -60,6 +60,9 @@ func (v Cache) Read(key string) (InternalRecord, error) {
 	cmd := v.client.B().Get().Key(key).Build()
 	resp := v.client.Do(ctx, cmd)
 	if err := resp.Error(); err != nil {
+		if err == valkey.Nil {
+			return InternalRecord{}, nil
+		}
 		return InternalRecord{}, wrapErr("failed to execute get command", err)
 	}
 
