@@ -80,13 +80,14 @@ func Aggregate() error {
 		Title            string
 		ImageURL         string
 		PlaceholderImage bool
-		Count            string
+		Count            int
+		CountStr         string
 	}
 
 	// Convert the map containing the count to the results
 	formatted := make([]Result, 0, len(count))
 	for k, v := range count {
-		formatted = append(formatted, Result{URL: k, Count: strconv.FormatInt(int64(v), 10)})
+		formatted = append(formatted, Result{URL: k, Count: v})
 	}
 
 	// Sort results, and only keep top number of items
@@ -101,7 +102,7 @@ func Aggregate() error {
 	//	- Fetch page image
 	//	- Supplement any missing data
 	for i := range top {
-		slog.Info("hydrating result", "url", top[i].URL)
+		slog.Info("hydrating result", "record", top[i])
 
 		url := top[i].URL
 		title, img, err := fetchURLMetadata(url)
@@ -112,6 +113,7 @@ func Aggregate() error {
 
 		top[i].Title = title
 		top[i].ImageURL = img
+		top[i].CountStr = strconv.FormatInt(int64(top[i].Count), 10)
 
 		if top[i].Title == "" {
 			top[i].Title = top[i].URL
@@ -121,6 +123,7 @@ func Aggregate() error {
 		} else {
 			top[i].PlaceholderImage = false
 		}
+
 	}
 
 	tmpl, err := template.ParseFS(indexTemplate, "assets/index.html")
