@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"log/slog"
-	"os"
 	"sort"
 	"text/template"
 	"time"
@@ -19,8 +18,7 @@ import (
 var indexTmpl embed.FS
 
 const (
-	ListSize     = 20
-	PauseMinutes = 5
+	ListSize = 20
 )
 
 // Aggregate begins the aggregation loop.
@@ -129,7 +127,7 @@ func aggregate(cache map[string]InternalCacheRecord) error {
 		fingerprints.Add(print)
 	}
 
-	slog.Info("finished generating count", "urls", len(count), "internal_cache_hit", internalCacheHit, "external_cache_hit", externalCacheHit)
+	slog.Info("finished generating count", "urls", len(count), "internal_cache_hit", internalCacheHit, "external_cache_hit", externalCacheHit, "internal_cache_size", len(cache))
 
 	// Convert the map containing the count to the results
 	formatted := make([]ReportLinks, 0, len(count))
@@ -152,7 +150,8 @@ func aggregate(cache map[string]InternalCacheRecord) error {
 		url := top[i].URL
 		title, img, err := fetchURLMetadata(url)
 		if err != nil {
-			slog.Warn(wrapErr("failed to fetch url metadata", err).Error())
+			msg := fmt.Sprintf("failed to fetch metadata for '%s'", url)
+			slog.Warn(wrapErr(msg, err).Error())
 		}
 
 		top[i].Rank = i + 1
@@ -171,7 +170,8 @@ func aggregate(cache map[string]InternalCacheRecord) error {
 	}
 
 	// Generate final report
-	report := Report{Links: top, GeneratedAt: time.Now().Format(time.RFC3339)}
+	generatedAt := time.Now().Format("Jan 2, 2006 at 3:04pm (MST)")
+	report := Report{Links: top, GeneratedAt: generatedAt}
 
 	// Convert to HTML
 	tmpl, err := template.ParseFS(indexTmpl, "assets/index.html")
@@ -185,13 +185,13 @@ func aggregate(cache map[string]InternalCacheRecord) error {
 	}
 
 	// For local testing
-	os.WriteFile("result.html", buf.Bytes(), 0644)
+	// os.WriteFile("result.html", buf.Bytes(), 0644)
 
 	// Publish to S3
-	// err = publish(buf.Bytes())
-	// if err != nil {
-	// 	return wrapErr("failed to publish report", err)
-	// }
+	err = publish(buf.Bytes())
+	if err != nil {
+		return wrapErr("failed to publish report", err)
+	}
 
 	duration := time.Since(start)
 	slog.Info("aggregation complete", "seconds", duration.Seconds())
