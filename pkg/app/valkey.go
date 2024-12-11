@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
@@ -10,11 +11,11 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
-type Cache struct {
+type Valkey struct {
 	client valkey.Client
 }
 
-func cacheClient() (Cache, error) {
+func valkeyClient() (Valkey, error) {
 	address := getEnvStr("VALKEY_ADDRESS", "127.0.0.1:6379")
 	tlsEnabled := getEnvBool("VALKEY_TLS_ENABLED", false)
 
@@ -31,13 +32,13 @@ func cacheClient() (Cache, error) {
 		DisableCache: true, // ElastiCache serverless doesn't support client-side cache
 	})
 	if err != nil {
-		return Cache{}, wrapErr("failed to create valkey client", err)
+		return Valkey{}, wrapErr("failed to create valkey client", err)
 	}
 
-	return Cache{client: client}, nil
+	return Valkey{client: client}, nil
 }
 
-func (v Cache) Save(key string, record InternalRecord) error {
+func (v Valkey) Save(key string, record EventRecord) error {
 	ctx := context.Background()
 
 	bytes, err := msgpack.Marshal(record)
@@ -54,33 +55,33 @@ func (v Cache) Save(key string, record InternalRecord) error {
 	return nil
 }
 
-func (v Cache) Read(key string) (InternalRecord, error) {
+func (v Valkey) Read(key string) (EventRecord, error) {
 	ctx := context.Background()
 
 	cmd := v.client.B().Get().Key(key).Build()
 	resp := v.client.Do(ctx, cmd)
 	if err := resp.Error(); err != nil {
 		if err == valkey.Nil {
-			return InternalRecord{}, nil
+			return EventRecord{}, nil
 		}
-		return InternalRecord{}, wrapErr("failed to execute get command", err)
+		return EventRecord{}, wrapErr("failed to execute get command", err)
 	}
 
 	bytes, err := resp.AsBytes()
 	if err != nil {
-		return InternalRecord{}, wrapErr("failed to convert response to bytes", err)
+		return EventRecord{}, wrapErr("failed to convert response to bytes", err)
 	}
 
-	var record InternalRecord
+	var record EventRecord
 	err = msgpack.Unmarshal(bytes, &record)
 	if err != nil {
-		return InternalRecord{}, wrapErr("failed to unmarshal record", err)
+		return EventRecord{}, wrapErr("failed to unmarshal record", err)
 	}
 
 	return record, nil
 }
 
-func (v Cache) Keys() (mapset.Set[string], error) {
+func (v Valkey) Keys() (mapset.Set[string], error) {
 	ctx := context.Background()
 	cursor := uint64(0)
 	first := true
@@ -120,6 +121,29 @@ func (v Cache) Keys() (mapset.Set[string], error) {
 	return keys, nil
 }
 
-func (v Cache) Close() {
+func (v Valkey) TTL(key string) (int64, error) {
+	ctx := context.Background()
+
+	cmd := v.client.B().Ttl().Key(key).Build()
+	resp := v.client.Do(ctx, cmd)
+	if err := resp.Error(); err != nil {
+		return 0, wrapErr("failed to execute ttl command", err)
+	}
+
+	ttl, err := resp.AsInt64()
+	if err != nil {
+		return 0, wrapErr("failed to convert response to int64", err)
+	}
+	if ttl == -2 {
+		return 0, fmt.Errorf("key does not exist")
+	}
+	if ttl == -1 {
+		return 0, fmt.Errorf("key has no expiration")
+	}
+
+	return ttl, nil
+}
+
+func (v Valkey) Close() {
 	v.client.Close()
 }

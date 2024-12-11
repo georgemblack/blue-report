@@ -123,9 +123,20 @@
         max-width: 8em;
       }
 
-      .link .preview img {
+      .link .preview img,
+      .link .preview .placeholder {
         width: 100%;
-        border-radius: 0.5em;
+        border-radius: 0.5rem;
+        box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
+      }
+
+      .link .preview .placeholder {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 3em;
+        height: 5rem;
+        background-color: rgba(255, 255, 255, 0.25);
       }
 
       .link .content {
@@ -166,17 +177,22 @@
     </header>
     <main>
       <div class="link-group">
-        {{ range . }}
+        {{ range .Links }}
         <div class="link">
           <div class="preview">
+            {{ if .ImageURL }}
             <img src="{{ .ImageURL }}" />
+            {{ else }}
+            <div class="placeholder">🔗</div>
+            {{ end }}
           </div>
           <div class="content">
             <p class="title">
               <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
             </p>
             <p class="metadata">
-              {{ .PostCountStr }} posts & {{ .RepostCountStr }} reposts
+              {{ .Host }} • {{ .PostCountStr }} posts & {{ .RepostCountStr }}
+              reposts
             </p>
           </div>
         </div>
@@ -184,7 +200,7 @@
       </div>
     </main>
     <footer>
-      <p>Last updated XYZ.</p>
+      <p>Last updated {{ .GeneratedAt }}</p>
       <p>
         Created and maintained by
         <a href="https://bsky.app/profile/george.black">George Black</a>

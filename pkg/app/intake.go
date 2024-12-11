@@ -18,12 +18,12 @@ const (
 func Intake() error {
 	slog.Info("starting intake")
 
-	// Build Valkey client
-	client, err := cacheClient()
+	// Build Valkey vk
+	vk, err := valkeyClient()
 	if err != nil {
 		return wrapErr("failed to create valkey client", err)
 	}
-	defer client.Close()
+	defer vk.Close()
 
 	// Start worker threads
 	var wg sync.WaitGroup
@@ -31,7 +31,7 @@ func Intake() error {
 	stream := make(chan StreamEvent, WorkerPoolSize*100)
 	shutdown := make(chan struct{})
 	for i := 0; i < WorkerPoolSize; i++ {
-		go worker(i+1, stream, shutdown, client, &wg)
+		go worker(i+1, stream, shutdown, vk, &wg)
 	}
 
 	// Connect to Jetstream
@@ -60,7 +60,7 @@ func Intake() error {
 }
 
 // Process posts by extracting URIs and saving them to Valkey.
-func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Cache, wg *sync.WaitGroup) {
+func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Valkey, wg *sync.WaitGroup) {
 	slog.Info(fmt.Sprintf("starting worker %d", id))
 	defer wg.Done()
 
@@ -89,7 +89,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Cach
 		}
 
 		key := event.Commit.CID
-		record := InternalRecord{}
+		record := EventRecord{}
 
 		// If the event is a post, save metadata to Valkey.
 		if event.isPost() {
@@ -99,7 +99,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Cach
 				continue
 			}
 
-			record = InternalRecord{
+			record = EventRecord{
 				Type: 0,
 				URL:  url,
 				DID:  event.DID,
@@ -116,7 +116,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Cach
 				continue
 			}
 
-			record = InternalRecord{
+			record = EventRecord{
 				Type: 1,
 				URL:  postRecord.URL,
 				DID:  event.DID,

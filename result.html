@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Metadata -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Trending links and news stories on Bluesky"
+    />
+    <meta name="author" content="George Black" />
+    <title>The Blue Report</title>
+    <!-- Open Graph tags -->
+    <meta property="og:title" content="The Blue Report" />
+    <meta property="og:url" content="https://theblue.report" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:description"
+      content="Trending links and news stories on Bluesky"
+    />
+    <!-- External -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crete+Round&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Stylesheet -->
+    <style>
+      :root {
+        /* primary fonts */
+        --primary-font: "Crete Round", serif;
+
+        /* font weights */
+        --font-weight-bold: 900;
+        --font-weight-normal: 400;
+
+        /* general purpose colors */
+        --background-color: #f0ece9;
+        --blockquote-border-color: #e4e1de;
+        --line-separator-color: rgba(0, 0, 0, 0.05);
+
+        /* text colors */
+        --header-color: #424242;
+        --header-accent-color: #4286f4;
+        --body-color: #242424;
+        --link-color: #35589c;
+        --link-hover-color: #302b29;
+        --faded-text-color: rgba(0, 0, 0, 0.4);
+      }
+
+      /* dark mode – temporarily disabled until i have time to make it look nice */
+      @media screen and (prefers-color-scheme: dark) {
+        :root {
+          /* general purpose colors */
+          /* --background-color: #101212;
+          --blockquote-border-color: #313641;
+          --line-separator-color: rgba(255, 255, 255, 0.05); */
+
+          /* text colors */
+          /* --header-color: #dddddd;
+          --header-link-color: #799cff;
+          --header-link-hover-color: #5e84ff;
+          --body-color: #f7f7f7;
+          --link-color: #799cff;
+          --link-hover-color: #5e84ff;
+          --faded-text-color: rgba(255, 255, 255, 0.4); */
+        }
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0 auto;
+        max-width: 64rem;
+        font-family: var(--primary-font);
+        font-weight: 400;
+        background-color: var(--background-color);
+      }
+
+      header {
+        text-align: center;
+        margin: 2em 0 0 0;
+      }
+
+      header .accent {
+        color: var(--header-accent-color);
+      }
+
+      main {
+        margin: 2em 0 0 0;
+      }
+
+      footer {
+        margin: 4em 0 6em 0;
+        text-align: center;
+        color: var(--faded-text-color);
+      }
+
+      a {
+        text-decoration: none;
+        color: var(--link-color);
+      }
+
+      a:hover {
+        color: var(--link-hover-color);
+      }
+
+      /* links */
+      .link {
+        padding: 2em;
+        display: flex;
+        gap: 2em;
+        border-top: 2px solid var(--line-separator-color);
+      }
+
+      .link .preview {
+        min-width: 10em;
+        max-width: 10em;
+      }
+
+      .link .preview img,
+      .link .preview .placeholder {
+        width: 100%;
+        border-radius: 0.5rem;
+        box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
+      }
+
+      .link .preview .placeholder {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 3em;
+        height: 5rem;
+        background-color: rgba(255, 255, 255, 0.25);
+      }
+
+      .link .content {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .link .title {
+        font-size: 1.5em;
+        font-weight: var(--font-weight-bold);
+      }
+
+      .link .metadata {
+        margin: 1em 0 0 0;
+        color: var(--faded-text-color);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>
+        The<span class="accent">Blue</span>Report
+        <span
+          style="
+            font-family: system-ui;
+            font-size: 0.25em;
+            background-color: orange;
+            padding: 0.25em;
+            border-radius: 0.25em;
+          "
+          >ALPHA – SHIT'S BROKEN</span
+        >
+      </h1>
+      <p class="subtitle">
+        The top links on Bluesky over the last 24 hours. Updated hourly.
+      </p>
+    </header>
+    <main>
+      <div class="link-group">
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://img.huffingtonpost.com/asset/6758aeea1400005d003d6a90.jpeg?cache=RqFjvemNC6&ops=1200_630" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.huffpost.com/entry/altoona-pa-mcdonalds-mangione-arrest-bad-yelp-reiews_n_6758ad70e4b063b52a9a4204">1. McDonald's Where Luigi Mangione Was Arrested Gets Bad Yelp Reviews</a>
+            </p>
+            <p class="metadata">
+              www.huffpost.com • 2 posts & 51
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://images.newrepublic.com/2ead981c1019f37e3f09440fd0ff320266b731ad.jpeg?w=1200&h=630&crop=faces&fit=crop&fm=jpg" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://newrepublic.com/post/189222/donald-trump-proposal-environment-billionaires">2. Trump’s Latest Ridiculous Proposal Is a Huge Gift to Billionaires</a>
+            </p>
+            <p class="metadata">
+              newrepublic.com • 1 posts & 44
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://substackcdn.com/image/fetch/w_1200,h_600,c_fill,f_jpg,q_auto:good,fl_progressive:steep,g_auto/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2F0dfe83ba-8697-459a-9d6d-e41222a12742_1200x675.heic" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.kenklippenstein.com/p/luigis-manifesto">3. Exclusive: Luigi's Manifesto</a>
+            </p>
+            <p class="metadata">
+              www.kenklippenstein.com • 33 posts & 9
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <div class="placeholder">🔗</div>
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://thehill.com/homenews/house/5032456-cori-bush-democrats-advocates-joe-biden-equal-rights-amendment-push/">4. https://thehill.com/homenews/house/5032456-cori-bush-democrats-advocates-joe-biden-equal-rights-amendment-push/</a>
+            </p>
+            <p class="metadata">
+              thehill.com • 3 posts & 37
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://cdn.arstechnica.net/wp-content/uploads/2024/12/Moxie-1152x648-1733865294.jpg" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://arstechnica.com/gadgets/2024/12/startup-will-brick-800-emotional-support-robot-for-kids-without-refunds/">5. Startup will brick $800 emotional support robot for kids without refunds</a>
+            </p>
+            <p class="metadata">
+              arstechnica.com • 2 posts & 35
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://media.cnn.com/api/v1/images/stellar/prod/gettyimages-2162469507.jpg?c=16x9&q=w_800,c_fill" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.cnn.com/2024/12/10/politics/trump-picks-kimberly-guilfoyle-greece-ambassador/index.html">6. Trump chooses Kimberly Guilfoyle as his pick for Greece ambassador | CNN Politics</a>
+            </p>
+            <p class="metadata">
+              www.cnn.com • 6 posts & 29
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://img.huffingtonpost.com/asset/67586f991500004900baaaca.jpeg?cache=2i8GlnrIrL&ops=1200_630" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.huffpost.com/entry/republicans-transgender-youth-defense-bill_n_67586f42e4b00d5a137d6b94">7. House GOP Uses Must-Pass Defense Bill To Strip Care From Military Families’ Trans Kids</a>
+            </p>
+            <p class="metadata">
+              www.huffpost.com • 1 posts & 30
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://i.ytimg.com/vi/Z1Z1jAit0x4/maxresdefault.jpg?v=675882c8" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.youtube.com/live/Z1Z1jAit0x4?si=TkPQNEJy6FdgGbJO">8. THE BREAKDOWN | DECEMBER 12TH 2024</a>
+            </p>
+            <p class="metadata">
+              www.youtube.com • 1 posts & 26
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://media.vanityfair.com/photos/67213bb026500bf63063b63e/16:9/w_1280,c_limit/2181009763" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.vanityfair.com/news/story/trump-admits-he-cant-guarantee-tariffs-wont-cost-americans">9. Trump Admits He Can’t “Guarantee” Tariffs Won’t Cost Americans, Because That’s Exactly How Tariffs Work</a>
+            </p>
+            <p class="metadata">
+              www.vanityfair.com • 1 posts & 20
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <div class="placeholder">🔗</div>
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.kickstarter.com/projects/cheyennethegeek/the-comic-shop-a-mockumentary-sitcom">10. https://www.kickstarter.com/projects/cheyennethegeek/the-comic-shop-a-mockumentary-sitcom</a>
+            </p>
+            <p class="metadata">
+              www.kickstarter.com • 1 posts & 19
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://cbs6albany.com/resources/media2/16x9/910/986/188x30/90/d3101719-0791-4574-8416-1a1951a1fe82-thumb_38193.png" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://cbs6albany.com/news/local/siena-research-poll-over-50-of-new-york-voters-polled-want-hochul-out-september-kathy-governor-ny-election-polling-vote-voting-migrants-housing-democrats-republican-">11. SIENA RESEARCH POLL: Over 50% of New York voters polled want Hochul out</a>
+            </p>
+            <p class="metadata">
+              cbs6albany.com • 1 posts & 16
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://www.rawstory.com/media-library/rep-marjorie-taylor-greene-r-ga-photo-credit-gage-skidmore.jpg?id=55281714&width=1200&height=600&coordinates=0%2C67%2C0%2C67" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.rawstory.com/marjorie-taylor-greene-2670425653/">12. MTG fears suspected CEO assassin could fuel 'push' from the left for socialized medicine</a>
+            </p>
+            <p class="metadata">
+              www.rawstory.com • 5 posts & 11
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://i.ytimg.com/vi/Pg2t5b0m2d4/maxresdefault.jpg" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://youtu.be/Pg2t5b0m2d4">13. Nikki Giovanni and James Baldwin in conversation on 'SOUL!' (PART 2) | ALL ARTS Vault</a>
+            </p>
+            <p class="metadata">
+              youtu.be • 1 posts & 15
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://assets3.cbsnewsstatic.com/hub/i/r/2024/12/10/6cdce4e2-9e63-4833-b6a3-fbccba550804/thumbnail/1200x630g2/fc7a909b3c7d6c8ed674a21f06adbee0/gettyimages-2161889396.jpg?v=564e83c5974b3893ba1bcac5fe5947af" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.cbsnews.com/news/trump-kimberly-guilfoyle-greece-ambassador/">14. Trump to nominate Kimberly Guilfoyle for ambassador to Greece</a>
+            </p>
+            <p class="metadata">
+              www.cbsnews.com • 10 posts & 5
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://i.ytimg.com/vi/5vgMhmCKVKw/hqdefault.jpg" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://youtu.be/5vgMhmCKVKw">15. Army General EXPOSES Trump At EXPLOSIVE Senate Hearing</a>
+            </p>
+            <p class="metadata">
+              youtu.be • 8 posts & 6
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://i.ytimg.com/vi/4TkhRs8fveA/maxresdefault.jpg" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://youtu.be/4TkhRs8fveA">16. GLOVES OFF: Canada’s leader hits Trump with knockout blow</a>
+            </p>
+            <p class="metadata">
+              youtu.be • 10 posts & 4
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <div class="placeholder">🔗</div>
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://wovenalyssum.com/boutique">17. boutique — Woven Alyssum</a>
+            </p>
+            <p class="metadata">
+              wovenalyssum.com • 2 posts & 12
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <div class="placeholder">🔗</div>
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.wpc.ncep.noaa.gov/qpf/excessive_rainfall_outlook_ero.php">18. Excessive Rainfall Outlook (ERO) Interactive Display</a>
+            </p>
+            <p class="metadata">
+              www.wpc.ncep.noaa.gov • 14 posts & 0
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://www.sightline.org/wp-content/uploads/2024/12/5659264665_2c8c458372_k.jpg" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://www.sightline.org/2024/12/10/parking-reform-alone-can-boost-homebuilding-by-40-to-70-percent/">19. Parking Reform Alone Can Boost Homebuilding by 40 to 70 Percent</a>
+            </p>
+            <p class="metadata">
+              www.sightline.org • 2 posts & 11
+              reposts
+            </p>
+          </div>
+        </div>
+        
+        <div class="link">
+          <div class="preview">
+            
+            <img src="https://tinytools.directory/icon.png" />
+            
+          </div>
+          <div class="content">
+            <p class="title">
+              <a href="https://tinytools.directory/">20. Tiny Tools Directory</a>
+            </p>
+            <p class="metadata">
+              tinytools.directory • 1 posts & 12
+              reposts
+            </p>
+          </div>
+        </div>
+        
+      </div>
+    </main>
+    <footer>
+      <p>Last updated 2024-12-10T21:11:18-06:00</p>
+      <p>
+        Created and maintained by
+        <a href="https://bsky.app/profile/george.black">George Black</a>
+      </p>
+    </footer>
+  </body>
+</html>

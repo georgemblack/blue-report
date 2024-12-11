@@ -1,5 +1,7 @@
 package app
 
+import "time"
+
 // StreamEvent (and subtypes) represent a message from the Jetstream.
 // Fields for both posts and reposts are included.
 type StreamEvent struct {
@@ -66,22 +68,23 @@ type AggregationItem struct {
 	Count int
 }
 
-// InternalRecord represents a record stored in Valkey.
-type InternalRecord struct {
+// EventRecord represents a record stored in Valkey.
+// This struct is used to serialize and deserialize records.
+type EventRecord struct {
 	Type int // 0: post, 1: repost
 	URL  string
 	DID  string
 }
 
-func (r InternalRecord) isPost() bool {
+func (r EventRecord) isPost() bool {
 	return r.Type == 0
 }
 
-func (r InternalRecord) isRepost() bool {
+func (r EventRecord) isRepost() bool {
 	return r.Type == 1
 }
 
-func (r InternalRecord) Valid() bool {
+func (r EventRecord) Valid() bool {
 	if r.Type != 0 && r.Type != 1 {
 		return false
 	}
@@ -92,4 +95,42 @@ func (r InternalRecord) Valid() bool {
 		return false
 	}
 	return true
+}
+
+func (r EventRecord) Empty() bool {
+	return !r.Valid()
+}
+
+// InternalCacheRecord represents a record stored in our internal, in-memory cache.
+type InternalCacheRecord struct {
+	Record EventRecord
+	Expiry time.Time
+}
+
+func (r InternalCacheRecord) Expired() bool {
+	return time.Now().After(r.Expiry)
+}
+
+type Count struct {
+	PostCount   int
+	RepostCount int
+}
+
+// Report represents all data requried to render the webpage.
+type Report struct {
+	Links       []ReportLinks
+	GeneratedAt string
+}
+
+// ReportLinks represents a single item to be rendered on the webpage
+type ReportLinks struct {
+	Rank           int
+	URL            string
+	Host           string
+	Title          string
+	ImageURL       string
+	PostCount      int
+	RepostCount    int
+	PostCountStr   string
+	RepostCountStr string
 }
