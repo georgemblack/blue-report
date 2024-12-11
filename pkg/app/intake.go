@@ -200,7 +200,11 @@ func include(url string) bool {
 		return false
 	}
 
-	// Ignore bad websites
+	// Known weather bot
+	// https://mesonet.agron.iastate.edu/projects/iembot/
+	if strings.HasPrefix(url, "https://mesonet.agron.iastate.edu") {
+		return false
+	}
 
 	// Ignore gifs/images
 	if strings.HasSuffix(url, ".gif") {

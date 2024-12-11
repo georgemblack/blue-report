@@ -172,8 +172,12 @@
             <img src="{{ .ImageURL }}" />
           </div>
           <div class="content">
-            <p class="title"><a href="{{ .URL }}">{{ .Title }}</a></p>
-            <p class="metadata">{{ .CountStr }} posts & reposts</p>
+            <p class="title">
+              <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
+            </p>
+            <p class="metadata">
+              {{ .PostCountStr }} posts & {{ .RepostCountStr }} reposts
+            </p>
           </div>
         </div>
         {{ end }}

@@ -73,6 +73,14 @@ type InternalRecord struct {
 	DID  string
 }
 
+func (r InternalRecord) isPost() bool {
+	return r.Type == 0
+}
+
+func (r InternalRecord) isRepost() bool {
+	return r.Type == 1
+}
+
 func (r InternalRecord) Valid() bool {
 	if r.Type != 0 && r.Type != 1 {
 		return false

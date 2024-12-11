@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"log/slog"
+	"os"
 	"sort"
 	"strconv"
 	"text/template"
@@ -38,7 +39,11 @@ func Aggregate() error {
 	}
 	slog.Info("found keys", "keys", keys.Cardinality())
 
-	count := make(map[string]int)           // Track instances each URL is shared
+	type CountItem struct {
+		PostCount   int
+		RepostCount int
+	}
+	count := make(map[string]CountItem)     // Track instances each URL is shared
 	fingerprints := mapset.NewSet[string]() // Track unique DID and URL combinations
 
 	// Read all records, and aggregate count for each URL.
@@ -67,7 +72,14 @@ func Aggregate() error {
 			continue
 		}
 
-		count[normalized]++
+		// Update count for the URL and add fingerprint to set
+		item := count[normalized]
+		if record.isPost() {
+			item.PostCount++
+		} else if record.isRepost() {
+			item.RepostCount++
+		}
+		count[normalized] = item
 		fingerprints.Add(print)
 	}
 
@@ -80,20 +92,22 @@ func Aggregate() error {
 		Title            string
 		ImageURL         string
 		PlaceholderImage bool
-		Count            int
-		CountStr         string
+		PostCount        int
+		RepostCount      int
+		PostCountStr     string
+		RepostCountStr   string
 	}
 
 	// Convert the map containing the count to the results
 	formatted := make([]Result, 0, len(count))
 	for k, v := range count {
-		formatted = append(formatted, Result{URL: k, Count: v})
+		formatted = append(formatted, Result{URL: k, PostCount: v.PostCount, RepostCount: v.RepostCount})
 	}
 
 	// Sort results, and only keep top number of items
 	sorted := formatted
 	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].Count > sorted[j].Count
+		return sorted[i].PostCount+sorted[i].RepostCount > sorted[j].PostCount+sorted[j].RepostCount
 	})
 	top := sorted[:ListSize]
 
@@ -102,18 +116,17 @@ func Aggregate() error {
 	//	- Fetch page image
 	//	- Supplement any missing data
 	for i := range top {
-		slog.Info("hydrating result", "record", top[i])
-
 		url := top[i].URL
 		title, img, err := fetchURLMetadata(url)
 		if err != nil {
-			slog.Warn(wrapErr("failed to fetch open graph data", err).Error())
-			continue
+			slog.Warn(wrapErr("failed to fetch url metadata", err).Error())
 		}
 
+		top[i].Rank = i + 1
 		top[i].Title = title
 		top[i].ImageURL = img
-		top[i].CountStr = strconv.FormatInt(int64(top[i].Count), 10)
+		top[i].PostCountStr = strconv.FormatInt(int64(top[i].PostCount), 10)
+		top[i].RepostCountStr = strconv.FormatInt(int64(top[i].RepostCount), 10)
 
 		if top[i].Title == "" {
 			top[i].Title = top[i].URL
@@ -124,6 +137,7 @@ func Aggregate() error {
 			top[i].PlaceholderImage = false
 		}
 
+		slog.Info("hydrated", "record", top[i])
 	}
 
 	tmpl, err := template.ParseFS(indexTemplate, "assets/index.html")
@@ -137,7 +151,7 @@ func Aggregate() error {
 	}
 
 	// For local testing
-	// os.WriteFile("result.html", buf.Bytes(), 0644)
+	os.WriteFile("result.html", buf.Bytes(), 0644)
 
 	// Publish report
 	err = publish(buf.Bytes())
