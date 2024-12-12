@@ -49,25 +49,6 @@
         --faded-text-color: rgba(0, 0, 0, 0.4);
       }
 
-      /* dark mode – temporarily disabled until i have time to make it look nice */
-      @media screen and (prefers-color-scheme: dark) {
-        :root {
-          /* general purpose colors */
-          /* --background-color: #101212;
-          --blockquote-border-color: #313641;
-          --line-separator-color: rgba(255, 255, 255, 0.05); */
-
-          /* text colors */
-          /* --header-color: #dddddd;
-          --header-link-color: #799cff;
-          --header-link-hover-color: #5e84ff;
-          --body-color: #f7f7f7;
-          --link-color: #799cff;
-          --link-hover-color: #5e84ff;
-          --faded-text-color: rgba(255, 255, 255, 0.4); */
-        }
-      }
-
       * {
         margin: 0;
         padding: 0;
@@ -119,8 +100,8 @@
       }
 
       .link .preview {
-        min-width: 8em;
-        max-width: 8em;
+        min-width: 10em;
+        max-width: 10em;
       }
 
       .link .preview img,
@@ -148,6 +129,7 @@
       .link .title {
         font-size: 1.5em;
         font-weight: var(--font-weight-bold);
+        overflow-wrap: anywhere;
       }
 
       .link .metadata {
@@ -168,7 +150,7 @@
             padding: 0.25em;
             border-radius: 0.25em;
           "
-          >ALPHA – SHIT'S BROKEN</span
+          >ALPHA</span
         >
       </h1>
       <p class="subtitle">
