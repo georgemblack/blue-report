@@ -18,7 +18,7 @@ import (
 var indexTmpl embed.FS
 
 const (
-	ListSize = 20
+	ListSize = 50
 )
 
 // Aggregate begins the aggregation loop.
