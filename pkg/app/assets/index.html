@@ -44,8 +44,8 @@
         --header-color: #424242;
         --header-accent-color: #4286f4;
         --body-color: #242424;
-        --link-color: #35589c;
-        --link-hover-color: #302b29;
+        --link-color: #18468f;
+        --link-hover-color: #2359b0;
         --faded-text-color: rgba(0, 0, 0, 0.4);
       }
 
@@ -93,20 +93,19 @@
 
       /* links */
       .link {
+        min-height: 10rem;
         padding: 2em;
         display: flex;
         gap: 2em;
         border-top: 2px solid var(--line-separator-color);
       }
 
-      .link .preview {
-        min-width: 10em;
-        max-width: 10em;
-      }
-
       .link .preview img,
       .link .preview .placeholder {
-        width: 100%;
+        height: 100%;
+        max-height: 8rem;
+        width: 10rem;
+        object-fit: cover;
         border-radius: 0.5rem;
         box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
       }
@@ -116,7 +115,6 @@
         justify-content: center;
         align-items: center;
         font-size: 3em;
-        height: 5rem;
         background-color: rgba(255, 255, 255, 0.25);
       }
 
@@ -127,7 +125,7 @@
       }
 
       .link .title {
-        font-size: 1.5em;
+        font-size: 1.25em;
         font-weight: var(--font-weight-bold);
         overflow-wrap: anywhere;
       }
@@ -136,10 +134,57 @@
         margin: 1em 0 0 0;
         color: var(--faded-text-color);
       }
+
+      /* medium break-point */
+      @media screen and (max-width: 46em) {
+        .link {
+          padding: 2em 1.5em;
+          gap: 1.5em;
+        }
+
+        .link .preview img,
+        .link .preview .placeholder {
+          max-height: 6rem;
+          width: 8rem;
+        }
+      }
+
+      /* small break-point */
+      @media screen and (max-width: 36em) {
+        .link {
+          padding: 2em 1em;
+          flex-direction: column;
+          gap: 1em;
+        }
+
+        .link .preview img,
+        .link .preview .placeholder {
+          max-height: none;
+          width: 100%;
+          height: 12rem;
+        }
+      }
     </style>
   </head>
   <body>
     <header>
+      <h1>
+        The<span class="accent">Blue</span>Report
+        <span
+          style="
+            font-family: system-ui;
+            font-size: 0.25em;
+            background-color: #4286f4;
+            padding: 0.25em;
+            border-radius: 0.25em;
+          "
+          >ALPHA</span
+        >
+      </h1>
+      <p class="subtitle">
+        The top links on Bluesky over the last 24 hours. Updated every ten minutes.
+      </p>
+    </header>
       <h1>
         The<span class="accent">Blue</span>Report
         <span
@@ -161,13 +206,13 @@
       <div class="link-group">
         {{ range .Links }}
         <div class="link">
-          <div class="preview">
+          <a href="{{ .URL }}" class="preview">
             {{ if .ImageURL }}
             <img src="{{ .ImageURL }}" />
             {{ else }}
             <div class="placeholder">🔗</div>
             {{ end }}
-          </div>
+          </a>
           <div class="content">
             <p class="title">
               <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
@@ -183,10 +228,16 @@
     </main>
     <footer>
       <p>Last updated {{ .GeneratedAt }}</p>
-      <p>
-        Created and maintained by
-        <a href="https://bsky.app/profile/george.black">George Black</a>
-      </p>
+      <div style="margin-top: 2em">
+        <p>
+          Created and maintained by
+          <a href="https://bsky.app/profile/george.black">George Black.</a>
+        </p>
+        <p>
+          This site was inspired by <a href="https://sill.social">Sill</a>, go
+          check it out!
+        </p>
+      </div>
     </footer>
   </body>
 </html>
