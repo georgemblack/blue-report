@@ -17,7 +17,7 @@ import (
 var indexTmpl embed.FS
 
 const (
-	ListSize = 25
+	ListSize = 15
 )
 
 // Aggregate runs a single aggregation cycle and exits.
