@@ -5,7 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"log/slog"
-	"os"
 	"sort"
 	"text/template"
 	"time"
@@ -18,7 +17,7 @@ import (
 var indexTmpl embed.FS
 
 const (
-	ListSize = 50
+	ListSize = 25
 )
 
 // Aggregate runs a single aggregation cycle and exits.
@@ -139,33 +138,59 @@ func Aggregate() error {
 	sort.Slice(sorted, func(i, j int) bool {
 		return sorted[i].Count.Score() > sorted[j].Count.Score()
 	})
-	top := sorted[:ListSize]
 
-	// Hydreate results with data for rendering webpage.
-	// i.e. Title, description, host, etc.
-	for i := range top {
+	// Generate lists top N lists by category, i.e. 'news', 'everything'
+	news := make([]ReportItems, 0, ListSize)
+	everything := make([]ReportItems, 0, ListSize)
+
+	newsHosts, err := GetNewsHosts()
+	if err != nil {
+		return wrapErr("failed to get news hosts", err)
+	}
+
+	// Hydreate results with data for rendering webpage (i.e. title, description).
+	// Place into 'news' or 'everything' list, and stop once both lists are full.
+	for i := range sorted {
 		// Fetch record for URL
-		urlRecord, err := vk.ReadURL(top[i].URLHash)
+		urlRecord, err := vk.ReadURL(sorted[i].URLHash)
 		if err != nil {
 			return wrapErr("failed to read url record during hydration", err)
 		}
 
-		top[i].Rank = i + 1
-		top[i].URL = urlRecord.URL
-		top[i].Host = hostname(urlRecord.URL)
-		top[i].Title = urlRecord.Title
-		top[i].Description = urlRecord.Description
-		top[i].ImageURL = urlRecord.ImageURL
+		sorted[i].URL = urlRecord.URL
+		sorted[i].Host = hostname(urlRecord.URL)
+		sorted[i].Title = urlRecord.Title
+		sorted[i].Description = urlRecord.Description
+		sorted[i].ImageURL = urlRecord.ImageURL
 		p := message.NewPrinter(message.MatchLanguage("en"))
-		top[i].PostCountStr = p.Sprintf("%d", top[i].Count.PostCount)
-		top[i].RepostCountStr = p.Sprintf("%d", top[i].Count.RepostCount)
+		sorted[i].PostCountStr = p.Sprintf("%d", sorted[i].Count.PostCount)
+		sorted[i].RepostCountStr = p.Sprintf("%d", sorted[i].Count.RepostCount)
 
-		slog.Debug("hydrated", "record", top[i])
+		slog.Debug("hydrated", "record", sorted[i])
+
+		host := hostname(urlRecord.URL)
+		if len(news) < ListSize && newsHosts.Contains(host) {
+			news = append(news, sorted[i])
+		}
+		if len(everything) < ListSize && !newsHosts.Contains(host) {
+			everything = append(everything, sorted[i])
+		}
+		if len(news) >= ListSize && len(everything) >= ListSize {
+			break // Avoid hydrating more records than needed
+		}
+	}
+
+	// Hydrate each set of results with ranks
+	for i := range news {
+		news[i].Rank = i + 1
+	}
+	for i := range everything {
+		everything[i].Rank = i + 1
 	}
 
 	// Generate final report
 	generatedAt := time.Now().Format("Jan 2, 2006 at 3:04pm (MST)")
-	report := Report{Links: top, GeneratedAt: generatedAt}
+	report := Report{NewsItems: news, EverythingItems: everything, GeneratedAt: generatedAt}
 
 	// Convert to HTML
 	tmpl, err := template.ParseFS(indexTmpl, "assets/index.html")
@@ -179,7 +204,7 @@ func Aggregate() error {
 	}
 
 	// For local testing
-	os.WriteFile("result.html", buf.Bytes(), 0644)
+	// os.WriteFile("result.html", buf.Bytes(), 0644)
 
 	// Publish to S3
 	err = stg.PublishSite(buf.Bytes())

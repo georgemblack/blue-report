@@ -45,8 +45,14 @@
         --header-accent-color: #4286f4;
         --body-color: #242424;
         --link-color: #18468f;
+        --body-text-color: #2d2d2d;
         --link-hover-color: #2359b0;
         --faded-text-color: rgba(0, 0, 0, 0.4);
+
+        /* toggle colors */
+        --toggle-background-color: #f4f0eb;
+        --toggle-selected-color: rgba(66, 134, 244, 0.25);
+        --toggle-selected-text-color: #4286f4;
       }
 
       * {
@@ -56,8 +62,8 @@
       }
 
       body {
-        margin: 0 auto;
-        max-width: 64rem;
+        margin: 1em auto;
+        max-width: 56rem;
         font-family: var(--primary-font);
         font-weight: 400;
         background-color: var(--background-color);
@@ -65,7 +71,7 @@
 
       header {
         text-align: center;
-        margin: 2em 0 0 0;
+        margin: 2em 1em 0 1em;
       }
 
       header .accent {
@@ -73,7 +79,7 @@
       }
 
       main {
-        margin: 2em 0 0 0;
+        margin: 1em 1em 0 1em;
       }
 
       footer {
@@ -91,10 +97,62 @@
         color: var(--link-hover-color);
       }
 
+      p {
+        color: var(--body-text-color);
+      }
+
+      /* view toggle */
+      .toggle {
+        margin: 0 auto;
+        max-width: 28em;
+        display: flex;
+        padding: 0.25em;
+        border-radius: 2em;
+        background-color: var(--toggle-background-color);
+        box-shadow: 5px 6px 23px -10px rgba(0, 0, 0, 0.25);
+        line-height: 100%;
+      }
+
+      .toggle .news,
+      .toggle .everything {
+        flex-grow: 1;
+        flex-basis: 0;
+        font-size: 1em;
+        padding: 0.5em 1em;
+        border-radius: 2em;
+        cursor: pointer;
+        text-align: center;
+      }
+
+      .toggle .active {
+        background-color: var(--toggle-selected-color);
+      }
+
+      .toggle .active p {
+        color: var(--toggle-selected-text-color);
+      }
+
+      /* small break-point */
+      @media screen and (max-width: 36em) {
+        .toggle .news,
+        .toggle .everything {
+          font-size: 0.85em;
+        }
+      }
+
       /* links */
+      .link-group {
+        margin-top: 2em;
+        display: none;
+      }
+
+      .link-group.visible {
+        display: block;
+      }
+
       .link {
-        min-height: 10rem;
-        padding: 2em;
+        min-height: 6rem;
+        padding: 1.5em 0em;
         display: flex;
         gap: 2em;
         border-top: 2px solid var(--line-separator-color);
@@ -103,7 +161,7 @@
       .link .preview img,
       .link .preview .placeholder {
         height: 100%;
-        max-height: 8rem;
+        max-height: 6rem;
         width: 10rem;
         object-fit: cover;
         border-radius: 0.5rem;
@@ -114,7 +172,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 3em;
+        font-size: 2.5em;
         background-color: rgba(255, 255, 255, 0.25);
       }
 
@@ -138,7 +196,7 @@
       /* medium break-point */
       @media screen and (max-width: 46em) {
         .link {
-          padding: 2em 1.5em;
+          padding: 2em 0;
           gap: 1.5em;
         }
 
@@ -152,7 +210,7 @@
       /* small break-point */
       @media screen and (max-width: 36em) {
         .link {
-          padding: 2em 1em;
+          padding: 2em 0;
           flex-direction: column;
           gap: 1em;
         }
@@ -165,6 +223,37 @@
         }
       }
     </style>
+    <!-- Script for handling tab selection -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const newsTab = document.querySelectorAll(".toggle .news");
+        console.log(newsTab);
+        const everythingTab = document.querySelectorAll(".toggle .everything");
+
+        const newsContent = document.querySelectorAll(".link-group.news");
+        const everythingContent = document.querySelectorAll(
+          ".link-group.everything"
+        );
+
+        newsTab.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            everythingTab.forEach((t) => t.classList.remove("active"));
+            everythingContent.forEach((c) => c.classList.remove("visible"));
+            newsTab.forEach((t) => t.classList.add("active"));
+            newsContent.forEach((c) => c.classList.add("visible"));
+          });
+        });
+
+        everythingTab.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            newsTab.forEach((t) => t.classList.remove("active"));
+            newsContent.forEach((c) => c.classList.remove("visible"));
+            everythingTab.forEach((t) => t.classList.add("active"));
+            everythingContent.forEach((c) => c.classList.add("visible"));
+          });
+        });
+      });
+    </script>
   </head>
   <body>
     <header>
@@ -174,11 +263,11 @@
           style="
             font-family: system-ui;
             font-size: 0.25em;
-            background-color: orange;
+            background-color: rgba(66, 134, 244, 0.25);
             padding: 0.25em;
             border-radius: 0.25em;
           "
-          >ALPHA</span
+          >BETA</span
         >
       </h1>
       <p class="subtitle">
@@ -186,8 +275,34 @@
       </p>
     </header>
     <main>
-      <div class="link-group">
-        {{ range .Links }}
+      <div class="toggle">
+        <div class="news active"><p>🗞️ News</p></div>
+        <div class="everything"><p>☀️ Everything Else</p></div>
+      </div>
+      <div class="link-group news visible">
+        {{ range .NewsItems }}
+        <div class="link">
+          <a href="{{ .URL }}" class="preview">
+            {{ if .ImageURL }}
+            <img src="{{ .ImageURL }}" />
+            {{ else }}
+            <div class="placeholder">🔗</div>
+            {{ end }}
+          </a>
+          <div class="content">
+            <p class="title">
+              <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
+            </p>
+            <p class="metadata">
+              {{ .Host }} • {{ .PostCountStr }} posts & {{ .RepostCountStr }}
+              reposts
+            </p>
+          </div>
+        </div>
+        {{ end }}
+      </div>
+      <div class="link-group everything">
+        {{ range .EverythingItems }}
         <div class="link">
           <a href="{{ .URL }}" class="preview">
             {{ if .ImageURL }}

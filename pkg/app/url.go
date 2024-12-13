@@ -10,7 +10,6 @@ import (
 // For example, ABC News uses query params to link to an article: 'https://abcnews.go.com/US/abc-news-live/story?id=12345678
 var QueryParamAllowList = []string{"abcnews.go.com"}
 
-// YouTubeHostList contains YouTube hostnames.
 var YouTubeHostList = []string{"www.youtube.com", "youtube.com", "m.youtube.com", "music.youtube.com"}
 
 // Normalize a URL by removing query parameters, and performing domain-specific transformations.
