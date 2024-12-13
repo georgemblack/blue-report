@@ -88,60 +88,90 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Valk
 			continue
 		}
 
-		key := event.Commit.CID
-		record := EventRecord{}
+		eventRecord := EventRecord{}
+		urlRecord := URLRecord{}
 
-		// If the event is a post, save metadata to Valkey.
+		// If the event is a post, save event and URL to Valkey.
 		if event.isPost() {
-			url := findURL(event)
-			if url == "" {
+			url, title, description, image := parse(event)
+
+			// Filter out unwanted URLs
+			if !include(url) {
 				skippedCount++
 				continue
 			}
 
-			record = EventRecord{
-				Type: 0,
-				URL:  url,
-				DID:  event.DID,
+			// Build event record
+			normalized := Normalize(url)
+			hashed := hash(normalized)
+			eventRecord = EventRecord{
+				Type:    0,
+				URLHash: hashed,
+				DID:     event.DID,
+			}
+
+			// Build URL record
+			urlRecord = URLRecord{
+				URL:         normalized,
+				Title:       title,
+				Description: description,
+				ImageURL:    image,
 			}
 		}
 
 		// If the event is a repost, attempt to find the original post in Valkey.
-		// If it exists, extract the URI and save it.
+		// If it exists, extract the URL and save it.
 		if event.isRepost() {
-			postKey := event.Commit.Record.Subject.CID
-			postRecord, err := client.Read(postKey)
+			postCID := event.Commit.Record.Subject.CID
+			postHash := hash(postCID)
+			postRecord, err := client.ReadEvent(postHash)
 			if err != nil || !postRecord.Valid() {
 				skippedCount++
 				continue
 			}
 
-			record = EventRecord{
-				Type: 1,
-				URL:  postRecord.URL,
-				DID:  event.DID,
+			// Build event record
+			eventRecord = EventRecord{
+				Type:    1,
+				URLHash: postRecord.URLHash,
+				DID:     event.DID,
 			}
 		}
 
-		// Filter out unwanted URLs
-		if !include(record.URL) {
-			skippedCount++
-			continue
-		}
-
-		err := client.Save(key, record)
+		// Save the event
+		hash := hash(event.Commit.CID)
+		err := client.SaveEvent(hash, eventRecord)
 		if err != nil {
 			errorCount++
 			slog.Error(err.Error())
 		} else {
 			successCount++
+			slog.Debug("saved event record", "worker", id, "hash", hash, "record", eventRecord)
 		}
 
-		slog.Debug("saved record", "worker", id, "key", key, "record", record)
+		// Save (or update) the URL record if the event is a post
+		if event.isPost() {
+			existing, err := client.ReadURL(eventRecord.URLHash)
+			if err != nil {
+				errorCount++
+				slog.Error(err.Error())
+				continue
+			}
+
+			// Update the record if one of the following is ture:
+			// 1. The existing record is empty
+			// 2. The existing record is partially empty (i.e. missing fields)
+			// 3. The new record is complete (all fields are present)
+			if existing.MissingFields() || urlRecord.MissingFields() {
+				client.SaveURL(eventRecord.URLHash, urlRecord)
+				successCount++
+				slog.Debug("saved url record", "worker", id, "hash", eventRecord.URLHash, "record", urlRecord)
+			}
+		}
 
 		// Log a checkpoint every number of successful of events
 		if successCount >= WorkerCheckpoint || errorCount >= WorkerCheckpoint {
-			slog.Info("worker checkpoint", "worker", id, "success", successCount, "skipped", skippedCount, "error", errorCount, "queue", len(stream))
+			slog.Info("worker checkpoint", "worker", id, "success", successCount, "error", errorCount, "skipped_events", skippedCount, "queue", len(stream))
 			successCount = 0
 			skippedCount = 0
 			errorCount = 0
@@ -165,22 +195,35 @@ func valid(event StreamEvent) bool {
 	return true
 }
 
-// Extract a single URL from a post. First search the facets, followed by the embed.
-func findURL(post StreamEvent) string {
+// Intended for parsing post events.
+func parse(post StreamEvent) (string, string, string, string) {
+	// Search embed for URL, title, description, and image
+	embed := post.Commit.Record.Embed
+	if embed.Type == "app.bsky.embed.external" {
+		uri := embed.External.URI
+		title := embed.External.Title
+		description := embed.External.Description
+		image := ""
+
+		// Add image if it exists
+		thumb := embed.External.Thumb
+		if thumb.Type == "blob" && thumb.MimeType == "image/jpeg" {
+			image = fmt.Sprintf("https://cdn.bsky.app/img/feed_thumbnail/plain/%s/%s", post.DID, thumb.Ref.Link)
+		}
+
+		return uri, title, description, image
+	}
+
+	// Otherwise, search for link facet
 	for _, facet := range post.Commit.Record.Facets {
 		for _, feature := range facet.Features {
 			if feature.Type == "app.bsky.richtext.facet#link" && feature.URI != "" {
-				return feature.URI
+				return feature.URI, "", "", ""
 			}
 		}
 	}
 
-	embed := post.Commit.Record.Embed
-	if embed.Type == "app.bsky.embed.external" && embed.External.URI != "" {
-		return embed.External.URI
-	}
-
-	return ""
+	return "", "", "", ""
 }
 
 // Determine whether to include a given URL.
@@ -200,9 +243,15 @@ func include(url string) bool {
 		return false
 	}
 
-	// Known weather bot
+	// Ignore known bots
 	// https://mesonet.agron.iastate.edu/projects/iembot/
 	if strings.HasPrefix(url, "https://mesonet.agron.iastate.edu") {
+		return false
+	}
+
+	// Ignore links to the app itself
+	// (The Blue Report is intended to track exteranl links)
+	if strings.HasPrefix(url, "https://bsky.app") {
 		return false
 	}
 

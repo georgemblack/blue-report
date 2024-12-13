@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"hash/fnv"
 	"os"
 )
 
@@ -16,6 +17,12 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func hash(s string) string {
+	hasher := fnv.New64a()
+	hasher.Write([]byte(s))
+	return fmt.Sprintf("%x", hasher.Sum64())
 }
 
 func getEnvStr(key, defaultValue string) string {

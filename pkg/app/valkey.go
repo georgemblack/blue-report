@@ -38,16 +38,15 @@ func valkeyClient() (Valkey, error) {
 	return Valkey{client: client}, nil
 }
 
-func (v Valkey) Save(key string, record EventRecord) error {
-	ctx := context.Background()
-
+func (v Valkey) SaveEvent(hash string, record EventRecord) error {
 	bytes, err := msgpack.Marshal(record)
 	if err != nil {
 		return wrapErr("failed to marshal record", err)
 	}
 
+	key := fmt.Sprintf("event:%s", hash)
 	cmd := v.client.B().Set().Key(key).Value(string(bytes)).Ex(time.Second * 86400).Build() // 24 hour expiry
-	err = v.client.Do(ctx, cmd).Error()
+	err = v.client.Do(context.Background(), cmd).Error()
 	if err != nil {
 		return wrapErr("failed to set key", err)
 	}
@@ -55,11 +54,26 @@ func (v Valkey) Save(key string, record EventRecord) error {
 	return nil
 }
 
-func (v Valkey) Read(key string) (EventRecord, error) {
-	ctx := context.Background()
+func (v Valkey) SaveURL(hash string, record URLRecord) error {
+	bytes, err := msgpack.Marshal(record)
+	if err != nil {
+		return wrapErr("failed to marshal record", err)
+	}
 
+	key := fmt.Sprintf("url:%s", hash)
+	cmd := v.client.B().Set().Key(key).Value(string(bytes)).Ex(time.Second * 604800).Build() // 7 day expiry
+	err = v.client.Do(context.Background(), cmd).Error()
+	if err != nil {
+		return wrapErr("failed to set key", err)
+	}
+
+	return nil
+}
+
+func (v Valkey) ReadEvent(hash string) (EventRecord, error) {
+	key := fmt.Sprintf("event:%s", hash)
 	cmd := v.client.B().Get().Key(key).Build()
-	resp := v.client.Do(ctx, cmd)
+	resp := v.client.Do(context.Background(), cmd)
 	if err := resp.Error(); err != nil {
 		if err == valkey.Nil {
 			return EventRecord{}, nil
@@ -81,7 +95,32 @@ func (v Valkey) Read(key string) (EventRecord, error) {
 	return record, nil
 }
 
-func (v Valkey) Keys() (mapset.Set[string], error) {
+func (v Valkey) ReadURL(hash string) (URLRecord, error) {
+	key := fmt.Sprintf("url:%s", hash)
+	cmd := v.client.B().Get().Key(key).Build()
+	resp := v.client.Do(context.Background(), cmd)
+	if err := resp.Error(); err != nil {
+		if err == valkey.Nil {
+			return URLRecord{}, nil
+		}
+		return URLRecord{}, wrapErr("failed to execute get command", err)
+	}
+
+	bytes, err := resp.AsBytes()
+	if err != nil {
+		return URLRecord{}, wrapErr("failed to convert response to bytes", err)
+	}
+
+	var record URLRecord
+	err = msgpack.Unmarshal(bytes, &record)
+	if err != nil {
+		return URLRecord{}, wrapErr("failed to unmarshal record", err)
+	}
+
+	return record, nil
+}
+
+func (v Valkey) EventKeys() (mapset.Set[string], error) {
 	ctx := context.Background()
 	cursor := uint64(0)
 	first := true
@@ -90,7 +129,7 @@ func (v Valkey) Keys() (mapset.Set[string], error) {
 	for cursor != 0 || first {
 		first = false
 
-		cmd := v.client.B().Scan().Cursor(cursor).Build()
+		cmd := v.client.B().Scan().Cursor(cursor).Match("event:*").Build()
 		resp := v.client.Do(ctx, cmd)
 		if err := resp.Error(); err != nil {
 			return nil, wrapErr("failed to execute scan command", err)
@@ -114,18 +153,17 @@ func (v Valkey) Keys() (mapset.Set[string], error) {
 		}
 
 		for _, key := range toAdd {
-			keys.Add(key)
+			keys.Add(key[6:]) // Strip the prefix
 		}
 	}
 
 	return keys, nil
 }
 
-func (v Valkey) TTL(key string) (int64, error) {
-	ctx := context.Background()
-
+func (v Valkey) EventTTL(hash string) (int64, error) {
+	key := fmt.Sprintf("event:%s", hash)
 	cmd := v.client.B().Ttl().Key(key).Build()
-	resp := v.client.Do(ctx, cmd)
+	resp := v.client.Do(context.Background(), cmd)
 	if err := resp.Error(); err != nil {
 		return 0, wrapErr("failed to execute ttl command", err)
 	}

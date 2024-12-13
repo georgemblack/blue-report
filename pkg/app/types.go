@@ -30,7 +30,20 @@ type Embed struct {
 }
 
 type External struct {
-	URI string `json:"uri"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	URI         string `json:"uri"`
+	Thumb       Thumb  `json:"thumb"`
+}
+
+type Thumb struct {
+	Type     string `json:"$type"`
+	Ref      Ref    `json:"ref"`
+	MimeType string `json:"mimeType"`
+}
+
+type Ref struct {
+	Link string `json:"$link"`
 }
 
 type Facet struct {
@@ -68,12 +81,34 @@ type AggregationItem struct {
 	Count int
 }
 
+type URLRecord struct {
+	URL         string `msgpack:"u"`
+	Title       string `msgpack:"t"`
+	Description string `msgpack:"d"`
+	ImageURL    string `msgpack:"p"`
+}
+
+func (r URLRecord) MissingURL() bool {
+	return r.URL == ""
+}
+
+func (r URLRecord) MissingFields() bool {
+	if (r.URL == "") || (r.Title == "") || (r.Description == "") || (r.ImageURL == "") {
+		return true
+	}
+	return false
+}
+
+func (r URLRecord) Complete() bool {
+	return !r.MissingFields()
+}
+
 // EventRecord represents a record stored in Valkey.
 // This struct is used to serialize and deserialize records.
 type EventRecord struct {
-	Type int // 0: post, 1: repost
-	URL  string
-	DID  string
+	Type    int    `msgpack:"t"` // 0: post, 1: repost
+	URLHash string `msgpack:"u"`
+	DID     string `msgpack:"d"`
 }
 
 func (r EventRecord) isPost() bool {
@@ -88,7 +123,7 @@ func (r EventRecord) Valid() bool {
 	if r.Type != 0 && r.Type != 1 {
 		return false
 	}
-	if r.URL == "" {
+	if r.URLHash == "" {
 		return false
 	}
 	if r.DID == "" {
@@ -114,6 +149,7 @@ func (r InternalCacheRecord) Expired() bool {
 type Count struct {
 	PostCount   int
 	RepostCount int
+	Score       int
 }
 
 // Report represents all data requried to render the webpage.
@@ -125,12 +161,22 @@ type Report struct {
 // ReportLinks represents a single item to be rendered on the webpage
 type ReportLinks struct {
 	Rank           int
+	URLHash        string
 	URL            string
 	Host           string
 	Title          string
+	Description    string
 	ImageURL       string
-	PostCount      int
-	RepostCount    int
+	Count          Count
 	PostCountStr   string
 	RepostCountStr string
+}
+
+type Dump struct {
+	Items []DumpItem `json:"items"`
+}
+
+type DumpItem struct {
+	Key   string              `json:"key"`
+	Value InternalCacheRecord `json:"value"`
 }

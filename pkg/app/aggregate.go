@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"embed"
 	"fmt"
-	"hash/fnv"
 	"log/slog"
 	"sort"
 	"text/template"
@@ -21,21 +20,23 @@ const (
 	ListSize = 50
 )
 
-// Aggregate begins the aggregation loop.
+// Aggregate runs a single aggregation cycle and exits.
 // All records are read from Valkey, and the frequency of each URL is counted.
 // An in-memory cache supplements Valkey, that persists between runs.
 func Aggregate() error {
-	cache := map[string]InternalCacheRecord{}
+	eventCache := map[string]InternalCacheRecord{}
 
-	for {
-		err := aggregate(cache)
-		if err != nil {
-			return err
+	slog.Info("populating cache")
+	dump, err := readCache()
+	if err != nil {
+		slog.Warn(wrapErr("cache is starting empty", err).Error())
+	} else {
+		for _, item := range dump.Items {
+			eventCache[item.Key] = item.Value
 		}
+		slog.Info("cache populated", "items", len(dump.Items))
 	}
-}
 
-func aggregate(cache map[string]InternalCacheRecord) error {
 	slog.Info("starting aggregation")
 	start := time.Now()
 
@@ -46,7 +47,8 @@ func aggregate(cache map[string]InternalCacheRecord) error {
 	}
 	defer vk.Close()
 
-	keys, err := vk.Keys()
+	// Find all event keys
+	keys, err := vk.EventKeys()
 	if err != nil {
 		return wrapErr("failed to list keys", err)
 	}
@@ -64,11 +66,11 @@ func aggregate(cache map[string]InternalCacheRecord) error {
 		record := EventRecord{}
 
 		// Check internal cache for key
-		hit, ok := cache[key]
+		hit, ok := eventCache[key]
 		if ok {
 			// If the record has expired or empty, delete from local cache and skip
 			if hit.Expired() || hit.Record.Empty() {
-				delete(cache, key)
+				delete(eventCache, key)
 				continue
 			}
 
@@ -76,7 +78,7 @@ func aggregate(cache map[string]InternalCacheRecord) error {
 			internalCacheHit++
 		} else {
 			// Read record from Valkey
-			record, err = vk.Read(key)
+			record, err = vk.ReadEvent(key)
 			if err != nil {
 				slog.Warn(wrapErr("failed to read record", err).Error())
 				continue
@@ -84,87 +86,77 @@ func aggregate(cache map[string]InternalCacheRecord) error {
 
 			// If the record in Valkey is expired, delete from local cache and skip
 			if record.Empty() {
-				delete(cache, key)
+				delete(eventCache, key)
 				continue
 			}
 
 			// Get record TTL from Valkey. This will be used to set our own internal cache's expiry.
 			// If the internal cache's record is expired, we can assume the Valkey record is expired as well.
-			ttl, err := vk.TTL(key)
+			ttl, err := vk.EventTTL(key)
 			if err != nil {
 				slog.Warn(wrapErr("failed to get ttl", err).Error())
 				continue
 			}
 
-			cache[key] = InternalCacheRecord{
+			eventCache[key] = InternalCacheRecord{
 				Record: record,
 				Expiry: time.Now().Add(time.Second * time.Duration(ttl)),
 			}
 			externalCacheHit++
 		}
 
-		if !include(record.URL) {
-			continue
-		}
-
-		print := fingerprint(record)
-		normalized := Normalize(record.URL)
-
 		// Each URL is counted only once per user. This is to avoid users reposting/spamming their links.
 		// Use a 'fingerprint' to track a given URL and user combination.
+		print := fingerprint(record)
 		if fingerprints.Contains(print) {
 			continue
 		}
 
 		// Update count for the URL and add fingerprint to set
-		item := count[normalized]
+		item := count[record.URLHash]
 		if record.isPost() {
 			item.PostCount++
+			item.Score += 10 // Posts are worth 10 points
 		} else if record.isRepost() {
 			item.RepostCount++
+			item.Score += 1 // Reposts are worth 1 point
 		}
-		count[normalized] = item
+		count[record.URLHash] = item
 		fingerprints.Add(print)
 	}
 
-	slog.Info("finished generating count", "urls", len(count), "internal_cache_hit", internalCacheHit, "external_cache_hit", externalCacheHit, "internal_cache_size", len(cache))
+	slog.Info("finished generating count", "urls", len(count), "internal_cache_hit", internalCacheHit, "external_cache_hit", externalCacheHit, "internal_cache_size", len(eventCache))
 
-	// Convert the map containing the count to the results
 	formatted := make([]ReportLinks, 0, len(count))
 	for k, v := range count {
-		formatted = append(formatted, ReportLinks{URL: k, PostCount: v.PostCount, RepostCount: v.RepostCount})
+		formatted = append(formatted, ReportLinks{URLHash: k, Count: v})
 	}
 
-	// Sort results, and only keep top number of items
+	// Sort results by score, and keep the top N
 	sorted := formatted
 	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].PostCount+sorted[i].RepostCount > sorted[j].PostCount+sorted[j].RepostCount
+		return sorted[i].Count.Score > sorted[j].Count.Score
 	})
 	top := sorted[:ListSize]
 
-	// Hydrate data for each result.
-	//	- Fetch page title
-	//	- Fetch page image
-	//	- Supplement any missing data
+	// Hydreate results with data for rendering webpage.
+	// i.e. Title, description, host, etc.
 	for i := range top {
-		url := top[i].URL
-		title, img, err := fetchURLMetadata(url)
+		// Fetch record for URL
+		urlRecord, err := vk.ReadURL(top[i].URLHash)
 		if err != nil {
-			msg := fmt.Sprintf("failed to fetch metadata for '%s'", url)
-			slog.Warn(wrapErr(msg, err).Error())
+			return wrapErr("failed to read url record during hydration", err)
 		}
 
 		top[i].Rank = i + 1
-		top[i].Title = title
-		top[i].Host = hostname(url)
-		top[i].ImageURL = img
-		if top[i].Title == "" {
-			top[i].Title = top[i].URL
-		}
-
+		top[i].URL = urlRecord.URL
+		top[i].Host = hostname(urlRecord.URL)
+		top[i].Title = urlRecord.Title
+		top[i].Description = urlRecord.Description
+		top[i].ImageURL = urlRecord.ImageURL
 		p := message.NewPrinter(message.MatchLanguage("en"))
-		top[i].PostCountStr = p.Sprintf("%d", top[i].PostCount)
-		top[i].RepostCountStr = p.Sprintf("%d", top[i].RepostCount)
+		top[i].PostCountStr = p.Sprintf("%d", top[i].Count.PostCount)
+		top[i].RepostCountStr = p.Sprintf("%d", top[i].Count.RepostCount)
 
 		slog.Debug("hydrated", "record", top[i])
 	}
@@ -195,13 +187,26 @@ func aggregate(cache map[string]InternalCacheRecord) error {
 
 	duration := time.Since(start)
 	slog.Info("aggregation complete", "seconds", duration.Seconds())
+
+	// Write the contents of the local cache to S3.
+	// This wil be loaded on the next run, to avoid re-reading all records from Valkey.
+	slog.Info("writing cache")
+	items := make([]DumpItem, 0, len(eventCache))
+	for k, v := range eventCache {
+		items = append(items, DumpItem{Key: k, Value: v})
+	}
+	dump = Dump{Items: items}
+	err = writeCache(dump)
+	if err != nil {
+		slog.Warn(wrapErr("failed to write cache", err).Error())
+	} else {
+		slog.Info("cache written", "items", len(dump.Items))
+	}
+
 	return nil
 }
 
 // Generate a unique 'fingerprint' for a given user (DID) and URL combination.
 func fingerprint(record EventRecord) string {
-	input := fmt.Sprintf("%s%s", record.DID, record.URL)
-	hasher := fnv.New64a()
-	hasher.Write([]byte(input))
-	return fmt.Sprintf("%x", hasher.Sum(nil))
+	return hash(fmt.Sprintf("%s%s", record.DID, record.URLHash))
 }
