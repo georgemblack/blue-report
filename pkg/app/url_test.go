@@ -24,7 +24,7 @@ func TestNormalizeYouTube(t *testing.T) {
 	}
 
 	// Standard URL with one query param
-	dirty = "https://youtube.com/watch?v=5evhacpji5s"
+	dirty = "https://youtube.com/watch?v=5evhacpji5s&utm_source=example"
 	clean = "https://youtu.be/5evhacpji5s"
 	result = app.Normalize(dirty)
 	if result != clean {
@@ -35,6 +35,15 @@ func TestNormalizeYouTube(t *testing.T) {
 func TestNormalizeRemoveQueryParams(t *testing.T) {
 	dirty := "https://example.com/page?foo=bar&baz=qux"
 	clean := "https://example.com/page"
+	result := app.Normalize(dirty)
+	if result != clean {
+		t.Errorf("expected '%s', got '%s'", clean, result)
+	}
+}
+
+func TestNormalizeQueryParamAllowList(t *testing.T) {
+	dirty := "https://abcnews.go.com/page?story=12345678"
+	clean := "https://abcnews.go.com/page?story=12345678"
 	result := app.Normalize(dirty)
 	if result != clean {
 		t.Errorf("expected '%s', got '%s'", clean, result)

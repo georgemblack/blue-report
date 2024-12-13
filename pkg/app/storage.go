@@ -10,22 +10,21 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-func siteBucketName() string {
-	return getEnvStr("S3_BUCKET_NAME", "bogus")
+type Storage struct {
+	client *s3.Client
 }
 
-func assetsBucketName() string {
-	return getEnvStr("S3_ASSETS_BUCKET_NAME", "bogus")
-}
-
-func publish(site []byte) error {
+func NewStorageClient() (Storage, error) {
 	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion("us-west-2"))
 	if err != nil {
-		return wrapErr("failed to load aws config", err)
+		return Storage{}, wrapErr("failed to load aws config", err)
 	}
-	client := s3.NewFromConfig(cfg)
 
-	_, err = client.PutObject(context.Background(), &s3.PutObjectInput{
+	return Storage{client: s3.NewFromConfig(cfg)}, nil
+}
+
+func (s Storage) PublishSite(site []byte) error {
+	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:               aws.String(siteBucketName()),
 		Key:                  aws.String("index.html"),
 		Body:                 bytes.NewReader(site),
@@ -39,22 +38,13 @@ func publish(site []byte) error {
 	return nil
 }
 
-func writeCache(dump Dump) error {
-	// Convert dump to JSON
+func (s Storage) WriteCache(dump CacheDump) error {
 	data, err := json.Marshal(dump)
 	if err != nil {
 		return wrapErr("failed to marshal dump", err)
 	}
 
-	// Build S3 client
-	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion("us-west-2"))
-	if err != nil {
-		return wrapErr("failed to load aws config", err)
-	}
-	client := s3.NewFromConfig(cfg)
-
-	// Write cache to S3
-	_, err = client.PutObject(context.Background(), &s3.PutObjectInput{
+	_, err = s.client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:               aws.String(assetsBucketName()),
 		Key:                  aws.String("cache.json"),
 		Body:                 bytes.NewReader(data),
@@ -68,29 +58,28 @@ func writeCache(dump Dump) error {
 	return nil
 }
 
-func readCache() (Dump, error) {
-	// Build S3 client
-	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion("us-west-2"))
-	if err != nil {
-		return Dump{}, wrapErr("failed to load aws config", err)
-	}
-	client := s3.NewFromConfig(cfg)
-
-	// Read cache from S3
-	resp, err := client.GetObject(context.Background(), &s3.GetObjectInput{
+func (s Storage) ReadCache() (CacheDump, error) {
+	resp, err := s.client.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(assetsBucketName()),
 		Key:    aws.String("cache.json"),
 	})
 	if err != nil {
-		return Dump{}, wrapErr("failed to get object", err)
+		return CacheDump{}, wrapErr("failed to get object", err)
 	}
 
-	// Decode JSON
-	var dump Dump
+	var dump CacheDump
 	err = json.NewDecoder(resp.Body).Decode(&dump)
 	if err != nil {
-		return Dump{}, wrapErr("failed to decode json", err)
+		return CacheDump{}, wrapErr("failed to decode json", err)
 	}
 
 	return dump, nil
+}
+
+func siteBucketName() string {
+	return getEnvStr("S3_BUCKET_NAME", "bogus")
+}
+
+func assetsBucketName() string {
+	return getEnvStr("S3_ASSETS_BUCKET_NAME", "bogus")
 }

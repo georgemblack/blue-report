@@ -5,6 +5,7 @@ import (
 	"embed"
 	"fmt"
 	"log/slog"
+	"os"
 	"sort"
 	"text/template"
 	"time"
@@ -24,28 +25,31 @@ const (
 // All records are read from Valkey, and the frequency of each URL is counted.
 // An in-memory cache supplements Valkey, that persists between runs.
 func Aggregate() error {
-	eventCache := map[string]InternalCacheRecord{}
-
-	slog.Info("populating cache")
-	dump, err := readCache()
-	if err != nil {
-		slog.Warn(wrapErr("cache is starting empty", err).Error())
-	} else {
-		for _, item := range dump.Items {
-			eventCache[item.Key] = item.Value
-		}
-		slog.Info("cache populated", "items", len(dump.Items))
-	}
-
 	slog.Info("starting aggregation")
 	start := time.Now()
 
 	// Build Valkey client
-	vk, err := valkeyClient()
+	vk, err := NewValkeyClient()
 	if err != nil {
 		return wrapErr("failed to create valkey client", err)
 	}
 	defer vk.Close()
+
+	// Build storage client
+	stg, err := NewStorageClient()
+	if err != nil {
+		return wrapErr("failed to create storage client", err)
+	}
+
+	slog.Info("populating event cache")
+	eventCache := NewEventCache()
+	cacheDump, err := stg.ReadCache()
+	if err != nil {
+		slog.Warn(wrapErr("cache is starting empty", err).Error())
+	} else {
+		eventCache.Populate(cacheDump)
+		slog.Info("cache populated", "items", len(cacheDump.Items))
+	}
 
 	// Find all event keys
 	keys, err := vk.EventKeys()
@@ -66,11 +70,11 @@ func Aggregate() error {
 		record := EventRecord{}
 
 		// Check internal cache for key
-		hit, ok := eventCache[key]
+		hit, ok := eventCache.Get(key)
 		if ok {
 			// If the record has expired or empty, delete from local cache and skip
 			if hit.Expired() || hit.Record.Empty() {
-				delete(eventCache, key)
+				eventCache.Delete(key)
 				continue
 			}
 
@@ -86,7 +90,7 @@ func Aggregate() error {
 
 			// If the record in Valkey is expired, delete from local cache and skip
 			if record.Empty() {
-				delete(eventCache, key)
+				eventCache.Delete(key)
 				continue
 			}
 
@@ -98,10 +102,10 @@ func Aggregate() error {
 				continue
 			}
 
-			eventCache[key] = InternalCacheRecord{
+			eventCache.Add(key, CacheRecord{
 				Record: record,
 				Expiry: time.Now().Add(time.Second * time.Duration(ttl)),
-			}
+			})
 			externalCacheHit++
 		}
 
@@ -116,26 +120,24 @@ func Aggregate() error {
 		item := count[record.URLHash]
 		if record.isPost() {
 			item.PostCount++
-			item.Score += 10 // Posts are worth 10 points
 		} else if record.isRepost() {
 			item.RepostCount++
-			item.Score += 1 // Reposts are worth 1 point
 		}
 		count[record.URLHash] = item
 		fingerprints.Add(print)
 	}
 
-	slog.Info("finished generating count", "urls", len(count), "internal_cache_hit", internalCacheHit, "external_cache_hit", externalCacheHit, "internal_cache_size", len(eventCache))
+	slog.Info("finished generating count", "urls", len(count), "internal_cache_hit", internalCacheHit, "external_cache_hit", externalCacheHit, "internal_cache_size", eventCache.Len())
 
-	formatted := make([]ReportLinks, 0, len(count))
+	formatted := make([]ReportItems, 0, len(count))
 	for k, v := range count {
-		formatted = append(formatted, ReportLinks{URLHash: k, Count: v})
+		formatted = append(formatted, ReportItems{URLHash: k, Count: v})
 	}
 
 	// Sort results by score, and keep the top N
 	sorted := formatted
 	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].Count.Score > sorted[j].Count.Score
+		return sorted[i].Count.Score() > sorted[j].Count.Score()
 	})
 	top := sorted[:ListSize]
 
@@ -177,32 +179,27 @@ func Aggregate() error {
 	}
 
 	// For local testing
-	// os.WriteFile("result.html", buf.Bytes(), 0644)
+	os.WriteFile("result.html", buf.Bytes(), 0644)
 
 	// Publish to S3
-	err = publish(buf.Bytes())
+	err = stg.PublishSite(buf.Bytes())
 	if err != nil {
 		return wrapErr("failed to publish report", err)
 	}
 
-	duration := time.Since(start)
-	slog.Info("aggregation complete", "seconds", duration.Seconds())
-
 	// Write the contents of the local cache to S3.
 	// This wil be loaded on the next run, to avoid re-reading all records from Valkey.
 	slog.Info("writing cache")
-	items := make([]DumpItem, 0, len(eventCache))
-	for k, v := range eventCache {
-		items = append(items, DumpItem{Key: k, Value: v})
-	}
-	dump = Dump{Items: items}
-	err = writeCache(dump)
+	cacheDump = eventCache.Dump()
+	err = stg.WriteCache(cacheDump)
 	if err != nil {
 		slog.Warn(wrapErr("failed to write cache", err).Error())
 	} else {
-		slog.Info("cache written", "items", len(dump.Items))
+		slog.Info("cache written", "items", len(cacheDump.Items))
 	}
 
+	duration := time.Since(start)
+	slog.Info("aggregation complete", "seconds", duration.Seconds())
 	return nil
 }
 

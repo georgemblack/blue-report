@@ -10,6 +10,9 @@ import (
 // For example, ABC News uses query params to link to an article: 'https://abcnews.go.com/US/abc-news-live/story?id=12345678
 var QueryParamAllowList = []string{"abcnews.go.com"}
 
+// YouTubeHostList contains YouTube hostnames.
+var YouTubeHostList = []string{"www.youtube.com", "youtube.com", "m.youtube.com", "music.youtube.com"}
+
 // Normalize a URL by removing query parameters, and performing domain-specific transformations.
 func Normalize(input string) string {
 	result := input
@@ -21,7 +24,7 @@ func Normalize(input string) string {
 	// Convert YouTube URLs to short form.
 	// Examples:
 	//	- 'https://youtube.com/watch?abc123' -> 'https://youtu.be/abc123'
-	if hasYouTubePrefix(result) {
+	if contains(YouTubeHostList, parsed.Hostname()) {
 		params := parsed.Query()
 		videoID := params.Get("v")
 		if videoID == "" {
@@ -31,30 +34,13 @@ func Normalize(input string) string {
 		result = fmt.Sprintf("https://youtu.be/%s", videoID)
 	}
 
-	// Strip query parameters
+	// Strip query parameters (with exceptions)
 	index := strings.Index(result, "?")
 	if !contains(QueryParamAllowList, parsed.Hostname()) && index != -1 {
 		result = result[:index]
 	}
 
 	return result
-}
-
-func hasYouTubePrefix(url string) bool {
-	if strings.HasPrefix(url, "https://www.youtube.com") {
-		return true
-	}
-	if strings.HasPrefix(url, "https://youtube.com") {
-		return true
-	}
-	if strings.HasPrefix(url, "https://m.youtube.com") {
-		return true
-	}
-	if strings.HasPrefix(url, "https://music.youtube.com") {
-		return true
-	}
-
-	return false
 }
 
 func hostname(fullURL string) string {

@@ -19,7 +19,7 @@ func Intake() error {
 	slog.Info("starting intake")
 
 	// Build Valkey vk
-	vk, err := valkeyClient()
+	vk, err := NewValkeyClient()
 	if err != nil {
 		return wrapErr("failed to create valkey client", err)
 	}

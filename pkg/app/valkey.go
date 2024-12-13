@@ -15,7 +15,7 @@ type Valkey struct {
 	client valkey.Client
 }
 
-func valkeyClient() (Valkey, error) {
+func NewValkeyClient() (Valkey, error) {
 	address := getEnvStr("VALKEY_ADDRESS", "127.0.0.1:6379")
 	tlsEnabled := getEnvBool("VALKEY_TLS_ENABLED", false)
 
@@ -184,4 +184,59 @@ func (v Valkey) EventTTL(hash string) (int64, error) {
 
 func (v Valkey) Close() {
 	v.client.Close()
+}
+
+type URLRecord struct {
+	URL         string `msgpack:"u"`
+	Title       string `msgpack:"t"`
+	Description string `msgpack:"d"`
+	ImageURL    string `msgpack:"p"`
+}
+
+func (r URLRecord) MissingURL() bool {
+	return r.URL == ""
+}
+
+func (r URLRecord) MissingFields() bool {
+	if (r.URL == "") || (r.Title == "") || (r.Description == "") || (r.ImageURL == "") {
+		return true
+	}
+	return false
+}
+
+func (r URLRecord) Complete() bool {
+	return !r.MissingFields()
+}
+
+// EventRecord represents a record stored in Valkey.
+// This struct is used to serialize and deserialize records.
+type EventRecord struct {
+	Type    int    `msgpack:"t"` // 0: post, 1: repost
+	URLHash string `msgpack:"u"`
+	DID     string `msgpack:"d"`
+}
+
+func (r EventRecord) isPost() bool {
+	return r.Type == 0
+}
+
+func (r EventRecord) isRepost() bool {
+	return r.Type == 1
+}
+
+func (r EventRecord) Valid() bool {
+	if r.Type != 0 && r.Type != 1 {
+		return false
+	}
+	if r.URLHash == "" {
+		return false
+	}
+	if r.DID == "" {
+		return false
+	}
+	return true
+}
+
+func (r EventRecord) Empty() bool {
+	return !r.Valid()
 }
