@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"os"
-	"strings"
 )
 
 func wrapErr(message string, err error) error {
@@ -14,15 +13,6 @@ func wrapErr(message string, err error) error {
 func contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
-			return true
-		}
-	}
-	return false
-}
-
-func hasPrefix(input string, prefixes []string) bool {
-	for _, prefix := range prefixes {
-		if strings.HasPrefix(input, prefix) {
 			return true
 		}
 	}
