@@ -26,6 +26,8 @@ type CacheDumpItem struct {
 	Value CacheRecord `json:"value"`
 }
 
+// NewEventCache creates an in-memory, local cache for event records.
+// It is intended to be used as a supplement to our external cache (Valkey), to keep costs down.
 func NewEventCache() EventCache {
 	return EventCache{Cache: map[string]CacheRecord{}}
 }
@@ -34,6 +36,19 @@ func (c *EventCache) Populate(dump CacheDump) {
 	for _, item := range dump.Items {
 		c.Cache[item.Key] = item.Value
 	}
+}
+
+func (c *EventCache) Clean() int {
+	removed := 0
+
+	for k, v := range c.Cache {
+		if v.Expired() {
+			c.Delete(k)
+			removed++
+		}
+	}
+
+	return removed
 }
 
 func (c *EventCache) Dump() CacheDump {
@@ -48,13 +63,13 @@ func (c *EventCache) Add(key string, value CacheRecord) {
 	c.Cache[key] = value
 }
 
+func (c *EventCache) Delete(key string) {
+	delete(c.Cache, key)
+}
+
 func (c *EventCache) Get(key string) (CacheRecord, bool) {
 	v, ok := c.Cache[key]
 	return v, ok
-}
-
-func (c *EventCache) Delete(key string) {
-	delete(c.Cache, key)
 }
 
 func (c *EventCache) Len() int {

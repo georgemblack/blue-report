@@ -45,7 +45,6 @@ func Aggregate() error {
 		return wrapErr("failed to create storage client", err)
 	}
 
-	slog.Info("populating event cache")
 	eventCache := NewEventCache()
 	cacheDump, err := stg.ReadCache()
 	if err != nil {
@@ -76,9 +75,8 @@ func Aggregate() error {
 		// Check internal cache for key
 		hit, ok := eventCache.Get(key)
 		if ok {
-			// If the record has expired or empty, delete from local cache and skip
+			// If the record is expired or empty, the record will not exist in Valkey and can be skipped.
 			if hit.Expired() || hit.Record.Empty() {
-				eventCache.Delete(key)
 				continue
 			}
 
@@ -92,9 +90,8 @@ func Aggregate() error {
 				continue
 			}
 
-			// If the record in Valkey is expired, delete from local cache and skip
+			// If the record in Valkey is expired, it can be skipped.
 			if record.Empty() {
-				eventCache.Delete(key)
 				continue
 			}
 
@@ -233,9 +230,12 @@ func Aggregate() error {
 		return wrapErr("failed to publish report", err)
 	}
 
+	// Clean the event cache, i.e. remove expired records.
+	removed := eventCache.Clean()
+	slog.Info("cleaned cache", "removed_items", removed)
+
 	// Write the contents of the local cache to S3.
 	// This wil be loaded on the next run, to avoid re-reading all records from Valkey.
-	slog.Info("writing cache")
 	cacheDump = eventCache.Dump()
 	err = stg.WriteCache(cacheDump)
 	if err != nil {

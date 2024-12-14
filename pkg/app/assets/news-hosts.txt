@@ -14,6 +14,7 @@ www.abc.net.au
 www.axios.com
 www.bbc.co.uk
 www.bbc.com
+www.bridgemi.com
 www.cbsnews.com
 www.cnn.com
 www.comicsands.com
@@ -37,4 +38,5 @@ www.usatoday.com
 www.usnews.com
 www.voanews.com
 www.vox.com
+www.washingtonpost.com
 www.wsj.com
