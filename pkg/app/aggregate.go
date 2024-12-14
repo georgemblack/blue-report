@@ -5,7 +5,6 @@ import (
 	"embed"
 	"fmt"
 	"log/slog"
-	"os"
 	"regexp"
 	"sort"
 	"text/template"
@@ -226,13 +225,13 @@ func Aggregate() error {
 	}
 
 	// For local testing
-	os.WriteFile("result.html", final, 0644)
+	// os.WriteFile("result.html", final, 0644)
 
 	// Publish to S3
-	// err = stg.PublishSite(final)
-	// if err != nil {
-	// 	return wrapErr("failed to publish report", err)
-	// }
+	err = stg.PublishSite(final)
+	if err != nil {
+		return wrapErr("failed to publish report", err)
+	}
 
 	// Write the contents of the local cache to S3.
 	// This wil be loaded on the next run, to avoid re-reading all records from Valkey.
