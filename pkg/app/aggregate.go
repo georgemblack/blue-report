@@ -5,11 +5,17 @@ import (
 	"embed"
 	"fmt"
 	"log/slog"
+	"os"
+	"regexp"
 	"sort"
 	"text/template"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
+	minify "github.com/tdewolff/minify/v2"
+	"github.com/tdewolff/minify/v2/css"
+	"github.com/tdewolff/minify/v2/html"
+	"github.com/tdewolff/minify/v2/js"
 	"golang.org/x/text/message"
 )
 
@@ -203,14 +209,30 @@ func Aggregate() error {
 		return wrapErr("failed to execute template", err)
 	}
 
+	// Minify HTML
+	minifier := minify.New()
+	minifier.Add("text/html", &html.Minifier{
+		KeepDefaultAttrVals: true,
+		KeepDocumentTags:    true,
+		KeepEndTags:         true,
+		KeepQuotes:          true,
+	})
+	minifier.AddFunc("text/css", css.Minify)
+	minifier.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
+
+	final, err := minifier.Bytes("text/html", buf.Bytes())
+	if err != nil {
+		return wrapErr("failed to minify html", err)
+	}
+
 	// For local testing
-	// os.WriteFile("result.html", buf.Bytes(), 0644)
+	os.WriteFile("result.html", final, 0644)
 
 	// Publish to S3
-	err = stg.PublishSite(buf.Bytes())
-	if err != nil {
-		return wrapErr("failed to publish report", err)
-	}
+	// err = stg.PublishSite(final)
+	// if err != nil {
+	// 	return wrapErr("failed to publish report", err)
+	// }
 
 	// Write the contents of the local cache to S3.
 	// This wil be loaded on the next run, to avoid re-reading all records from Valkey.

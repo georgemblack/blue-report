@@ -117,7 +117,6 @@
       .toggle .everything {
         flex-grow: 1;
         flex-basis: 0;
-        font-size: 1em;
         padding: 0.5em 1em;
         border-radius: 2em;
         cursor: pointer;
@@ -151,7 +150,6 @@
       }
 
       .link {
-        min-height: 8rem;
         padding: 1.5em 0em;
         display: flex;
         gap: 2em;
@@ -160,8 +158,8 @@
 
       .link .preview img,
       .link .preview .placeholder {
-        height: 100%;
-        max-height: 6rem;
+        display: block;
+        height: 6rem;
         width: 10rem;
         object-fit: cover;
         border-radius: 0.5rem;
@@ -169,7 +167,6 @@
       }
 
       .link .preview .placeholder {
-        height: 6rem;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -197,7 +194,6 @@
       /* medium break-point */
       @media screen and (max-width: 46em) {
         .link {
-          padding: 2em 0;
           gap: 1.5em;
         }
 
@@ -217,43 +213,11 @@
 
         .link .preview img,
         .link .preview .placeholder {
-          max-height: none;
           width: 100%;
           height: 12rem;
         }
       }
     </style>
-    <!-- Script for handling tab selection -->
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const newsTab = document.querySelectorAll(".toggle .news");
-        console.log(newsTab);
-        const everythingTab = document.querySelectorAll(".toggle .everything");
-
-        const newsContent = document.querySelectorAll(".link-group.news");
-        const everythingContent = document.querySelectorAll(
-          ".link-group.everything"
-        );
-
-        newsTab.forEach((tab) => {
-          tab.addEventListener("click", () => {
-            everythingTab.forEach((t) => t.classList.remove("active"));
-            everythingContent.forEach((c) => c.classList.remove("visible"));
-            newsTab.forEach((t) => t.classList.add("active"));
-            newsContent.forEach((c) => c.classList.add("visible"));
-          });
-        });
-
-        everythingTab.forEach((tab) => {
-          tab.addEventListener("click", () => {
-            newsTab.forEach((t) => t.classList.remove("active"));
-            newsContent.forEach((c) => c.classList.remove("visible"));
-            everythingTab.forEach((t) => t.classList.add("active"));
-            everythingContent.forEach((c) => c.classList.add("visible"));
-          });
-        });
-      });
-    </script>
   </head>
   <body>
     <header>
@@ -337,5 +301,59 @@
         </p>
       </div>
     </footer>
+    <!-- Script for handling tab selection -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const newsTab = document.querySelectorAll(".toggle .news");
+        const everythingTab = document.querySelectorAll(".toggle .everything");
+        const newsContent = document.querySelectorAll(".link-group.news");
+        const everythingContent = document.querySelectorAll(
+          ".link-group.everything"
+        );
+
+        const getQueryParam = (param) => {
+          const urlParams = new URLSearchParams(window.location.search);
+          return urlParams.get(param);
+        };
+
+        const setQueryParam = (param, value) => {
+          const url = new URL(window.location.href);
+          url.searchParams.set(param, value);
+          window.history.pushState({}, "", url); // Update the URL without reloading
+        };
+
+        const selectNewsTab = () => {
+          everythingTab.forEach((t) => t.classList.remove("active"));
+          everythingContent.forEach((c) => c.classList.remove("visible"));
+          newsTab.forEach((t) => t.classList.add("active"));
+          newsContent.forEach((c) => c.classList.add("visible"));
+          setQueryParam("tab", "news");
+        };
+
+        const selectEverythingTab = () => {
+          newsTab.forEach((t) => t.classList.remove("active"));
+          newsContent.forEach((c) => c.classList.remove("visible"));
+          everythingTab.forEach((t) => t.classList.add("active"));
+          everythingContent.forEach((c) => c.classList.add("visible"));
+          setQueryParam("tab", "everything");
+        };
+
+        newsTab.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            selectNewsTab();
+          });
+        });
+
+        everythingTab.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            selectEverythingTab();
+          });
+        });
+
+        if (getQueryParam("tab") === "everything") {
+          selectEverythingTab(); // Set initial state
+        }
+      });
+    </script>
   </body>
 </html>
