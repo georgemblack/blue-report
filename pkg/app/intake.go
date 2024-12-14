@@ -162,7 +162,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Valk
 			// 1. The existing record is empty
 			// 2. The existing record is partially empty (i.e. missing fields)
 			// 3. The new record is complete (all fields are present)
-			if existing.MissingFields() || urlRecord.MissingFields() {
+			if existing.MissingFields() || !urlRecord.MissingFields() {
 				client.SaveURL(eventRecord.URLHash, urlRecord)
 				successCount++
 				slog.Debug("saved url record", "worker", id, "hash", eventRecord.URLHash, "record", urlRecord)
