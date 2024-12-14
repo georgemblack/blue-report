@@ -16,14 +16,15 @@ www.bbc.co.uk
 www.bbc.com
 www.cbsnews.com
 www.cnn.com
+www.comicsands.com
 www.dailymail.co.uk
 www.forbes.com.au
 www.hollywoodreporter.com
+www.mercurynews.com
+www.motherjones.com
 www.nbcnews.com
 www.npr.org
 www.nytimes.com
-www.comicsands.com
-www.mercurynews.com
 www.pbs.org
 www.politico.com
 www.propublica.org
