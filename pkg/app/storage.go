@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -24,9 +26,24 @@ func NewStorageClient() (Storage, error) {
 }
 
 func (s Storage) PublishSite(site []byte) error {
+	// Update 'index.html', the main site
 	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:               aws.String(siteBucketName()),
 		Key:                  aws.String("index.html"),
+		Body:                 bytes.NewReader(site),
+		ServerSideEncryption: "AES256",
+		ContentType:          aws.String("text/html"),
+	})
+	if err != nil {
+		return wrapErr("failed to put object", err)
+	}
+
+	// Add or update today's page in the archive
+	now := time.Now()
+	path := fmt.Sprintf("archive/%d/%d/%d/index.html", now.Year(), now.Month(), now.Day())
+	_, err = s.client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:               aws.String(siteBucketName()),
+		Key:                  aws.String(path),
 		Body:                 bytes.NewReader(site),
 		ServerSideEncryption: "AES256",
 		ContentType:          aws.String("text/html"),
