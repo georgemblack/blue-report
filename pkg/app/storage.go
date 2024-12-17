@@ -93,10 +93,44 @@ func (s Storage) ReadCache() (CacheDump, error) {
 	return dump, nil
 }
 
+func (s Storage) FlushEvents(events []StorageEventRecord) error {
+	// Convert events to JSON lines
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	for _, event := range events {
+		err := enc.Encode(event)
+		if err != nil {
+			return wrapErr("failed to encode event", err)
+		}
+	}
+
+	// Write to S3
+	key := fmt.Sprintf("events/%d.json", time.Now().Unix())
+	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:               aws.String(assetsBucketName()),
+		Key:                  aws.String(key),
+		Body:                 bytes.NewReader(buf.Bytes()),
+		ServerSideEncryption: "AES256",
+		ContentType:          aws.String("application/json"),
+	})
+	if err != nil {
+		return wrapErr("failed to put object", err)
+	}
+
+	return nil
+}
+
 func siteBucketName() string {
-	return getEnvStr("S3_BUCKET_NAME", "bogus")
+	return getEnvStr("S3_BUCKET_NAME", "blue-report-test")
 }
 
 func assetsBucketName() string {
-	return getEnvStr("S3_ASSETS_BUCKET_NAME", "bogus")
+	return getEnvStr("S3_ASSETS_BUCKET_NAME", "blue-report-test")
+}
+
+type StorageEventRecord struct {
+	Type      int       `json:"type"` // 0 = post, 1 = repost, 2 = like
+	URL       string    `json:"url"`
+	DID       string    `json:"did"`
+	Timestamp time.Time `json:"timestamp"`
 }

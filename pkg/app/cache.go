@@ -9,7 +9,7 @@ type EventCache struct {
 }
 
 type CacheRecord struct {
-	Record EventRecord
+	Record VKEventRecord
 	Expiry time.Time
 }
 

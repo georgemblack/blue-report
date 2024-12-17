@@ -38,7 +38,7 @@ func NewValkeyClient() (Valkey, error) {
 	return Valkey{client: client}, nil
 }
 
-func (v Valkey) SaveEvent(hash string, record EventRecord) error {
+func (v Valkey) SaveEvent(hash string, record VKEventRecord) error {
 	bytes, err := msgpack.Marshal(record)
 	if err != nil {
 		return wrapErr("failed to marshal record", err)
@@ -54,7 +54,7 @@ func (v Valkey) SaveEvent(hash string, record EventRecord) error {
 	return nil
 }
 
-func (v Valkey) SaveURL(hash string, record URLRecord) error {
+func (v Valkey) SaveURL(hash string, record VKURLRecord) error {
 	bytes, err := msgpack.Marshal(record)
 	if err != nil {
 		return wrapErr("failed to marshal record", err)
@@ -70,51 +70,51 @@ func (v Valkey) SaveURL(hash string, record URLRecord) error {
 	return nil
 }
 
-func (v Valkey) ReadEvent(hash string) (EventRecord, error) {
+func (v Valkey) ReadEvent(hash string) (VKEventRecord, error) {
 	key := fmt.Sprintf("event:%s", hash)
 	cmd := v.client.B().Get().Key(key).Build()
 	resp := v.client.Do(context.Background(), cmd)
 	if err := resp.Error(); err != nil {
 		if err == valkey.Nil {
-			return EventRecord{}, nil
+			return VKEventRecord{}, nil
 		}
-		return EventRecord{}, wrapErr("failed to execute get command", err)
+		return VKEventRecord{}, wrapErr("failed to execute get command", err)
 	}
 
 	bytes, err := resp.AsBytes()
 	if err != nil {
-		return EventRecord{}, wrapErr("failed to convert response to bytes", err)
+		return VKEventRecord{}, wrapErr("failed to convert response to bytes", err)
 	}
 
-	var record EventRecord
+	var record VKEventRecord
 	err = msgpack.Unmarshal(bytes, &record)
 	if err != nil {
-		return EventRecord{}, wrapErr("failed to unmarshal record", err)
+		return VKEventRecord{}, wrapErr("failed to unmarshal record", err)
 	}
 
 	return record, nil
 }
 
-func (v Valkey) ReadURL(hash string) (URLRecord, error) {
+func (v Valkey) ReadURL(hash string) (VKURLRecord, error) {
 	key := fmt.Sprintf("url:%s", hash)
 	cmd := v.client.B().Get().Key(key).Build()
 	resp := v.client.Do(context.Background(), cmd)
 	if err := resp.Error(); err != nil {
 		if err == valkey.Nil {
-			return URLRecord{}, nil
+			return VKURLRecord{}, nil
 		}
-		return URLRecord{}, wrapErr("failed to execute get command", err)
+		return VKURLRecord{}, wrapErr("failed to execute get command", err)
 	}
 
 	bytes, err := resp.AsBytes()
 	if err != nil {
-		return URLRecord{}, wrapErr("failed to convert response to bytes", err)
+		return VKURLRecord{}, wrapErr("failed to convert response to bytes", err)
 	}
 
-	var record URLRecord
+	var record VKURLRecord
 	err = msgpack.Unmarshal(bytes, &record)
 	if err != nil {
-		return URLRecord{}, wrapErr("failed to unmarshal record", err)
+		return VKURLRecord{}, wrapErr("failed to unmarshal record", err)
 	}
 
 	return record, nil
@@ -182,50 +182,91 @@ func (v Valkey) EventTTL(hash string) (int64, error) {
 	return ttl, nil
 }
 
+func (v Valkey) SavePost(hash string, post VKPostRecord) error {
+	bytes, err := msgpack.Marshal(post)
+	if err != nil {
+		return wrapErr("failed to marshal record", err)
+	}
+
+	key := fmt.Sprintf("post:%s", hash)
+	cmd := v.client.B().Set().Key(key).Value(string(bytes)).Ex(time.Hour * 168).Build() // 7 day expiry
+	err = v.client.Do(context.Background(), cmd).Error()
+	if err != nil {
+		return wrapErr("failed to set key", err)
+	}
+
+	return nil
+}
+
+func (v Valkey) ReadPost(hash string) (VKPostRecord, error) {
+	key := fmt.Sprintf("post:%s", hash)
+	cmd := v.client.B().Get().Key(key).Build()
+	resp := v.client.Do(context.Background(), cmd)
+	if err := resp.Error(); err != nil {
+		if err == valkey.Nil {
+			return VKPostRecord{}, nil
+		}
+		return VKPostRecord{}, wrapErr("failed to execute get command", err)
+	}
+
+	bytes, err := resp.AsBytes()
+	if err != nil {
+		return VKPostRecord{}, wrapErr("failed to convert response to bytes", err)
+	}
+
+	var record VKPostRecord
+	err = msgpack.Unmarshal(bytes, &record)
+	if err != nil {
+		return VKPostRecord{}, wrapErr("failed to unmarshal record", err)
+	}
+
+	return record, nil
+}
+
 func (v Valkey) Close() {
 	v.client.Close()
 }
 
-type URLRecord struct {
+type VKURLRecord struct {
 	URL         string `msgpack:"u"`
 	Title       string `msgpack:"t"`
 	Description string `msgpack:"d"`
 	ImageURL    string `msgpack:"p"`
 }
 
-func (r URLRecord) MissingURL() bool {
+func (r VKURLRecord) MissingURL() bool {
 	return r.URL == ""
 }
 
-func (r URLRecord) MissingFields() bool {
+func (r VKURLRecord) MissingFields() bool {
 	if (r.URL == "") || (r.Title == "") || (r.Description == "") || (r.ImageURL == "") {
 		return true
 	}
 	return false
 }
 
-func (r URLRecord) Complete() bool {
+func (r VKURLRecord) Complete() bool {
 	return !r.MissingFields()
 }
 
-// EventRecord represents a record stored in Valkey.
+// VKEventRecord represents a record stored in Valkey.
 // This struct is used to serialize and deserialize records.
-type EventRecord struct {
+type VKEventRecord struct {
 	Type    int    `msgpack:"t"` // 0: post, 1: repost
 	URLHash string `msgpack:"u"`
 	DID     string `msgpack:"d"`
 }
 
-func (r EventRecord) isPost() bool {
+func (r VKEventRecord) isPost() bool {
 	return r.Type == 0
 }
 
-func (r EventRecord) isRepost() bool {
+func (r VKEventRecord) isRepost() bool {
 	return r.Type == 1
 }
 
-func (r EventRecord) Valid() bool {
-	if r.Type != 0 && r.Type != 1 {
+func (r VKEventRecord) Valid() bool {
+	if r.Type != 0 && r.Type != 1 && r.Type != 2 {
 		return false
 	}
 	if r.URLHash == "" {
@@ -237,6 +278,21 @@ func (r EventRecord) Valid() bool {
 	return true
 }
 
-func (r EventRecord) Empty() bool {
+func (r VKEventRecord) Empty() bool {
 	return !r.Valid()
+}
+
+type VKPostRecord struct {
+	DID     string `msgpack:"d"`
+	URLHash string `msgpack:"u"`
+}
+
+func (p VKPostRecord) Valid() bool {
+	if p.DID == "" {
+		return false
+	}
+	if p.URLHash == "" {
+		return false
+	}
+	return true
 }

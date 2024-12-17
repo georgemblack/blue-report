@@ -70,7 +70,7 @@ func Aggregate() error {
 	externalCacheHit := 0
 
 	for key := range keys.Iter() {
-		record := EventRecord{}
+		record := VKEventRecord{}
 
 		// Check internal cache for key
 		hit, ok := eventCache.Get(key)
@@ -250,6 +250,6 @@ func Aggregate() error {
 }
 
 // Generate a unique 'fingerprint' for a given user (DID) and URL combination.
-func fingerprint(record EventRecord) string {
+func fingerprint(record VKEventRecord) string {
 	return hash(fmt.Sprintf("%s%s", record.DID, record.URLHash))
 }

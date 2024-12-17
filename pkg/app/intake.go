@@ -83,13 +83,13 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Valk
 			return
 		}
 
-		if !valid(event) {
+		if !event.valid() {
 			skippedCount++
 			continue
 		}
 
-		eventRecord := EventRecord{}
-		urlRecord := URLRecord{}
+		eventRecord := VKEventRecord{}
+		urlRecord := VKURLRecord{}
 
 		// If the event is a post, save event and URL to Valkey.
 		if event.isPost() {
@@ -104,14 +104,14 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Valk
 			// Build event record
 			normalized := Normalize(url)
 			hashed := hash(normalized)
-			eventRecord = EventRecord{
+			eventRecord = VKEventRecord{
 				Type:    0,
 				URLHash: hashed,
 				DID:     event.DID,
 			}
 
 			// Build URL record
-			urlRecord = URLRecord{
+			urlRecord = VKURLRecord{
 				URL:         normalized,
 				Title:       title,
 				Description: description,
@@ -131,7 +131,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Valk
 			}
 
 			// Build event record
-			eventRecord = EventRecord{
+			eventRecord = VKEventRecord{
 				Type:    1,
 				URLHash: postRecord.URLHash,
 				DID:     event.DID,
@@ -177,22 +177,6 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Valk
 			errorCount = 0
 		}
 	}
-}
-
-func valid(event StreamEvent) bool {
-	if event.Kind != "commit" {
-		return false
-	}
-	if event.Commit.Operation != "create" {
-		return false
-	}
-	if !event.isPost() && !event.isRepost() {
-		return false
-	}
-	if event.isPost() && !event.isEnglish() {
-		return false
-	}
-	return true
 }
 
 // Intended for parsing post events.
