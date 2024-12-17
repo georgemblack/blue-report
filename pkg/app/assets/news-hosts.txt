@@ -2,10 +2,14 @@ abcnews.go.com
 apnews.com
 apple.news
 bylinetimes.com
+deadline.com
 globalnews.ca
 ground.news
+meidasnews.com
+nationalpost.com
 newrepublic.com
 news.google.com
+nypost.com
 nytimes.com
 pressgazette.co.uk
 techcrunch.com
@@ -15,6 +19,7 @@ www.axios.com
 www.bbc.co.uk
 www.bbc.com
 www.bridgemi.com
+www.cbc.ca
 www.cbsnews.com
 www.cnn.com
 www.comicsands.com
@@ -22,6 +27,7 @@ www.dailymail.co.uk
 www.forbes.com.au
 www.hollywoodreporter.com
 www.mercurynews.com
+www.miamiherald.com
 www.motherjones.com
 www.nbcnews.com
 www.npr.org
