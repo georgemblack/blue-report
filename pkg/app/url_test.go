@@ -3,7 +3,7 @@ package app_test
 import (
 	"testing"
 
-	"github.com/georgemblack/bluesky-links/pkg/app"
+	"github.com/georgemblack/blue-report/pkg/app"
 )
 
 func TestNormalizeYouTube(t *testing.T) {

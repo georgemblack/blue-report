@@ -1,5 +1,7 @@
 package app
 
+import "github.com/georgemblack/blue-report/pkg/app/util"
+
 // StreamEvent (and subtypes) represent a message from the Jetstream.
 // Fields for both posts and reposts are included.
 type StreamEvent struct {
@@ -83,7 +85,7 @@ func (s *StreamEvent) typeOf() int {
 }
 
 func (s *StreamEvent) isEnglish() bool {
-	return contains(s.Commit.Record.Languages, "en")
+	return util.Contains(s.Commit.Record.Languages, "en")
 }
 
 func (s *StreamEvent) valid() bool {

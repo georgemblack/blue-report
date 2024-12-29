@@ -1,0 +1,34 @@
+{
+  "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
+  "time_us": 1734489196802654,
+  "kind": "commit",
+  "commit": {
+    "rev": "3ldkcya7qe222",
+    "operation": "create",
+    "collection": "app.bsky.feed.post",
+    "rkey": "3ldkcy6xjvc2l",
+    "record": {
+      "$type": "app.bsky.feed.post",
+      "createdAt": "2024-12-18T02:33:14.544Z",
+      "embed": {
+        "$type": "app.bsky.embed.external",
+        "external": {
+          "description": "",
+          "thumb": {
+            "$type": "blob",
+            "ref": {
+              "$link": "bafkreiasj4bgohn7rx2mhf3i4r7tdr43kuyyks6cxsgi5zuttq4274ibny"
+            },
+            "mimeType": "image/jpeg",
+            "size": 667323
+          },
+          "title": "The Mystery of the Bloomfield Bridge",
+          "uri": "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge"
+        }
+      },
+      "langs": ["en"],
+      "text": "Test post – embed only"
+    },
+    "cid": "bafyreiehzp2ehowobuutnjsednkq24iisx2mzpdc27yuy4xztspcqid3ni"
+  }
+}

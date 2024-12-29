@@ -5,6 +5,7 @@ package app
 type Count struct {
 	PostCount   int
 	RepostCount int
+	LikeCount   int
 }
 
 // Score determins a URL's rank on the final report.
@@ -23,13 +24,12 @@ type Report struct {
 // ReportItems represents a single item to be rendered on the webpage
 type ReportItems struct {
 	Rank           int
-	URLHash        string
 	URL            string
 	Host           string
 	Title          string
-	Description    string
 	ImageURL       string
 	Count          Count
 	PostCountStr   string
 	RepostCountStr string
+	LikeCountStr   string
 }

@@ -9,11 +9,14 @@ meidasnews.com
 nationalpost.com
 newrepublic.com
 news.google.com
+news.sky.com
 nypost.com
 nytimes.com
 pressgazette.co.uk
 techcrunch.com
 time.com
+uk.news.yahoo.com
+wapo.st
 www.abc.net.au
 www.axios.com
 www.bbc.co.uk
@@ -26,9 +29,12 @@ www.comicsands.com
 www.dailymail.co.uk
 www.forbes.com.au
 www.hollywoodreporter.com
+www.huffpost.com
+www.independent.co.uk
 www.mercurynews.com
 www.miamiherald.com
 www.motherjones.com
+www.msnbc.com
 www.nbcnews.com
 www.npr.org
 www.nytimes.com
@@ -46,3 +52,4 @@ www.voanews.com
 www.vox.com
 www.washingtonpost.com
 www.wsj.com
+www.yahoo.com

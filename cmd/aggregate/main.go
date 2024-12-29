@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/georgemblack/bluesky-links/pkg/app"
+	"github.com/georgemblack/blue-report/pkg/app"
 )
 
 func main() {
