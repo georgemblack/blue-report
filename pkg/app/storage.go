@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/georgemblack/blue-report/pkg/app/util"
 )
 
@@ -103,6 +104,7 @@ func (s Storage) FlushEvents(start time.Time, events []StorageEventRecord) error
 		Body:                 bytes.NewReader(buf.Bytes()),
 		ServerSideEncryption: "AES256",
 		ContentType:          aws.String("application/json"),
+		StorageClass:         types.StorageClassIntelligentTiering,
 	})
 	if err != nil {
 		return util.WrapErr("failed to put object", err)
