@@ -5,6 +5,7 @@ bylinetimes.com
 deadline.com
 globalnews.ca
 ground.news
+jacobin.com
 meidasnews.com
 nationalpost.com
 newrepublic.com
@@ -18,6 +19,7 @@ time.com
 uk.news.yahoo.com
 wapo.st
 www.abc.net.au
+www.ajc.com
 www.axios.com
 www.bbc.co.uk
 www.bbc.com
