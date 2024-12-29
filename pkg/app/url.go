@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	"github.com/georgemblack/blue-report/pkg/app/util"
 )
 
 // QueryParamAllowList contains domains that use query params to identify content.
@@ -23,7 +25,7 @@ func Normalize(input string) string {
 	// Convert YouTube URLs to short form.
 	// Examples:
 	//	- 'https://youtube.com/watch?abc123' -> 'https://youtu.be/abc123'
-	if contains(YouTubeHostList, parsed.Hostname()) {
+	if util.Contains(YouTubeHostList, parsed.Hostname()) {
 		params := parsed.Query()
 		videoID := params.Get("v")
 		if videoID == "" {
@@ -35,7 +37,7 @@ func Normalize(input string) string {
 
 	// Strip query parameters (with exceptions)
 	index := strings.Index(result, "?")
-	if !contains(QueryParamAllowList, parsed.Hostname()) && index != -1 {
+	if !util.Contains(QueryParamAllowList, parsed.Hostname()) && index != -1 {
 		result = result[:index]
 	}
 

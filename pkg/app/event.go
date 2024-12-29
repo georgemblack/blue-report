@@ -1,5 +1,7 @@
 package app
 
+import "github.com/georgemblack/blue-report/pkg/app/util"
+
 // StreamEvent (and subtypes) represent a message from the Jetstream.
 // Fields for both posts and reposts are included.
 type StreamEvent struct {
@@ -65,6 +67,39 @@ func (s *StreamEvent) isRepost() bool {
 	return s.Commit.Record.Type == "app.bsky.feed.repost"
 }
 
+func (s *StreamEvent) isLike() bool {
+	return s.Commit.Record.Type == "app.bsky.feed.like"
+}
+
+func (s *StreamEvent) typeOf() int {
+	if s.isPost() {
+		return 0
+	}
+	if s.isRepost() {
+		return 1
+	}
+	if s.isLike() {
+		return 2
+	}
+	return -1
+}
+
 func (s *StreamEvent) isEnglish() bool {
-	return contains(s.Commit.Record.Languages, "en")
+	return util.Contains(s.Commit.Record.Languages, "en")
+}
+
+func (s *StreamEvent) valid() bool {
+	if s.Kind != "commit" {
+		return false
+	}
+	if s.Commit.Operation != "create" {
+		return false
+	}
+	if !s.isPost() && !s.isRepost() && !s.isLike() {
+		return false
+	}
+	if s.isPost() && !s.isEnglish() {
+		return false
+	}
+	return true
 }

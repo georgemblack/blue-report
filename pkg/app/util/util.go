@@ -1,4 +1,4 @@
-package app
+package util
 
 import (
 	"fmt"
@@ -6,11 +6,11 @@ import (
 	"os"
 )
 
-func wrapErr(message string, err error) error {
+func WrapErr(message string, err error) error {
 	return fmt.Errorf("%s; %w", message, err)
 }
 
-func contains(s []string, e string) bool {
+func Contains(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
 			return true
@@ -19,13 +19,13 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func hash(s string) string {
+func Hash(s string) string {
 	hasher := fnv.New64a()
 	hasher.Write([]byte(s))
 	return fmt.Sprintf("%x", hasher.Sum64())
 }
 
-func getEnvStr(key, defaultValue string) string {
+func GetEnvStr(key, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {
 		return defaultValue
@@ -33,7 +33,7 @@ func getEnvStr(key, defaultValue string) string {
 	return value
 }
 
-func getEnvBool(key string, defaultValue bool) bool {
+func GetEnvBool(key string, defaultValue bool) bool {
 	value := os.Getenv(key)
 	if value == "" {
 		return defaultValue

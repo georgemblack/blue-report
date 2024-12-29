@@ -1,4 +1,4 @@
-module github.com/georgemblack/bluesky-links
+module github.com/georgemblack/blue-report
 
 go 1.23.2
 
@@ -11,6 +11,7 @@ require (
 	github.com/tdewolff/minify/v2 v2.21.2
 	github.com/valkey-io/valkey-go v1.0.49
 	github.com/vmihailenco/msgpack/v5 v5.4.1
+	go.uber.org/mock v0.5.0
 	golang.org/x/text v0.21.0
 )
 

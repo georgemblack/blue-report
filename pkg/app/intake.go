@@ -5,25 +5,54 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/georgemblack/blue-report/pkg/app/util"
+	"github.com/georgemblack/blue-report/pkg/cache"
 	"github.com/gorilla/websocket"
 )
 
 const (
 	WorkerPoolSize   = 1
-	WorkerCheckpoint = 1000 // Log a checkpoint every number of events
-	JetstreamURL     = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost"
+	WorkerBufferSize = 10000
+	JetstreamURL     = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost&wantedCollections=app.bsky.feed.like"
 )
+
+type Stats struct {
+	start   time.Time
+	invalid int // Number of invalid events (not a post, like, or repost)
+	skipped int // Number of skipped events (e.g. post with no URL)
+	errors  int // Number of errors
+	posts   int // Number of posts saved
+	likes   int // Number of likes saved
+	reposts int // Number of reposts saved
+}
+
+func (s *Stats) reset() {
+	s.start = time.Now()
+	s.invalid = 0
+	s.skipped = 0
+	s.errors = 0
+	s.posts = 0
+	s.likes = 0
+	s.reposts = 0
+}
 
 func Intake() error {
 	slog.Info("starting intake")
 
-	// Build Valkey vk
-	vk, err := NewValkeyClient()
+	// Build Cache client
+	ch, err := cache.New()
 	if err != nil {
-		return wrapErr("failed to create valkey client", err)
+		return util.WrapErr("failed to create cache client", err)
 	}
-	defer vk.Close()
+	defer ch.Close()
+
+	// Build storage client
+	st, err := NewStorageClient()
+	if err != nil {
+		return util.WrapErr("failed to create storage client", err)
+	}
 
 	// Start worker threads
 	var wg sync.WaitGroup
@@ -31,13 +60,13 @@ func Intake() error {
 	stream := make(chan StreamEvent, WorkerPoolSize*100)
 	shutdown := make(chan struct{})
 	for i := 0; i < WorkerPoolSize; i++ {
-		go worker(i+1, stream, shutdown, vk, &wg)
+		go worker(i+1, stream, shutdown, ch, st, &wg)
 	}
 
 	// Connect to Jetstream
 	conn, _, err := websocket.DefaultDialer.Dial(JetstreamURL, nil)
 	if err != nil {
-		return wrapErr("failed to dial jetstream", err)
+		return util.WrapErr("failed to dial jetstream", err)
 	}
 	defer conn.Close()
 
@@ -46,7 +75,7 @@ func Intake() error {
 		event := StreamEvent{}
 		err := conn.ReadJSON(&event)
 		if err != nil {
-			slog.Warn(wrapErr("failed to read json", err).Error())
+			slog.Warn(util.WrapErr("failed to read json", err).Error())
 			break
 		}
 
@@ -59,14 +88,15 @@ func Intake() error {
 	return nil
 }
 
-// Process posts by extracting URIs and saving them to Valkey.
-func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Valkey, wg *sync.WaitGroup) {
+func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, st Storage, wg *sync.WaitGroup) {
 	slog.Info(fmt.Sprintf("starting worker %d", id))
 	defer wg.Done()
 
-	successCount := 0
-	skippedCount := 0
-	errorCount := 0
+	// Buffer used to store events before they are flushed to storage.
+	buffer := make([]StorageEventRecord, 0, WorkerBufferSize)
+
+	stats := Stats{}
+	stats.reset()
 
 	for {
 		event := StreamEvent{}
@@ -83,116 +113,128 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, client Valk
 			return
 		}
 
-		if !valid(event) {
-			skippedCount++
+		// Check whether event is a valid post, repost, or like
+		if !event.valid() {
+			stats.invalid++
 			continue
 		}
 
-		eventRecord := EventRecord{}
-		urlRecord := URLRecord{}
-
-		// If the event is a post, save event and URL to Valkey.
+		// Handle event by type
+		record := StorageEventRecord{}
+		skip := false
+		err := error(nil)
 		if event.isPost() {
-			url, title, description, image := parse(event)
-
-			// Filter out unwanted URLs
-			if !include(url) {
-				skippedCount++
-				continue
-			}
-
-			// Build event record
-			normalized := Normalize(url)
-			hashed := hash(normalized)
-			eventRecord = EventRecord{
-				Type:    0,
-				URLHash: hashed,
-				DID:     event.DID,
-			}
-
-			// Build URL record
-			urlRecord = URLRecord{
-				URL:         normalized,
-				Title:       title,
-				Description: description,
-				ImageURL:    image,
-			}
+			record, skip, err = HandlePost(ch, event)
+		}
+		if event.isLike() || event.isRepost() {
+			record, skip, err = HandleLikeOrRepost(ch, event)
 		}
 
-		// If the event is a repost, attempt to find the original post in Valkey.
-		// If it exists, extract the URL and save it.
-		if event.isRepost() {
-			postCID := event.Commit.Record.Subject.CID
-			postHash := hash(postCID)
-			postRecord, err := client.ReadEvent(postHash)
-			if err != nil || !postRecord.Valid() {
-				skippedCount++
-				continue
-			}
-
-			// Build event record
-			eventRecord = EventRecord{
-				Type:    1,
-				URLHash: postRecord.URLHash,
-				DID:     event.DID,
-			}
-		}
-
-		// Save the event
-		hash := hash(event.Commit.CID)
-		err := client.SaveEvent(hash, eventRecord)
 		if err != nil {
-			errorCount++
-			slog.Error(err.Error())
-		} else {
-			successCount++
-			slog.Debug("saved event record", "worker", id, "hash", hash, "record", eventRecord)
+			slog.Warn(util.WrapErr("failed to handle event", err).Error())
+			stats.errors++
+			continue
+		}
+		if skip {
+			stats.skipped++
+			continue
 		}
 
-		// Save (or update) the URL record if the event is a post
+		// Update stats with event type
 		if event.isPost() {
-			existing, err := client.ReadURL(eventRecord.URLHash)
-			if err != nil {
-				errorCount++
-				slog.Error(err.Error())
-				continue
-			}
-
-			// Update the record if one of the following is ture:
-			// 1. The existing record is empty
-			// 2. The existing record is partially empty (i.e. missing fields)
-			// 3. The new record is complete (all fields are present)
-			if existing.MissingFields() || !urlRecord.MissingFields() {
-				client.SaveURL(eventRecord.URLHash, urlRecord)
-				successCount++
-				slog.Debug("saved url record", "worker", id, "hash", eventRecord.URLHash, "record", urlRecord)
-			}
+			stats.posts++
+		}
+		if event.isLike() {
+			stats.likes++
+		}
+		if event.isRepost() {
+			stats.reposts++
 		}
 
-		// Log a checkpoint every number of successful of events
-		if successCount >= WorkerCheckpoint || errorCount >= WorkerCheckpoint {
-			slog.Info("worker checkpoint", "worker", id, "success", successCount, "error", errorCount, "skipped_events", skippedCount, "queue", len(stream))
-			successCount = 0
-			skippedCount = 0
-			errorCount = 0
+		// Save event to the buffer. Once the buffer is full, write to storage.
+		buffer = append(buffer, record)
+
+		if len(buffer) >= WorkerBufferSize {
+			err = st.FlushEvents(stats.start, buffer)
+			if err != nil {
+				slog.Warn(util.WrapErr("failed to write events", err).Error())
+			} else {
+				slog.Info("flushed events to storage", "posts", stats.posts, "reposts", stats.reposts, "likes", stats.likes, "skipped", stats.skipped, "invalid", stats.invalid, "errors", stats.errors, "queue", len(stream))
+			}
+			buffer = make([]StorageEventRecord, 0, WorkerBufferSize)
+			stats.reset()
 		}
 	}
 }
 
-func valid(event StreamEvent) bool {
-	if event.Kind != "commit" {
-		return false
+// If posts contain a URL, save it as an event in storage.
+// Save the post to the cache so it can be quickly referenced for reposts and likes.
+// Save the URL metadata to the cache.
+func HandlePost(ch Cache, event StreamEvent) (StorageEventRecord, bool, error) {
+	url, title, _, image := parse(event) // Ignore description for now
+
+	// Filter out unwanted URLs (or posts with no URL)
+	if !include(url) {
+		return StorageEventRecord{}, true, nil
 	}
-	if event.Commit.Operation != "create" {
-		return false
+
+	normalizedURL := Normalize(url)
+	hashedURL := util.Hash(normalizedURL)
+
+	// Add the post to the cache, so it can be quickly referenced by reposts and likes
+	postRecord := cache.CachePostRecord{
+		URL: normalizedURL,
 	}
-	if !event.isPost() && !event.isRepost() {
-		return false
+	ch.SavePost(util.Hash(event.Commit.CID), postRecord)
+
+	// Add (or update) the URL metadata in the cache
+	urlRecord := cache.CacheURLRecord{
+		URL:      normalizedURL,
+		Title:    title,
+		ImageURL: image,
 	}
-	if event.isPost() && !event.isEnglish() {
-		return false
+	existing, err := ch.ReadURL(hashedURL)
+	if err != nil {
+		return StorageEventRecord{}, false, util.WrapErr("failed to read url record", err)
 	}
-	return true
+
+	// Update the record if one of the following is ture:
+	// 1. The existing record is empty
+	// 2. The existing record is partially empty (i.e. missing fields)
+	// 3. The new record is complete (all fields are present)
+	if existing.MissingFields() || !urlRecord.MissingFields() {
+		ch.SaveURL(hashedURL, urlRecord)
+	}
+
+	// Create and return storage event
+	storageRecord := StorageEventRecord{
+		Type:      event.typeOf(),
+		URL:       normalizedURL,
+		DID:       event.DID,
+		Timestamp: time.Now(),
+	}
+	return storageRecord, false, nil
+}
+
+// Check if a like/repost references a post stored in the cache. If it does, save the event to storage.
+func HandleLikeOrRepost(ch Cache, event StreamEvent) (StorageEventRecord, bool, error) {
+	postCID := event.Commit.Record.Subject.CID
+	postHash := util.Hash(postCID)
+	postRecord, err := ch.ReadPost(postHash)
+	if err != nil {
+		return StorageEventRecord{}, false, util.WrapErr("failed to read event record", err)
+	}
+	if !postRecord.Valid() {
+		return StorageEventRecord{}, true, nil
+	}
+
+	storageRecord := StorageEventRecord{
+		Type:      event.typeOf(),
+		URL:       postRecord.URL,
+		DID:       event.DID,
+		Timestamp: time.Now(),
+	}
+	return storageRecord, false, nil
 }
 
 // Intended for parsing post events.
@@ -251,7 +293,7 @@ func include(url string) bool {
 
 	// Ignore links to the app itself
 	// (The Blue Report is intended to track exteranl links)
-	if strings.HasPrefix(url, "https://bsky.app") {
+	if strings.HasPrefix(url, "https://bsky.app") || strings.HasPrefix(url, "https://go.bsky.app") {
 		return false
 	}
 
