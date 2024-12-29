@@ -14,7 +14,8 @@ import (
 
 const (
 	WorkerPoolSize   = 1
-	WorkerBufferSize = 10000
+	StreamBufferSize = 10000
+	EventBufferSize  = 10000
 	JetstreamURL     = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost&wantedCollections=app.bsky.feed.like"
 )
 
@@ -28,14 +29,16 @@ type Stats struct {
 	reposts int // Number of reposts saved
 }
 
-func (s *Stats) reset() {
-	s.start = time.Now()
-	s.invalid = 0
-	s.skipped = 0
-	s.errors = 0
-	s.posts = 0
-	s.likes = 0
-	s.reposts = 0
+func newStats() Stats {
+	return Stats{
+		start:   time.Now(),
+		invalid: 0,
+		skipped: 0,
+		errors:  0,
+		posts:   0,
+		likes:   0,
+		reposts: 0,
+	}
 }
 
 func Intake() error {
@@ -57,7 +60,7 @@ func Intake() error {
 	// Start worker threads
 	var wg sync.WaitGroup
 	wg.Add(WorkerPoolSize)
-	stream := make(chan StreamEvent, WorkerPoolSize*100)
+	stream := make(chan StreamEvent, StreamBufferSize)
 	shutdown := make(chan struct{})
 	for i := 0; i < WorkerPoolSize; i++ {
 		go worker(i+1, stream, shutdown, ch, st, &wg)
@@ -93,10 +96,9 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 	defer wg.Done()
 
 	// Buffer used to store events before they are flushed to storage.
-	buffer := make([]StorageEventRecord, 0, WorkerBufferSize)
+	buffer := make([]StorageEventRecord, 0, EventBufferSize)
 
-	stats := Stats{}
-	stats.reset()
+	stats := newStats()
 
 	for {
 		event := StreamEvent{}
@@ -151,18 +153,25 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 			stats.reposts++
 		}
 
-		// Save event to the buffer. Once the buffer is full, write to storage.
+		// Save event to the buffer. Once the buffer is full, write to storage asynchronously
 		buffer = append(buffer, record)
 
-		if len(buffer) >= WorkerBufferSize {
-			err = st.FlushEvents(stats.start, buffer)
-			if err != nil {
-				slog.Warn(util.WrapErr("failed to write events", err).Error())
-			} else {
-				slog.Info("flushed events to storage", "posts", stats.posts, "reposts", stats.reposts, "likes", stats.likes, "skipped", stats.skipped, "invalid", stats.invalid, "errors", stats.errors, "queue", len(stream))
-			}
-			buffer = make([]StorageEventRecord, 0, WorkerBufferSize)
-			stats.reset()
+		if len(buffer) >= EventBufferSize {
+			// Create local copies of buffer & stats to prevent the reset from occurring before the flush
+			localBuffer := buffer
+			localStats := stats
+			queue := len(stream)
+
+			go func() {
+				err = st.FlushEvents(localStats.start, localBuffer)
+				if err != nil {
+					slog.Warn(util.WrapErr("failed to write events", err).Error())
+				} else {
+					slog.Info("flushed events to storage", "posts", localStats.posts, "reposts", localStats.reposts, "likes", localStats.likes, "skipped", localStats.skipped, "invalid", localStats.invalid, "errors", localStats.errors, "queue", queue)
+				}
+			}()
+			buffer = make([]StorageEventRecord, 0, EventBufferSize)
+			stats = newStats()
 		}
 	}
 }
