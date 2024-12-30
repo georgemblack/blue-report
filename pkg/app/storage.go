@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 
@@ -145,21 +146,24 @@ func (s Storage) ListEventChunks(start, end time.Time) ([]string, error) {
 		}
 	}
 
-	// Filter keys to only include those after the 'after' time
+	// Filter keys to only include those after the 'start' time, and before the 'end' time.
 	filtered := make([]string, 0)
-	compare := after.UTC().Format("2006-01-02-15-04-05")
+	startStr := start.UTC().Format("2006-01-02-15-04-05")
+	endStr := end.UTC().Format("2006-01-02-15-04-05")
 	for _, key := range keys {
 		// Parse timestamp from key, i.e. 'events/2021-08-01-12-00-00.json' -> '2021-08-01-12-00-00'
 		key = strings.TrimPrefix(key, "events/")
 		key = strings.TrimSuffix(key, ".json")
 
 		// Compare strings with timestamps
-		if key > compare {
+		if key > startStr && key < endStr {
 			filtered = append(filtered, key)
 		}
 	}
 
-	slog.Info("discovered chunks", "first", keys[0], "last", keys[len(keys)-1])
+	slices.Sort(filtered)
+
+	slog.Info("discovered chunks", "count", len(filtered), "first", keys[0], "last", keys[len(keys)-1])
 	return filtered, nil
 }
 

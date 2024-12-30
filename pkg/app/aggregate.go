@@ -50,15 +50,15 @@ func Aggregate() error {
 
 	// Read all records from storage in chunks, and aggregate a count for each URL along the way.
 	// Exclude unwated URLs, as well as duplicate URLs from the same user.
-	now := time.Now().UTC()
-	after := now.Add(-24 * time.Hour)
+	endTime := time.Now().UTC()
+	startTime := endTime.Add(-24 * time.Hour)
 
 	count := make(map[string]Count)         // Track instances each URL is shared
 	fingerprints := mapset.NewSet[string]() // Track unique DID and URL combinations
 	events := 0                             // Track total events processed
 	denied := 0                             // Track duplicate URLs from the same user
 
-	chunks, err := stg.ListEventChunks(after)
+	chunks, err := stg.ListEventChunks(startTime, endTime)
 	if err != nil {
 		return util.WrapErr("failed to list event chunks", err)
 	}
