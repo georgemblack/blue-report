@@ -112,18 +112,18 @@ func (s Storage) FlushEvents(start time.Time, events []StorageEventRecord) error
 	return nil
 }
 
-// ListEventChunks lists all S3 object keys containing events after a certain time. Objects are named 'events/<timestamp>.json'.
-// Note that this function assumes that 'after' is no more than 24 hours in the past!
-func (s Storage) ListEventChunks(after time.Time) ([]string, error) {
+// ListEventChunks lists all S3 object keys containing events after a certain time.
+// Objects are named 'events/<timestamp>.json'.
+func (s Storage) ListEventChunks(start, end time.Time) ([]string, error) {
 	keys := make([]string, 0)
 
-	// List objects twice, and combine the list:
-	// 	1. First, with a prefix of 'events/YYYY-MM-DD' using the 'after' time.
-	// 	2. Second, with a prefix of 'events/YYYY-MM-DD' using the current time.
-	// By doing this, we avoid unnecessary 'LIST' operations on the bucket, which can be expensive for objects in archival storage classes.
-	prefixes := []string{
-		fmt.Sprintf("events/%s", after.Format("2006-01-02")),
-		fmt.Sprintf("events/%s", after.Add(24*time.Hour).Format("2006-01-02")),
+	// List objects using a list of prefixes, one for each day between 'start' and 'end', inclusive.
+	// By using prefixes, we reduce the amount of 'LIST' operations, which can be costly for objects in archival storage classes.
+	prefixes := make([]string, 0)
+	current := start
+	for !current.After(end) {
+		prefixes = append(prefixes, fmt.Sprintf("events/%s", current.Format("2006-01-02")))
+		current = current.AddDate(0, 0, 1)
 	}
 
 	slog.Info(fmt.Sprintf("listing objects with prefixes: %v", prefixes))
