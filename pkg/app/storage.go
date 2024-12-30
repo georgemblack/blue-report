@@ -123,7 +123,7 @@ func (s Storage) ListEventChunks(after time.Time) ([]string, error) {
 	// By doing this, we avoid unnecessary 'LIST' operations on the bucket, which can be expensive for objects in archival storage classes.
 	prefixes := []string{
 		fmt.Sprintf("events/%s", after.Format("2006-01-02")),
-		fmt.Sprintf("events/%s", after.Add(-12*time.Hour).Format("2006-01-02")),
+		fmt.Sprintf("events/%s", after.Add(24*time.Hour).Format("2006-01-02")),
 	}
 
 	slog.Info(fmt.Sprintf("listing objects with prefixes: %v", prefixes))
