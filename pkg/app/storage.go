@@ -5,13 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/georgemblack/blue-report/pkg/app/util"
 )
 
@@ -104,7 +104,6 @@ func (s Storage) FlushEvents(start time.Time, events []StorageEventRecord) error
 		Body:                 bytes.NewReader(buf.Bytes()),
 		ServerSideEncryption: "AES256",
 		ContentType:          aws.String("application/json"),
-		StorageClass:         types.StorageClassIntelligentTiering,
 	})
 	if err != nil {
 		return util.WrapErr("failed to put object", err)
@@ -113,37 +112,55 @@ func (s Storage) FlushEvents(start time.Time, events []StorageEventRecord) error
 	return nil
 }
 
-// ListEventChunks lists all S3 object keys containing events after a certain time.
-// Objects are named 'events/<timestamp>.json'.
+// ListEventChunks lists all S3 object keys containing events after a certain time. Objects are named 'events/<timestamp>.json'.
+// Note that this function assumes that 'after' is no more than 24 hours in the past!
 func (s Storage) ListEventChunks(after time.Time) ([]string, error) {
-	paginator := s3.NewListObjectsV2Paginator(s.client, &s3.ListObjectsV2Input{
-		Bucket: aws.String(assetsBucketName()),
-		Prefix: aws.String("events/"),
-	})
-
 	keys := make([]string, 0)
-	for paginator.HasMorePages() {
-		page, err := paginator.NextPage(context.Background())
-		if err != nil {
-			return nil, util.WrapErr("failed to list objects", err)
-		}
 
-		compare := after.UTC().Format("2006-01-02-15-04-05")
-		for _, obj := range page.Contents {
-			key := *obj.Key
+	// List objects twice, and combine the list:
+	// 	1. First, with a prefix of 'events/YYYY-MM-DD' using the 'after' time.
+	// 	2. Second, with a prefix of 'events/YYYY-MM-DD' using the current time.
+	// By doing this, we avoid unnecessary 'LIST' operations on the bucket, which can be expensive for objects in archival storage classes.
+	prefixes := []string{
+		fmt.Sprintf("events/%s", after.Format("2006-01-02")),
+		fmt.Sprintf("events/%s", after.Add(-12*time.Hour).Format("2006-01-02")),
+	}
 
-			// Parse timestamp from key, i.e. 'events/2021-08-01-12-00-00.json' -> '2021-08-01-12-00-00'
-			key = strings.TrimPrefix(key, "events/")
-			key = strings.TrimSuffix(key, ".json")
+	slog.Info(fmt.Sprintf("listing objects with prefixes: %v", prefixes))
 
-			// Compare strings with timestamps
-			if key > compare {
-				keys = append(keys, key)
+	for _, prefix := range prefixes {
+		paginator := s3.NewListObjectsV2Paginator(s.client, &s3.ListObjectsV2Input{
+			Bucket: aws.String(assetsBucketName()),
+			Prefix: aws.String(prefix),
+		})
+		for paginator.HasMorePages() {
+			page, err := paginator.NextPage(context.Background())
+			if err != nil {
+				return nil, util.WrapErr("failed to list objects", err)
+			}
+
+			for _, obj := range page.Contents {
+				keys = append(keys, *obj.Key)
 			}
 		}
 	}
 
-	return keys, nil
+	// Filter keys to only include those after the 'after' time
+	filtered := make([]string, 0)
+	compare := after.UTC().Format("2006-01-02-15-04-05")
+	for _, key := range keys {
+		// Parse timestamp from key, i.e. 'events/2021-08-01-12-00-00.json' -> '2021-08-01-12-00-00'
+		key = strings.TrimPrefix(key, "events/")
+		key = strings.TrimSuffix(key, ".json")
+
+		// Compare strings with timestamps
+		if key > compare {
+			filtered = append(filtered, key)
+		}
+	}
+
+	slog.Info("discovered chunks", "first", keys[0], "last", keys[len(keys)-1])
+	return filtered, nil
 }
 
 func siteBucketName() string {
