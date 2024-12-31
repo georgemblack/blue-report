@@ -30,6 +30,7 @@ www.cnn.com
 www.comicsands.com
 www.dailymail.co.uk
 www.forbes.com.au
+www.ft.com
 www.hollywoodreporter.com
 www.huffpost.com
 www.independent.co.uk
@@ -39,6 +40,7 @@ www.miamiherald.com
 www.motherjones.com
 www.msnbc.com
 www.nbcnews.com
+www.newsweek.com
 www.npr.org
 www.nytimes.com
 www.pbs.org
@@ -48,6 +50,7 @@ www.rawstory.com
 www.reuters.com
 www.texastribune.org
 www.theatlantic.com
+www.thedailybeast.com
 www.theguardian.com
 www.usatoday.com
 www.usnews.com
