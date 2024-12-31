@@ -11,8 +11,10 @@ package testutil
 
 import (
 	reflect "reflect"
+	time "time"
 
 	cache "github.com/georgemblack/blue-report/pkg/cache"
+	storage "github.com/georgemblack/blue-report/pkg/storage"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -136,4 +138,86 @@ func (m *MockCache) SaveURL(hash string, url cache.URLRecord) error {
 func (mr *MockCacheMockRecorder) SaveURL(hash, url any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveURL", reflect.TypeOf((*MockCache)(nil).SaveURL), hash, url)
+}
+
+// MockStorage is a mock of Storage interface.
+type MockStorage struct {
+	ctrl     *gomock.Controller
+	recorder *MockStorageMockRecorder
+	isgomock struct{}
+}
+
+// MockStorageMockRecorder is the mock recorder for MockStorage.
+type MockStorageMockRecorder struct {
+	mock *MockStorage
+}
+
+// NewMockStorage creates a new mock instance.
+func NewMockStorage(ctrl *gomock.Controller) *MockStorage {
+	mock := &MockStorage{ctrl: ctrl}
+	mock.recorder = &MockStorageMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
+	return m.recorder
+}
+
+// FlushEvents mocks base method.
+func (m *MockStorage) FlushEvents(start time.Time, events []storage.EventRecord) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FlushEvents", start, events)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// FlushEvents indicates an expected call of FlushEvents.
+func (mr *MockStorageMockRecorder) FlushEvents(start, events any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FlushEvents", reflect.TypeOf((*MockStorage)(nil).FlushEvents), start, events)
+}
+
+// ListEventChunks mocks base method.
+func (m *MockStorage) ListEventChunks(start, end time.Time) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEventChunks", start, end)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListEventChunks indicates an expected call of ListEventChunks.
+func (mr *MockStorageMockRecorder) ListEventChunks(start, end any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEventChunks", reflect.TypeOf((*MockStorage)(nil).ListEventChunks), start, end)
+}
+
+// PublishSite mocks base method.
+func (m *MockStorage) PublishSite(site []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PublishSite", site)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PublishSite indicates an expected call of PublishSite.
+func (mr *MockStorageMockRecorder) PublishSite(site any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishSite", reflect.TypeOf((*MockStorage)(nil).PublishSite), site)
+}
+
+// ReadEvents mocks base method.
+func (m *MockStorage) ReadEvents(key string) ([]storage.EventRecord, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadEvents", key)
+	ret0, _ := ret[0].([]storage.EventRecord)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadEvents indicates an expected call of ReadEvents.
+func (mr *MockStorageMockRecorder) ReadEvents(key any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadEvents", reflect.TypeOf((*MockStorage)(nil).ReadEvents), key)
 }
