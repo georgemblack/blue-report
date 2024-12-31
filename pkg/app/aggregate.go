@@ -14,6 +14,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/georgemblack/blue-report/pkg/app/util"
 	"github.com/georgemblack/blue-report/pkg/cache"
+	"github.com/georgemblack/blue-report/pkg/storage"
 	minify "github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
 	"github.com/tdewolff/minify/v2/html"
@@ -43,7 +44,7 @@ func Aggregate() error {
 	defer ch.Close()
 
 	// Build storage client
-	stg, err := NewStorageClient()
+	stg, err := storage.New()
 	if err != nil {
 		return util.WrapErr("failed to create storage client", err)
 	}
@@ -78,11 +79,11 @@ func Aggregate() error {
 
 			// Update count for the URL and add fingerprint to set
 			item := count[record.URL]
-			if record.isPost() {
+			if record.IsPost() {
 				item.PostCount++
-			} else if record.isRepost() {
+			} else if record.IsRepost() {
 				item.RepostCount++
-			} else if record.isLike() {
+			} else if record.IsLike() {
 				item.LikeCount++
 			}
 			count[record.URL] = item
@@ -201,6 +202,6 @@ func Aggregate() error {
 }
 
 // Generate a unique 'fingerprint' for a given user (DID) and URL combination.
-func fingerprint(record StorageEventRecord) string {
+func fingerprint(record storage.EventRecord) string {
 	return util.Hash(fmt.Sprintf("%d%s%s", record.Type, record.DID, record.URL))
 }

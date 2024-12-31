@@ -37,10 +37,10 @@ func TestHandlePostWithEmbed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedPost := cache.CachePostRecord{
+	expectedPost := cache.PostRecord{
 		URL: "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
 	}
-	expectedURL := cache.CacheURLRecord{
+	expectedURL := cache.URLRecord{
 		URL:      "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
 		Title:    "The Mystery of the Bloomfield Bridge",
 		ImageURL: "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:ruzlll5u7u7pfxybmppqyxbx/bafkreiasj4bgohn7rx2mhf3i4r7tdr43kuyyks6cxsgi5zuttq4274ibny",
@@ -49,9 +49,9 @@ func TestHandlePostWithEmbed(t *testing.T) {
 	hashedURL := util.Hash(expectedURL.URL)
 
 	mockCache := testutil.NewMockCache(gomock.NewController(t))
-	mockCache.EXPECT().SavePost(hashedCID, expectedPost)                      // Save the post
-	mockCache.EXPECT().ReadURL(hashedURL).Return(cache.CacheURLRecord{}, nil) // Check for existing URL record (it doesn't exist)
-	mockCache.EXPECT().SaveURL(hashedURL, expectedURL)                        // Write a new URL record
+	mockCache.EXPECT().SavePost(hashedCID, expectedPost)                 // Save the post
+	mockCache.EXPECT().ReadURL(hashedURL).Return(cache.URLRecord{}, nil) // Check for existing URL record (it doesn't exist)
+	mockCache.EXPECT().SaveURL(hashedURL, expectedURL)                   // Write a new URL record
 
 	_, skip, err := app.HandlePost(mockCache, event)
 
@@ -71,13 +71,13 @@ func TestHandlePostWithPartiallySavedURL(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedPost := cache.CachePostRecord{
+	expectedPost := cache.PostRecord{
 		URL: "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
 	}
-	existingURL := cache.CacheURLRecord{
+	existingURL := cache.URLRecord{
 		URL: "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
 	}
-	expectedURL := cache.CacheURLRecord{
+	expectedURL := cache.URLRecord{
 		URL:      "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
 		Title:    "The Mystery of the Bloomfield Bridge",
 		ImageURL: "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:ruzlll5u7u7pfxybmppqyxbx/bafkreiasj4bgohn7rx2mhf3i4r7tdr43kuyyks6cxsgi5zuttq4274ibny",
@@ -107,10 +107,10 @@ func TestHandlePostWithPartialURLData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expectedPost := cache.CachePostRecord{
+	expectedPost := cache.PostRecord{
 		URL: "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
 	}
-	existingURL := cache.CacheURLRecord{
+	existingURL := cache.URLRecord{
 		URL:      "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
 		Title:    "The Mystery of the Bloomfield Bridge",
 		ImageURL: "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:ruzlll5u7u7pfxybmppqyxbx/bafkreiasj4bgohn7rx2mhf3i4r7tdr43kuyyks6cxsgi5zuttq4274ibny",

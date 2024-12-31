@@ -53,10 +53,10 @@ func (mr *MockCacheMockRecorder) Close() *gomock.Call {
 }
 
 // ReadPost mocks base method.
-func (m *MockCache) ReadPost(hash string) (cache.CachePostRecord, error) {
+func (m *MockCache) ReadPost(hash string) (cache.PostRecord, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReadPost", hash)
-	ret0, _ := ret[0].(cache.CachePostRecord)
+	ret0, _ := ret[0].(cache.PostRecord)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -68,10 +68,10 @@ func (mr *MockCacheMockRecorder) ReadPost(hash any) *gomock.Call {
 }
 
 // ReadURL mocks base method.
-func (m *MockCache) ReadURL(hash string) (cache.CacheURLRecord, error) {
+func (m *MockCache) ReadURL(hash string) (cache.URLRecord, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReadURL", hash)
-	ret0, _ := ret[0].(cache.CacheURLRecord)
+	ret0, _ := ret[0].(cache.URLRecord)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -111,7 +111,7 @@ func (mr *MockCacheMockRecorder) RefreshURL(hash any) *gomock.Call {
 }
 
 // SavePost mocks base method.
-func (m *MockCache) SavePost(hash string, post cache.CachePostRecord) error {
+func (m *MockCache) SavePost(hash string, post cache.PostRecord) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SavePost", hash, post)
 	ret0, _ := ret[0].(error)
@@ -125,7 +125,7 @@ func (mr *MockCacheMockRecorder) SavePost(hash, post any) *gomock.Call {
 }
 
 // SaveURL mocks base method.
-func (m *MockCache) SaveURL(hash string, url cache.CacheURLRecord) error {
+func (m *MockCache) SaveURL(hash string, url cache.URLRecord) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveURL", hash, url)
 	ret0, _ := ret[0].(error)

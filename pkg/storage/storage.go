@@ -1,4 +1,4 @@
-package app
+package storage
 
 import (
 	"bytes"
@@ -16,20 +16,20 @@ import (
 	"github.com/georgemblack/blue-report/pkg/app/util"
 )
 
-type Storage struct {
+type S3 struct {
 	client *s3.Client
 }
 
-func NewStorageClient() (Storage, error) {
+func New() (S3, error) {
 	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion("us-west-2"))
 	if err != nil {
-		return Storage{}, util.WrapErr("failed to load aws config", err)
+		return S3{}, util.WrapErr("failed to load aws config", err)
 	}
 
-	return Storage{client: s3.NewFromConfig(cfg)}, nil
+	return S3{client: s3.NewFromConfig(cfg)}, nil
 }
 
-func (s Storage) PublishSite(site []byte) error {
+func (s S3) PublishSite(site []byte) error {
 	// Update 'index.html', the main site
 	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:               aws.String(siteBucketName()),
@@ -59,7 +59,7 @@ func (s Storage) PublishSite(site []byte) error {
 	return nil
 }
 
-func (s Storage) ReadEvents(key string) ([]StorageEventRecord, error) {
+func (s S3) ReadEvents(key string) ([]EventRecord, error) {
 	resp, err := s.client.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(assetsBucketName()),
 		Key:    aws.String(fmt.Sprintf("events/%s.json", key)),
@@ -71,9 +71,9 @@ func (s Storage) ReadEvents(key string) ([]StorageEventRecord, error) {
 
 	// Decode JSON lines
 	dec := json.NewDecoder(resp.Body)
-	events := make([]StorageEventRecord, 0)
+	events := make([]EventRecord, 0)
 	for {
-		event := StorageEventRecord{}
+		event := EventRecord{}
 		if err := dec.Decode(&event); err != nil {
 			if err.Error() == "EOF" {
 				break
@@ -86,7 +86,7 @@ func (s Storage) ReadEvents(key string) ([]StorageEventRecord, error) {
 	return events, nil
 }
 
-func (s Storage) FlushEvents(start time.Time, events []StorageEventRecord) error {
+func (s S3) FlushEvents(start time.Time, events []EventRecord) error {
 	// Convert events to JSON lines
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -115,7 +115,7 @@ func (s Storage) FlushEvents(start time.Time, events []StorageEventRecord) error
 
 // ListEventChunks lists all S3 object keys containing events after a certain time.
 // Objects are named 'events/<timestamp>.json'.
-func (s Storage) ListEventChunks(start, end time.Time) ([]string, error) {
+func (s S3) ListEventChunks(start, end time.Time) ([]string, error) {
 	keys := make([]string, 0)
 
 	// List objects using a list of prefixes, one for each day between 'start' and 'end', inclusive.
@@ -175,21 +175,21 @@ func assetsBucketName() string {
 	return util.GetEnvStr("S3_ASSETS_BUCKET_NAME", "blue-report-test")
 }
 
-type StorageEventRecord struct {
+type EventRecord struct {
 	Type      int       `json:"type"` // 0 = post, 1 = repost, 2 = like
 	URL       string    `json:"url"`
 	DID       string    `json:"did"`
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func (s StorageEventRecord) isPost() bool {
+func (s EventRecord) IsPost() bool {
 	return s.Type == 0
 }
 
-func (s StorageEventRecord) isRepost() bool {
+func (s EventRecord) IsRepost() bool {
 	return s.Type == 1
 }
 
-func (s StorageEventRecord) isLike() bool {
+func (s EventRecord) IsLike() bool {
 	return s.Type == 2
 }

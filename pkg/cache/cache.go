@@ -44,7 +44,7 @@ func New() (Valkey, error) {
 }
 
 // SaveURL saves a URL record to the cache.
-func (v Valkey) SaveURL(hash string, url CacheURLRecord) error {
+func (v Valkey) SaveURL(hash string, url URLRecord) error {
 	bytes, err := msgpack.Marshal(url)
 	if err != nil {
 		return util.WrapErr("failed to marshal record", err)
@@ -61,26 +61,26 @@ func (v Valkey) SaveURL(hash string, url CacheURLRecord) error {
 }
 
 // ReadURL reads a URL record from the cache. If the record does not exist, return an empty record.
-func (v Valkey) ReadURL(hash string) (CacheURLRecord, error) {
+func (v Valkey) ReadURL(hash string) (URLRecord, error) {
 	key := fmt.Sprintf("url:%s", hash)
 	cmd := v.client.B().Get().Key(key).Build()
 	resp := v.client.Do(context.Background(), cmd)
 	if err := resp.Error(); err != nil {
 		if err == valkey.Nil {
-			return CacheURLRecord{}, nil
+			return URLRecord{}, nil
 		}
-		return CacheURLRecord{}, util.WrapErr("failed to execute get command", err)
+		return URLRecord{}, util.WrapErr("failed to execute get command", err)
 	}
 
 	bytes, err := resp.AsBytes()
 	if err != nil {
-		return CacheURLRecord{}, util.WrapErr("failed to convert response to bytes", err)
+		return URLRecord{}, util.WrapErr("failed to convert response to bytes", err)
 	}
 
-	var record CacheURLRecord
+	var record URLRecord
 	err = msgpack.Unmarshal(bytes, &record)
 	if err != nil {
-		return CacheURLRecord{}, util.WrapErr("failed to unmarshal record", err)
+		return URLRecord{}, util.WrapErr("failed to unmarshal record", err)
 	}
 
 	return record, nil
@@ -99,7 +99,7 @@ func (v Valkey) RefreshURL(hash string) error {
 }
 
 // SavePost saves a post record to the cache.
-func (v Valkey) SavePost(hash string, post CachePostRecord) error {
+func (v Valkey) SavePost(hash string, post PostRecord) error {
 	bytes, err := msgpack.Marshal(post)
 	if err != nil {
 		return util.WrapErr("failed to marshal record", err)
@@ -116,26 +116,26 @@ func (v Valkey) SavePost(hash string, post CachePostRecord) error {
 }
 
 // ReadPost reads a post record from the cache. If the record does not exist, return an empty record.
-func (v Valkey) ReadPost(hash string) (CachePostRecord, error) {
+func (v Valkey) ReadPost(hash string) (PostRecord, error) {
 	key := fmt.Sprintf("post:%s", hash)
 	cmd := v.client.B().Get().Key(key).Build()
 	resp := v.client.Do(context.Background(), cmd)
 	if err := resp.Error(); err != nil {
 		if err == valkey.Nil {
-			return CachePostRecord{}, nil
+			return PostRecord{}, nil
 		}
-		return CachePostRecord{}, util.WrapErr("failed to execute get command", err)
+		return PostRecord{}, util.WrapErr("failed to execute get command", err)
 	}
 
 	bytes, err := resp.AsBytes()
 	if err != nil {
-		return CachePostRecord{}, util.WrapErr("failed to convert response to bytes", err)
+		return PostRecord{}, util.WrapErr("failed to convert response to bytes", err)
 	}
 
-	var record CachePostRecord
+	var record PostRecord
 	err = msgpack.Unmarshal(bytes, &record)
 	if err != nil {
-		return CachePostRecord{}, util.WrapErr("failed to unmarshal record", err)
+		return PostRecord{}, util.WrapErr("failed to unmarshal record", err)
 	}
 
 	return record, nil
@@ -157,31 +157,31 @@ func (v Valkey) Close() {
 	v.client.Close()
 }
 
-type CacheURLRecord struct {
+type URLRecord struct {
 	URL      string `msgpack:"u"`
 	Title    string `msgpack:"t"`
 	ImageURL string `msgpack:"p"`
 }
 
-func (r CacheURLRecord) MissingURL() bool {
+func (r URLRecord) MissingURL() bool {
 	return r.URL == ""
 }
 
-func (r CacheURLRecord) MissingFields() bool {
+func (r URLRecord) MissingFields() bool {
 	if (r.URL == "") || (r.Title == "") || (r.ImageURL == "") {
 		return true
 	}
 	return false
 }
 
-func (r CacheURLRecord) Complete() bool {
+func (r URLRecord) Complete() bool {
 	return !r.MissingFields()
 }
 
-type CachePostRecord struct {
+type PostRecord struct {
 	URL string `msgpack:"u"`
 }
 
-func (p CachePostRecord) Valid() bool {
+func (p PostRecord) Valid() bool {
 	return p.URL != ""
 }

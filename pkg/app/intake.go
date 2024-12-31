@@ -9,6 +9,7 @@ import (
 
 	"github.com/georgemblack/blue-report/pkg/app/util"
 	"github.com/georgemblack/blue-report/pkg/cache"
+	"github.com/georgemblack/blue-report/pkg/storage"
 	"github.com/gorilla/websocket"
 )
 
@@ -52,7 +53,7 @@ func Intake() error {
 	defer ch.Close()
 
 	// Build storage client
-	st, err := NewStorageClient()
+	st, err := storage.New()
 	if err != nil {
 		return util.WrapErr("failed to create storage client", err)
 	}
@@ -96,7 +97,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 	defer wg.Done()
 
 	// Buffer used to store events before they are flushed to storage.
-	buffer := make([]StorageEventRecord, 0, EventBufferSize)
+	buffer := make([]storage.EventRecord, 0, EventBufferSize)
 
 	stats := newStats()
 
@@ -122,7 +123,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 		}
 
 		// Handle event by type
-		record := StorageEventRecord{}
+		record := storage.EventRecord{}
 		skip := false
 		err := error(nil)
 		if event.isPost() {
@@ -170,7 +171,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 					slog.Info("flushed events to storage", "posts", localStats.posts, "reposts", localStats.reposts, "likes", localStats.likes, "skipped", localStats.skipped, "invalid", localStats.invalid, "errors", localStats.errors, "queue", queue)
 				}
 			}()
-			buffer = make([]StorageEventRecord, 0, EventBufferSize)
+			buffer = make([]storage.EventRecord, 0, EventBufferSize)
 			stats = newStats()
 		}
 	}
@@ -179,19 +180,19 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 // If posts contain a URL, save it as an event in storage.
 // Save the post to the cache so it can be quickly referenced for reposts and likes.
 // Save the URL metadata to the cache.
-func HandlePost(ch Cache, event StreamEvent) (StorageEventRecord, bool, error) {
+func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) {
 	url, title, image := parse(event)
 
 	// Filter out unwanted URLs (or posts with no URL)
 	if !include(url) {
-		return StorageEventRecord{}, true, nil
+		return storage.EventRecord{}, true, nil
 	}
 
 	normalizedURL := Normalize(url)
 	hashedURL := util.Hash(normalizedURL)
 
 	// Add the post to the cache, so it can be quickly referenced by reposts and likes.
-	post := cache.CachePostRecord{
+	post := cache.PostRecord{
 		URL: normalizedURL,
 	}
 	ch.SavePost(util.Hash(event.Commit.CID), post)
@@ -200,9 +201,9 @@ func HandlePost(ch Cache, event StreamEvent) (StorageEventRecord, bool, error) {
 	// This has the side-effect of refreshing the TTL of existing URL records.
 	old, err := ch.ReadURL(hashedURL)
 	if err != nil {
-		return StorageEventRecord{}, false, util.WrapErr("failed to read url record", err)
+		return storage.EventRecord{}, false, util.WrapErr("failed to read url record", err)
 	}
-	new := cache.CacheURLRecord{
+	new := cache.URLRecord{
 		URL:      normalizedURL,
 		Title:    title,
 		ImageURL: image,
@@ -210,7 +211,7 @@ func HandlePost(ch Cache, event StreamEvent) (StorageEventRecord, bool, error) {
 	ch.SaveURL(hashedURL, merge(old, new))
 
 	// Create and return storage event
-	storageRecord := StorageEventRecord{
+	storageRecord := storage.EventRecord{
 		Type:      event.typeOf(),
 		URL:       normalizedURL,
 		DID:       event.DID,
@@ -220,15 +221,15 @@ func HandlePost(ch Cache, event StreamEvent) (StorageEventRecord, bool, error) {
 }
 
 // Check if a like/repost references a post stored in the cache. If it does, save the event to storage.
-func HandleLikeOrRepost(ch Cache, event StreamEvent) (StorageEventRecord, bool, error) {
+func HandleLikeOrRepost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) {
 	postCID := event.Commit.Record.Subject.CID
 	postHash := util.Hash(postCID)
 	postRecord, err := ch.ReadPost(postHash)
 	if err != nil {
-		return StorageEventRecord{}, false, util.WrapErr("failed to read event record", err)
+		return storage.EventRecord{}, false, util.WrapErr("failed to read event record", err)
 	}
 	if !postRecord.Valid() {
-		return StorageEventRecord{}, true, nil
+		return storage.EventRecord{}, true, nil
 	}
 
 	// Post & and URL records have a short TTL in the cache.
@@ -243,7 +244,7 @@ func HandleLikeOrRepost(ch Cache, event StreamEvent) (StorageEventRecord, bool, 
 		slog.Warn(util.WrapErr("failed to refresh ttl of url", err).Error())
 	}
 
-	storageRecord := StorageEventRecord{
+	storageRecord := storage.EventRecord{
 		Type:      event.typeOf(),
 		URL:       postRecord.URL,
 		DID:       event.DID,
@@ -330,7 +331,7 @@ func include(url string) bool {
 }
 
 // Merge two URL records, returning the updated record.
-func merge(old, new cache.CacheURLRecord) cache.CacheURLRecord {
+func merge(old, new cache.URLRecord) cache.URLRecord {
 	if old.URL == "" {
 		old.URL = new.URL
 	}
