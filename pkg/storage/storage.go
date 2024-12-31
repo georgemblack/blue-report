@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/georgemblack/blue-report/pkg/app/util"
 )
 
@@ -199,6 +201,22 @@ func (s S3) SaveThumbnail(id string, url string) error {
 	}
 
 	return nil
+}
+
+func (s S3) ThumbnailExists(id string) (bool, error) {
+	_, err := s.client.HeadObject(context.Background(), &s3.HeadObjectInput{
+		Bucket: aws.String(siteBucketName()),
+		Key:    aws.String(fmt.Sprintf("thumbnails/%s.jpg", id)),
+	})
+	if err != nil {
+		var notFound *types.NotFound
+		if errors.As(err, &notFound) {
+			return false, nil
+		}
+		return false, util.WrapErr("failed to head object", err)
+	}
+
+	return true, nil
 }
 
 func siteBucketName() string {

@@ -23,4 +23,5 @@ type Storage interface {
 	FlushEvents(start time.Time, events []storage.EventRecord) error
 	ListEventChunks(start, end time.Time) ([]string, error)
 	SaveThumbnail(id string, url string) error
+	ThumbnailExists(id string) (bool, error)
 }

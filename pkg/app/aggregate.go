@@ -235,30 +235,26 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 		return ReportItem{}, util.WrapErr("failed to read url record", err)
 	}
 
-	// If the record has a saved thumbnail (in our S3 bucket), use it.
-	// Otherwise, fetch the image from the Bluesky CDN and store it in our S3 bucket.
+	// Fetch the thumbnail from the Bluesky CDN and store it in our S3 bucket.
 	// The thumbnail ID is the hash of the URL.
-	if !record.SavedThumbnail && record.ImageURL != "" {
+	if record.ImageURL != "" {
 		err := stg.SaveThumbnail(hashedURL, record.ImageURL)
 		if err != nil {
-			slog.Warn(util.WrapErr("failed to save thumbnail", err).Error(), "url", record.ImageURL)
-		} else {
-			record.SavedThumbnail = true
-
-			// Update the record to avoid re-fetching the image on the next aggregation job
-			err = ch.SaveURL(hashedURL, record)
-			if err != nil {
-				slog.Warn("failed to save url record", "error", err)
-			}
+			slog.Warn(util.WrapErr("failed to save thumbnail", err).Error(), "url", item.URL)
 		}
+	}
+
+	// Set the thumbnail URL if it exists
+	exists, err := stg.ThumbnailExists(hashedURL)
+	if err != nil {
+		slog.Warn(util.WrapErr("failed to check for thumbnail", err).Error(), "url", item.URL)
+	} else if exists {
+		item.ThumbnailURL = fmt.Sprintf("/thumbnails/%s.jpg", hashedURL)
 	}
 
 	item.Host = hostname(item.URL)
 	item.Title = record.Title
 	item.Rank = index + 1
-	if record.SavedThumbnail {
-		item.ThumbnailURL = fmt.Sprintf("/thumbnails/%s.jpg", hashedURL)
-	}
 
 	p := message.NewPrinter(message.MatchLanguage("en"))
 	item.PostCountStr = p.Sprintf("%d", item.Count.PostCount)
