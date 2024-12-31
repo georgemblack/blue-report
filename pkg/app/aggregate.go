@@ -257,7 +257,7 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 	item.Title = record.Title
 	item.Rank = index + 1
 	if record.SavedThumbnail {
-		item.ThumbnailURL = fmt.Sprintf("https://theblue.report/thumbnails/%s.jpg", hashedURL)
+		item.ThumbnailURL = fmt.Sprintf("/thumbnails/%s.jpg", hashedURL)
 	}
 
 	p := message.NewPrinter(message.MatchLanguage("en"))
