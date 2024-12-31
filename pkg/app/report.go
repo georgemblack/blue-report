@@ -16,13 +16,13 @@ func (c Count) Score() int {
 
 // Report represents all data requried to render the webpage.
 type Report struct {
-	NewsItems       []ReportItems // News articles
-	EverythingItems []ReportItems // Everything but news articles
+	NewsItems       []ReportItem // News articles
+	EverythingItems []ReportItem // Everything but news articles
 	GeneratedAt     string
 }
 
-// ReportItems represents a single item to be rendered on the webpage
-type ReportItems struct {
+// ReportItem represents a single item to be rendered on the webpage
+type ReportItem struct {
 	Rank           int
 	URL            string
 	Host           string

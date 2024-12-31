@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"regexp"
-	"sort"
+	"slices"
 	"text/template"
 	"time"
 
@@ -30,8 +30,8 @@ const (
 )
 
 // Aggregate runs a single aggregation cycle and exits.
-// All records are read from the cache, and the frequency of each URL is counted.
-// An in-memory cache supplements the cache, that persists between runs.
+// All events are read from storage, and the score of each URL is generated.
+// The top N URLs are hydrated with additional data, and used to generate the final site.
 func Aggregate() error {
 	slog.Info("starting aggregation")
 	start := time.Now()
@@ -49,25 +49,67 @@ func Aggregate() error {
 		return util.WrapErr("failed to create storage client", err)
 	}
 
-	// Read all records from storage in chunks, and aggregate a count for each URL along the way.
-	// Exclude unwated URLs, as well as duplicate URLs from the same user.
-	endTime := time.Now().UTC()
-	startTime := endTime.Add(-24 * time.Hour)
+	// Run the count
+	count, err := count(stg)
+	if err != nil {
+		return util.WrapErr("failed to generate count", err)
+	}
 
-	count := make(map[string]Count)         // Track instances each URL is shared
+	// Format results
+	formatted, err := format(count)
+	if err != nil {
+		return util.WrapErr("failed to format results", err)
+	}
+
+	// Hydrate report with data from cache, i.e. titles, image URLs, and more for each report item.
+	hydrated, err := hydrate(ch, formatted)
+	if err != nil {
+		return util.WrapErr("failed to hydrate report", err)
+	}
+
+	// Convert to HTML
+	result, err := generate(hydrated)
+	if err != nil {
+		return util.WrapErr("failed to generate html", err)
+	}
+
+	if util.GetEnvBool("DEBUG", false) {
+		os.WriteFile("result.html", result, 0644)
+	}
+
+	err = stg.PublishSite(result)
+	if err != nil {
+		return util.WrapErr("failed to publish report", err)
+	}
+
+	duration := time.Since(start)
+	slog.Info("aggregation complete", "seconds", duration.Seconds())
+	return nil
+}
+
+// Scan all events within the last 24 hours, and return a map of URLs and their associated counts.
+// Ignore duplicate URLs from the same user.
+// Example count: { "https://example.com": { Posts: 1, Reposts: 0, Likes: 0 } }
+func count(stg Storage) (map[string]Count, error) {
+	count := make(map[string]Count)         // Track each instance of a URL being shared
 	fingerprints := mapset.NewSet[string]() // Track unique DID and URL combinations
 	events := 0                             // Track total events processed
 	denied := 0                             // Track duplicate URLs from the same user
 
-	chunks, err := stg.ListEventChunks(startTime, endTime)
+	// Scan all events within the last 24 hours
+	end := time.Now().UTC()
+	start := end.Add(-24 * time.Hour)
+
+	// Records are stored in 'chunks', which are processed sequentially to limit memory usage
+	chunks, err := stg.ListEventChunks(start, end)
 	if err != nil {
-		return util.WrapErr("failed to list event chunks", err)
+		return nil, util.WrapErr("failed to list event chunks", err)
 	}
 
 	for _, chunk := range chunks {
 		records, err := stg.ReadEvents(chunk)
 		if err != nil {
-			return util.WrapErr("failed to read events", err)
+			return nil, util.WrapErr("failed to read events", err)
 		}
 
 		for _, record := range records {
@@ -94,81 +136,131 @@ func Aggregate() error {
 	}
 
 	slog.Info("finished generating count", "chunks", len(chunks), "processed", events, "denied", denied, "urls", len(count))
+	return count, nil
+}
 
-	formatted := make([]ReportItems, 0, len(count))
-	for k, v := range count {
-		formatted = append(formatted, ReportItems{URL: k, Count: v})
-	}
+// Generate a unique 'fingerprint' for a given user (DID) and URL combination.
+func fingerprint(record storage.EventRecord) string {
+	return util.Hash(fmt.Sprintf("%d%s%s", record.Type, record.DID, record.URL))
+}
 
-	// Sort results by score, and keep the top N
-	sorted := formatted
-	sort.Slice(sorted, func(i, j int) bool {
-		return sorted[i].Count.Score() > sorted[j].Count.Score()
-	})
-
-	// Generate lists top N lists by category, i.e. 'news', 'everything'
-	news := make([]ReportItems, 0, ListSize)
-	everything := make([]ReportItems, 0, ListSize)
-
+// Format the result of an aggregation into a report.
+func format(count map[string]Count) (Report, error) {
 	newsHosts, err := GetNewsHosts()
 	if err != nil {
-		return util.WrapErr("failed to get news hosts", err)
+		slog.Error("failed to get news hosts", "error", err)
 	}
 
-	// Hydreate results with data for rendering webpage (i.e. title, description).
-	// Place into 'news' or 'everything' list, and stop once both lists are full.
+	// Convert each item in map to ReportItem
+	converted := make([]ReportItem, 0, len(count))
+	for k, v := range count {
+		converted = append(converted, ReportItem{URL: k, Count: v})
+	}
+
+	// Sort ReportItems by score
+	sorted := converted
+	slices.SortFunc(sorted, func(a, b ReportItem) int {
+		scoreA := a.Count.Score()
+		scoreB := b.Count.Score()
+
+		if scoreA > scoreB {
+			return -1
+		}
+		if scoreA < scoreB {
+			return 1
+		}
+		return 0
+	})
+
+	// Find top N items in 'news' category
+	news := make([]ReportItem, 0, ListSize)
 	for i := range sorted {
-		// Fetch record for URL
-		// TODO: Skip this call if the URL isn't going to be placed in existing lists
-		urlRecord, err := ch.ReadURL(util.Hash(sorted[i].URL))
-		if err != nil {
-			return util.WrapErr("failed to read url record during hydration", err)
+		if len(news) >= ListSize {
+			break
 		}
 
-		sorted[i].URL = urlRecord.URL
-		sorted[i].Host = hostname(urlRecord.URL)
-		sorted[i].Title = urlRecord.Title
-		sorted[i].ImageURL = urlRecord.ImageURL
-		p := message.NewPrinter(message.MatchLanguage("en"))
-		sorted[i].PostCountStr = p.Sprintf("%d", sorted[i].Count.PostCount)
-		sorted[i].RepostCountStr = p.Sprintf("%d", sorted[i].Count.RepostCount)
-		sorted[i].LikeCountStr = p.Sprintf("%d", sorted[i].Count.LikeCount)
-
-		slog.Debug("hydrated", "record", sorted[i])
-
-		host := hostname(urlRecord.URL)
-		if len(news) < ListSize && newsHosts.Contains(host) {
+		if newsHosts.Contains(hostname(sorted[i].URL)) {
 			news = append(news, sorted[i])
 		}
-		if len(everything) < ListSize && !newsHosts.Contains(host) {
+	}
+
+	// Find top N items in 'everything else' category
+	everything := make([]ReportItem, 0, ListSize)
+	for i := range sorted {
+		if len(everything) >= ListSize {
+			break
+		}
+
+		if !newsHosts.Contains(hostname(sorted[i].URL)) {
 			everything = append(everything, sorted[i])
 		}
-		if len(news) >= ListSize && len(everything) >= ListSize {
-			break // Avoid hydrating more records than needed
+	}
+
+	// Assemble report
+	return Report{
+		NewsItems:       news,
+		EverythingItems: everything,
+	}, nil
+}
+
+func hydrate(ch Cache, report Report) (Report, error) {
+	report.GeneratedAt = time.Now().Format("Jan 2, 2006 at 3:04pm (MST)")
+
+	// For each report item, fetch the URL record from the cache and populate.
+	for i := range report.NewsItems {
+		item := report.NewsItems[i]
+		record, err := ch.ReadURL(util.Hash(item.URL))
+		if err != nil {
+			return Report{}, util.WrapErr("failed to read url record", err)
 		}
+
+		item.Host = hostname(item.URL)
+		item.Title = record.Title
+		item.ImageURL = record.ImageURL
+		item.Rank = i + 1
+
+		p := message.NewPrinter(message.MatchLanguage("en"))
+		item.PostCountStr = p.Sprintf("%d", item.Count.PostCount)
+		item.RepostCountStr = p.Sprintf("%d", item.Count.RepostCount)
+		item.LikeCountStr = p.Sprintf("%d", item.Count.LikeCount)
+
+		report.NewsItems[i] = item
+		slog.Debug("hydrated", "record", item)
 	}
 
-	// Hydrate each set of results with ranks
-	for i := range news {
-		news[i].Rank = i + 1
-	}
-	for i := range everything {
-		everything[i].Rank = i + 1
+	for i := range report.EverythingItems {
+		item := report.EverythingItems[i]
+		record, err := ch.ReadURL(util.Hash(item.URL))
+		if err != nil {
+			return Report{}, util.WrapErr("failed to read url record", err)
+		}
+
+		item.Host = hostname(item.URL)
+		item.Title = record.Title
+		item.ImageURL = record.ImageURL
+		item.Rank = i + 1
+
+		p := message.NewPrinter(message.MatchLanguage("en"))
+		item.PostCountStr = p.Sprintf("%d", item.Count.PostCount)
+		item.RepostCountStr = p.Sprintf("%d", item.Count.RepostCount)
+		item.LikeCountStr = p.Sprintf("%d", item.Count.LikeCount)
+
+		report.EverythingItems[i] = item
+		slog.Debug("hydrated", "record", item)
 	}
 
-	// Generate final report
-	generatedAt := time.Now().Format("Jan 2, 2006 at 3:04pm (MST)")
-	report := Report{NewsItems: news, EverythingItems: everything, GeneratedAt: generatedAt}
+	return report, nil
+}
 
-	// Convert to HTML
+func generate(report Report) ([]byte, error) {
 	tmpl, err := template.ParseFS(indexTmpl, "assets/index.html")
 	if err != nil {
-		return util.WrapErr("failed to parse template", err)
+		return nil, util.WrapErr("failed to parse template", err)
 	}
 	var buf bytes.Buffer
 	err = tmpl.Execute(&buf, report)
 	if err != nil {
-		return util.WrapErr("failed to execute template", err)
+		return nil, util.WrapErr("failed to execute template", err)
 	}
 
 	// Minify HTML
@@ -182,26 +274,5 @@ func Aggregate() error {
 	minifier.AddFunc("text/css", css.Minify)
 	minifier.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
 
-	final, err := minifier.Bytes("text/html", buf.Bytes())
-	if err != nil {
-		return util.WrapErr("failed to minify html", err)
-	}
-
-	// For local testing
-	os.WriteFile("result.html", final, 0644)
-
-	// Publish to S3
-	err = stg.PublishSite(final)
-	if err != nil {
-		return util.WrapErr("failed to publish report", err)
-	}
-
-	duration := time.Since(start)
-	slog.Info("aggregation complete", "seconds", duration.Seconds())
-	return nil
-}
-
-// Generate a unique 'fingerprint' for a given user (DID) and URL combination.
-func fingerprint(record storage.EventRecord) string {
-	return util.Hash(fmt.Sprintf("%d%s%s", record.Type, record.DID, record.URL))
+	return minifier.Bytes("text/html", buf.Bytes())
 }
