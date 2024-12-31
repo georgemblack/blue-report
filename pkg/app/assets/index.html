@@ -83,7 +83,7 @@
       }
 
       footer {
-        margin: 4em 0 6em 0;
+        margin: 4em 1em 6em 1em;
         text-align: center;
         color: var(--faded-text-color);
       }
@@ -186,12 +186,8 @@
         overflow-wrap: anywhere;
       }
 
-      .link .subtitle {
-        color: var(--faded-text-color);
-      }
-
       .link .metadata {
-        margin: 1em 0 0 0;
+        margin: 1rem 0 0 0;
         color: var(--faded-text-color);
       }
 
@@ -219,6 +215,10 @@
         .link .preview .placeholder {
           width: 100%;
           height: 12rem;
+        }
+
+        .link .metadata {
+          font-size: 0.85em;
         }
       }
     </style>
@@ -258,15 +258,12 @@
             {{ end }}
           </a>
           <div class="content">
-            <div>
-              <p class="title">
-                <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
-              </p>
-              <p class="subtitle">{{ .Host }}</p>
-            </div>
+            <p class="title">
+              <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
+            </p>
             <p class="metadata">
-              {{ .PostCountStr }} posts, {{ .RepostCountStr }} reposts, {{
-              .LikeCountStr }} likes
+              {{ .Host }} • {{ .PostCountStr }} posts, {{ .RepostCountStr }}
+              reposts, {{ .LikeCountStr }} likes
             </p>
           </div>
         </div>
@@ -283,15 +280,12 @@
             {{ end }}
           </a>
           <div class="content">
-            <div>
-              <p class="title">
-                <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
-              </p>
-              <p class="subtitle">{{ .Host }}</p>
-            </div>
+            <p class="title">
+              <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
+            </p>
             <p class="metadata">
-              {{ .PostCountStr }} posts, {{ .RepostCountStr }} reposts, {{
-              .LikeCountStr }} likes
+              {{ .Host }} • {{ .PostCountStr }} posts, {{ .RepostCountStr }}
+              reposts, {{ .LikeCountStr }} likes
             </p>
           </div>
         </div>
@@ -303,13 +297,13 @@
       <div style="margin-top: 2em">
         <p>
           Created and maintained by
-          <a href="https://bsky.app/profile/george.black">George Black.</a> The
-          code is
-          <a href="https://github.com/georgemblack/blue-report">open source.</a>
+          <a href="https://bsky.app/profile/george.black">George Black</a>.
         </p>
         <p>
-          This site was inspired by <a href="https://sill.social">Sill</a>, go
-          check it out!
+          The code is
+          <a href="https://github.com/georgemblack/blue-report">open source</a>.
+          The project as a whole was inspired by
+          <a href="https://sill.social">Sill</a>, go check it out!
         </p>
       </div>
     </footer>
