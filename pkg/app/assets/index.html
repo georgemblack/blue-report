@@ -186,6 +186,10 @@
         overflow-wrap: anywhere;
       }
 
+      .link .subtitle {
+        color: var(--faded-text-color);
+      }
+
       .link .metadata {
         margin: 1em 0 0 0;
         color: var(--faded-text-color);
@@ -254,12 +258,15 @@
             {{ end }}
           </a>
           <div class="content">
-            <p class="title">
-              <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
-            </p>
+            <div>
+              <p class="title">
+                <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
+              </p>
+              <p class="subtitle">{{ .Host }}</p>
+            </div>
             <p class="metadata">
-              {{ .Host }} • {{ .PostCountStr }} posts, {{ .RepostCountStr }}
-              reposts, {{ .LikeCountStr }} likes
+              {{ .PostCountStr }} posts, {{ .RepostCountStr }} reposts, {{
+              .LikeCountStr }} likes
             </p>
           </div>
         </div>
@@ -276,12 +283,15 @@
             {{ end }}
           </a>
           <div class="content">
-            <p class="title">
-              <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
-            </p>
+            <div>
+              <p class="title">
+                <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
+              </p>
+              <p class="subtitle">{{ .Host }}</p>
+            </div>
             <p class="metadata">
-              {{ .Host }} • {{ .PostCountStr }} posts, {{ .RepostCountStr }}
-              reposts, {{ .LikeCountStr }} likes
+              {{ .PostCountStr }} posts, {{ .RepostCountStr }} reposts, {{
+              .LikeCountStr }} likes
             </p>
           </div>
         </div>
@@ -290,15 +300,12 @@
     </main>
     <footer>
       <p>Last updated {{ .GeneratedAt }}</p>
-      <p>
-        Links are scored as follows: score = (posts * 100) + (reposts * 10) +
-        (likes * 1).
-      </p>
       <div style="margin-top: 2em">
         <p>
           Created and maintained by
           <a href="https://bsky.app/profile/george.black">George Black.</a> The
-          code is [open source](https://github.com/georgemblack/blue-report).
+          code is
+          <a href="https://github.com/georgemblack/blue-report">open source.</a>
         </p>
         <p>
           This site was inspired by <a href="https://sill.social">Sill</a>, go
