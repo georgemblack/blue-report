@@ -10,6 +10,10 @@ RUN go build -o aggregate cmd/aggregate/main.go
 RUN go build -o intake cmd/intake/main.go
 
 FROM alpine
+
+# Install timezone data used by Go
+RUN apk add tzdata
+
 COPY --from=build /app/aggregate /aggregate
 COPY --from=build /app/intake /intake
 
