@@ -48,11 +48,10 @@ func TestHandlePostWithEmbed(t *testing.T) {
 	hashedCID := util.Hash("bafyreiehzp2ehowobuutnjsednkq24iisx2mzpdc27yuy4xztspcqid3ni")
 	hashedURL := util.Hash(expectedURL.URL)
 
-	// The cache should be called twice – to save the URL and post
 	mockCache := testutil.NewMockCache(gomock.NewController(t))
-	mockCache.EXPECT().SavePost(hashedCID, expectedPost)
-	mockCache.EXPECT().ReadURL(hashedURL).Return(cache.CacheURLRecord{}, nil)
-	mockCache.EXPECT().SaveURL(hashedURL, expectedURL)
+	mockCache.EXPECT().SavePost(hashedCID, expectedPost)                      // Save the post
+	mockCache.EXPECT().ReadURL(hashedURL).Return(cache.CacheURLRecord{}, nil) // Check for existing URL record (it doesn't exist)
+	mockCache.EXPECT().SaveURL(hashedURL, expectedURL)                        // Write a new URL record
 
 	_, skip, err := app.HandlePost(mockCache, event)
 
@@ -87,9 +86,9 @@ func TestHandlePostWithPartiallySavedURL(t *testing.T) {
 	hashedURL := util.Hash(expectedURL.URL)
 
 	mockCache := testutil.NewMockCache(gomock.NewController(t))
-	mockCache.EXPECT().SavePost(hashedCID, expectedPost)           // Save or update the post
-	mockCache.EXPECT().ReadURL(hashedURL).Return(existingURL, nil) // Record already exists
-	mockCache.EXPECT().SaveURL(hashedURL, expectedURL)             // Update the URL record with missing data
+	mockCache.EXPECT().SavePost(hashedCID, expectedPost)           // Save the post
+	mockCache.EXPECT().ReadURL(hashedURL).Return(existingURL, nil) // Check for existing URL record (it exists, with missing data)
+	mockCache.EXPECT().SaveURL(hashedURL, expectedURL)             // Write new URL record with complete data
 
 	_, skip, err := app.HandlePost(mockCache, event)
 
@@ -101,7 +100,7 @@ func TestHandlePostWithPartiallySavedURL(t *testing.T) {
 	}
 }
 
-// Test handling a post with partial URL data that shouldn't write to the cache.
+// Test handling a post with partial URL data that shouldn't write new data to the cache.
 func TestHandlePostWithPartialURLData(t *testing.T) {
 	event, err := testutil.GetStreamEvent("post-facet-only.json")
 	if err != nil {
@@ -120,9 +119,9 @@ func TestHandlePostWithPartialURLData(t *testing.T) {
 	hashedURL := util.Hash(existingURL.URL)
 
 	mockCache := testutil.NewMockCache(gomock.NewController(t))
-	mockCache.EXPECT().SavePost(hashedCID, expectedPost)            // Save or update the post
-	mockCache.EXPECT().ReadURL(hashedURL).Return(existingURL, nil)  // Return a fully populated URL record
-	mockCache.EXPECT().SaveURL(gomock.Any(), gomock.Any()).Times(0) // URL record should not be updated, because our post is missing data
+	mockCache.EXPECT().SavePost(hashedCID, expectedPost)           // Save post
+	mockCache.EXPECT().ReadURL(hashedURL).Return(existingURL, nil) // Check for existing URL record (it exists, with complete data)
+	mockCache.EXPECT().SaveURL(hashedURL, existingURL)             // Write new URL record with unchanged data (i.e. refresh TTL)
 
 	_, skip, err := app.HandlePost(mockCache, event)
 
