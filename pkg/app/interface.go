@@ -22,4 +22,5 @@ type Storage interface {
 	ReadEvents(key string) ([]storage.EventRecord, error)
 	FlushEvents(start time.Time, events []storage.EventRecord) error
 	ListEventChunks(start, end time.Time) ([]string, error)
+	SaveThumbnail(id string, url string) error
 }

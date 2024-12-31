@@ -27,7 +27,7 @@ type ReportItem struct {
 	URL            string
 	Host           string
 	Title          string
-	ImageURL       string
+	ThumbnailURL   string
 	Count          Count
 	PostCountStr   string
 	RepostCountStr string

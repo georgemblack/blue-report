@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"slices"
 	"strings"
 	"time"
@@ -165,6 +167,38 @@ func (s S3) ListEventChunks(start, end time.Time) ([]string, error) {
 
 	slog.Info("discovered chunks", "count", len(filtered), "first", keys[0], "last", keys[len(keys)-1])
 	return filtered, nil
+}
+
+// SaveThumbnail fetches an image at a given URL and stores it in S3.
+// The identifier for the image is returned.
+func (s S3) SaveThumbnail(id string, url string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return util.WrapErr("failed to fetch image", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to fetch image, status code: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+
+	image, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return util.WrapErr("failed to read image", err)
+	}
+
+	key := fmt.Sprintf("thumbnails/%s.jpg", id)
+	_, err = s.client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:               aws.String(siteBucketName()),
+		Key:                  aws.String(key),
+		Body:                 bytes.NewReader(image),
+		ServerSideEncryption: "AES256",
+		ContentType:          aws.String("image/jpeg"),
+	})
+	if err != nil {
+		return util.WrapErr("failed to put object", err)
+	}
+
+	return nil
 }
 
 func siteBucketName() string {

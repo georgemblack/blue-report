@@ -221,3 +221,17 @@ func (mr *MockStorageMockRecorder) ReadEvents(key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadEvents", reflect.TypeOf((*MockStorage)(nil).ReadEvents), key)
 }
+
+// SaveThumbnail mocks base method.
+func (m *MockStorage) SaveThumbnail(id, url string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveThumbnail", id, url)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveThumbnail indicates an expected call of SaveThumbnail.
+func (mr *MockStorageMockRecorder) SaveThumbnail(id, url any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveThumbnail", reflect.TypeOf((*MockStorage)(nil).SaveThumbnail), id, url)
+}

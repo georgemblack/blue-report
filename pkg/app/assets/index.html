@@ -247,8 +247,8 @@
         {{ range .NewsItems }}
         <div class="link">
           <a href="{{ .URL }}" class="preview">
-            {{ if .ImageURL }}
-            <img src="{{ .ImageURL }}" />
+            {{ if .ThumbnailURL }}
+            <img src="{{ .ThumbnailURL }}" />
             {{ else }}
             <div class="placeholder">🔗</div>
             {{ end }}
@@ -269,8 +269,8 @@
         {{ range .EverythingItems }}
         <div class="link">
           <a href="{{ .URL }}" class="preview">
-            {{ if .ImageURL }}
-            <img src="{{ .ImageURL }}" />
+            {{ if .ThumbnailURL }}
+            <img src="{{ .ThumbnailURL }}" />
             {{ else }}
             <div class="placeholder">🔗</div>
             {{ end }}

@@ -158,9 +158,10 @@ func (v Valkey) Close() {
 }
 
 type URLRecord struct {
-	URL      string `msgpack:"u"`
-	Title    string `msgpack:"t"`
-	ImageURL string `msgpack:"p"`
+	URL            string `msgpack:"u"`
+	Title          string `msgpack:"t"`
+	ImageURL       string `msgpack:"p"` // Bluesky CDN URL of the thumbnail
+	SavedThumbnail bool   `msgpack:"s"` // True if the thumbnail has been saved to S3
 }
 
 func (r URLRecord) MissingURL() bool {

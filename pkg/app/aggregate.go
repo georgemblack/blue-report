@@ -26,7 +26,7 @@ import (
 var indexTmpl embed.FS
 
 const (
-	ListSize = 15
+	ListSize = 10
 )
 
 // Aggregate runs a single aggregation cycle and exits.
@@ -62,7 +62,7 @@ func Aggregate() error {
 	}
 
 	// Hydrate report with data from cache, i.e. titles, image URLs, and more for each report item.
-	hydrated, err := hydrate(ch, formatted)
+	hydrated, err := hydrate(ch, stg, formatted)
 	if err != nil {
 		return util.WrapErr("failed to hydrate report", err)
 	}
@@ -203,53 +203,70 @@ func format(count map[string]Count) (Report, error) {
 	}, nil
 }
 
-func hydrate(ch Cache, report Report) (Report, error) {
+func hydrate(ch Cache, stg Storage, report Report) (Report, error) {
+	var err error
 	report.GeneratedAt = time.Now().Format("Jan 2, 2006 at 3:04pm (MST)")
 
 	// For each report item, fetch the URL record from the cache and populate.
 	for i := range report.NewsItems {
-		item := report.NewsItems[i]
-		record, err := ch.ReadURL(util.Hash(item.URL))
+		report.NewsItems[i], err = hydrateItem(ch, stg, i, report.NewsItems[i])
 		if err != nil {
-			return Report{}, util.WrapErr("failed to read url record", err)
+			return Report{}, util.WrapErr("failed to hydrate item", err)
 		}
-
-		item.Host = hostname(item.URL)
-		item.Title = record.Title
-		item.ImageURL = record.ImageURL
-		item.Rank = i + 1
-
-		p := message.NewPrinter(message.MatchLanguage("en"))
-		item.PostCountStr = p.Sprintf("%d", item.Count.PostCount)
-		item.RepostCountStr = p.Sprintf("%d", item.Count.RepostCount)
-		item.LikeCountStr = p.Sprintf("%d", item.Count.LikeCount)
-
-		report.NewsItems[i] = item
-		slog.Debug("hydrated", "record", item)
 	}
-
 	for i := range report.EverythingItems {
-		item := report.EverythingItems[i]
-		record, err := ch.ReadURL(util.Hash(item.URL))
+		report.EverythingItems[i], err = hydrateItem(ch, stg, i, report.EverythingItems[i])
 		if err != nil {
-			return Report{}, util.WrapErr("failed to read url record", err)
+			return Report{}, util.WrapErr("failed to hydrate item", err)
 		}
-
-		item.Host = hostname(item.URL)
-		item.Title = record.Title
-		item.ImageURL = record.ImageURL
-		item.Rank = i + 1
-
-		p := message.NewPrinter(message.MatchLanguage("en"))
-		item.PostCountStr = p.Sprintf("%d", item.Count.PostCount)
-		item.RepostCountStr = p.Sprintf("%d", item.Count.RepostCount)
-		item.LikeCountStr = p.Sprintf("%d", item.Count.LikeCount)
-
-		report.EverythingItems[i] = item
-		slog.Debug("hydrated", "record", item)
 	}
 
 	return report, nil
+}
+
+// Hydrate a single report item with:
+//   - Metadata from the cache (title)
+//   - Thumbnail image from S3
+//   - Nicely formatted strings for rendering the report template
+func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem, error) {
+	hashedURL := util.Hash(item.URL)
+	record, err := ch.ReadURL(hashedURL)
+	if err != nil {
+		return ReportItem{}, util.WrapErr("failed to read url record", err)
+	}
+
+	// If the record has a saved thumbnail (in our S3 bucket), use it.
+	// Otherwise, fetch the image from the Bluesky CDN and store it in our S3 bucket.
+	// The thumbnail ID is the hash of the URL.
+	if !record.SavedThumbnail && record.ImageURL != "" {
+		err := stg.SaveThumbnail(hashedURL, record.ImageURL)
+		if err != nil {
+			slog.Warn(util.WrapErr("failed to save thumbnail", err).Error(), "url", record.ImageURL)
+		} else {
+			record.SavedThumbnail = true
+
+			// Update the record to avoid re-fetching the image on the next aggregation job
+			err = ch.SaveURL(hashedURL, record)
+			if err != nil {
+				slog.Warn("failed to save url record", "error", err)
+			}
+		}
+	}
+
+	item.Host = hostname(item.URL)
+	item.Title = record.Title
+	item.Rank = index + 1
+	if record.SavedThumbnail {
+		item.ThumbnailURL = fmt.Sprintf("https://theblue.report/thumbnails/%s.jpg", hashedURL)
+	}
+
+	p := message.NewPrinter(message.MatchLanguage("en"))
+	item.PostCountStr = p.Sprintf("%d", item.Count.PostCount)
+	item.RepostCountStr = p.Sprintf("%d", item.Count.RepostCount)
+	item.LikeCountStr = p.Sprintf("%d", item.Count.LikeCount)
+
+	slog.Debug("hydrated", "record", item)
+	return item, nil
 }
 
 func generate(report Report) ([]byte, error) {
