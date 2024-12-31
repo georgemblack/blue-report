@@ -205,7 +205,7 @@ func format(count map[string]Count) (Report, error) {
 
 func hydrate(ch Cache, stg Storage, report Report) (Report, error) {
 	var err error
-	report.GeneratedAt = time.Now().Format("Jan 2, 2006 at 3:04pm (MST)")
+	report.GeneratedAt = util.ToEastern(time.Now()).Format("Jan 2, 2006 at 3:04pm (MST)")
 
 	// For each report item, fetch the URL record from the cache and populate.
 	for i := range report.NewsItems {
