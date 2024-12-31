@@ -13,7 +13,7 @@ import (
 
 // TTLSeconds is the default time-to-live for all post and URL records in the cache.
 // If a record is 'refreshed', the TTL is reset to this value.
-const TTLSeconds = 86400 // 24 hours
+const TTLSeconds = 43200 // 12 hours
 
 type Valkey struct {
 	client valkey.Client
