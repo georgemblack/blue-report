@@ -180,7 +180,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 // Save the post to the cache so it can be quickly referenced for reposts and likes.
 // Save the URL metadata to the cache.
 func HandlePost(ch Cache, event StreamEvent) (StorageEventRecord, bool, error) {
-	url, title, _, image := parse(event) // Ignore description for now
+	url, title, image := parse(event)
 
 	// Filter out unwanted URLs (or posts with no URL)
 	if !include(url) {
@@ -190,30 +190,24 @@ func HandlePost(ch Cache, event StreamEvent) (StorageEventRecord, bool, error) {
 	normalizedURL := Normalize(url)
 	hashedURL := util.Hash(normalizedURL)
 
-	// Add the post to the cache, so it can be quickly referenced by reposts and likes
-	postRecord := cache.CachePostRecord{
+	// Add the post to the cache, so it can be quickly referenced by reposts and likes.
+	post := cache.CachePostRecord{
 		URL: normalizedURL,
 	}
-	ch.SavePost(util.Hash(event.Commit.CID), postRecord)
+	ch.SavePost(util.Hash(event.Commit.CID), post)
 
-	// Add (or update) the URL metadata in the cache
-	urlRecord := cache.CacheURLRecord{
+	// Merge the old URL record (if it exists) with the new URL record, and save to cache.
+	// This has the side-effect of refreshing the TTL of existing URL records.
+	old, err := ch.ReadURL(hashedURL)
+	if err != nil {
+		return StorageEventRecord{}, false, util.WrapErr("failed to read url record", err)
+	}
+	new := cache.CacheURLRecord{
 		URL:      normalizedURL,
 		Title:    title,
 		ImageURL: image,
 	}
-	existing, err := ch.ReadURL(hashedURL)
-	if err != nil {
-		return StorageEventRecord{}, false, util.WrapErr("failed to read url record", err)
-	}
-
-	// Update the record if one of the following is ture:
-	// 1. The existing record is empty
-	// 2. The existing record is partially empty (i.e. missing fields)
-	// 3. The new record is complete (all fields are present)
-	if existing.MissingFields() || !urlRecord.MissingFields() {
-		ch.SaveURL(hashedURL, urlRecord)
-	}
+	ch.SaveURL(hashedURL, merge(old, new))
 
 	// Create and return storage event
 	storageRecord := StorageEventRecord{
@@ -237,6 +231,18 @@ func HandleLikeOrRepost(ch Cache, event StreamEvent) (StorageEventRecord, bool, 
 		return StorageEventRecord{}, true, nil
 	}
 
+	// Post & and URL records have a short TTL in the cache.
+	// Refresh the TTL of each record, as it has been referenced by a like or repost.
+	// This allows us to reduce the overall size of the cache, while still retaining popular posts & URLs.
+	err = ch.RefreshPost(postHash)
+	if err != nil {
+		slog.Warn(util.WrapErr("failed to refresh ttl of post", err).Error())
+	}
+	err = ch.RefreshURL(util.Hash(postRecord.URL))
+	if err != nil {
+		slog.Warn(util.WrapErr("failed to refresh ttl of url", err).Error())
+	}
+
 	storageRecord := StorageEventRecord{
 		Type:      event.typeOf(),
 		URL:       postRecord.URL,
@@ -247,13 +253,13 @@ func HandleLikeOrRepost(ch Cache, event StreamEvent) (StorageEventRecord, bool, 
 }
 
 // Intended for parsing post events.
-func parse(post StreamEvent) (string, string, string, string) {
-	// Search embed for URL, title, description, and image
+func parse(post StreamEvent) (string, string, string) {
+
+	// Search embed for URL, title, and image
 	embed := post.Commit.Record.Embed
 	if embed.Type == "app.bsky.embed.external" {
 		uri := embed.External.URI
 		title := embed.External.Title
-		description := embed.External.Description
 		image := ""
 
 		// Add image if it exists
@@ -262,19 +268,19 @@ func parse(post StreamEvent) (string, string, string, string) {
 			image = fmt.Sprintf("https://cdn.bsky.app/img/feed_thumbnail/plain/%s/%s", post.DID, thumb.Ref.Link)
 		}
 
-		return uri, title, description, image
+		return uri, title, image
 	}
 
 	// Otherwise, search for link facet
 	for _, facet := range post.Commit.Record.Facets {
 		for _, feature := range facet.Features {
 			if feature.Type == "app.bsky.richtext.facet#link" && feature.URI != "" {
-				return feature.URI, "", "", ""
+				return feature.URI, "", ""
 			}
 		}
 	}
 
-	return "", "", "", ""
+	return "", "", ""
 }
 
 // Determine whether to include a given URL.
@@ -321,4 +327,19 @@ func include(url string) bool {
 	}
 
 	return true
+}
+
+// Merge two URL records, returning the updated record.
+func merge(old, new cache.CacheURLRecord) cache.CacheURLRecord {
+	if old.URL == "" {
+		old.URL = new.URL
+	}
+	if old.Title == "" {
+		old.Title = new.Title
+	}
+	if old.ImageURL == "" {
+		old.ImageURL = new.ImageURL
+	}
+
+	return old
 }

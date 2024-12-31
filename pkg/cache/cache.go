@@ -11,10 +11,15 @@ import (
 	"github.com/vmihailenco/msgpack/v5"
 )
 
+// TTLSeconds is the default time-to-live for all post and URL records in the cache.
+// If a record is 'refreshed', the TTL is reset to this value.
+const TTLSeconds = 86400 // 24 hours
+
 type Valkey struct {
 	client valkey.Client
 }
 
+// New creates a new Valkey client.
 func New() (Valkey, error) {
 	address := util.GetEnvStr("VALKEY_ADDRESS", "127.0.0.1:6379")
 	tlsEnabled := util.GetEnvBool("VALKEY_TLS_ENABLED", false)
@@ -38,6 +43,7 @@ func New() (Valkey, error) {
 	return Valkey{client: client}, nil
 }
 
+// SaveURL saves a URL record to the cache.
 func (v Valkey) SaveURL(hash string, url CacheURLRecord) error {
 	bytes, err := msgpack.Marshal(url)
 	if err != nil {
@@ -45,7 +51,7 @@ func (v Valkey) SaveURL(hash string, url CacheURLRecord) error {
 	}
 
 	key := fmt.Sprintf("url:%s", hash)
-	cmd := v.client.B().Set().Key(key).Value(string(bytes)).Ex(time.Second * 604800).Build() // 7 day expiry
+	cmd := v.client.B().Set().Key(key).Value(string(bytes)).Ex(time.Second * TTLSeconds).Build()
 	err = v.client.Do(context.Background(), cmd).Error()
 	if err != nil {
 		return util.WrapErr("failed to set key", err)
@@ -54,6 +60,7 @@ func (v Valkey) SaveURL(hash string, url CacheURLRecord) error {
 	return nil
 }
 
+// ReadURL reads a URL record from the cache. If the record does not exist, return an empty record.
 func (v Valkey) ReadURL(hash string) (CacheURLRecord, error) {
 	key := fmt.Sprintf("url:%s", hash)
 	cmd := v.client.B().Get().Key(key).Build()
@@ -79,6 +86,19 @@ func (v Valkey) ReadURL(hash string) (CacheURLRecord, error) {
 	return record, nil
 }
 
+// RefreshURL refreshes the TTL of a URL record in the cache.
+func (v Valkey) RefreshURL(hash string) error {
+	key := fmt.Sprintf("url:%s", hash)
+	cmd := v.client.B().Expire().Key(key).Seconds(TTLSeconds).Build()
+	err := v.client.Do(context.Background(), cmd).Error()
+	if err != nil {
+		return util.WrapErr("failed to expire key", err)
+	}
+
+	return nil
+}
+
+// SavePost saves a post record to the cache.
 func (v Valkey) SavePost(hash string, post CachePostRecord) error {
 	bytes, err := msgpack.Marshal(post)
 	if err != nil {
@@ -86,7 +106,7 @@ func (v Valkey) SavePost(hash string, post CachePostRecord) error {
 	}
 
 	key := fmt.Sprintf("post:%s", hash)
-	cmd := v.client.B().Set().Key(key).Value(string(bytes)).Ex(time.Hour * 168).Build() // 7 day expiry
+	cmd := v.client.B().Set().Key(key).Value(string(bytes)).Ex(time.Second * TTLSeconds).Build()
 	err = v.client.Do(context.Background(), cmd).Error()
 	if err != nil {
 		return util.WrapErr("failed to set key", err)
@@ -95,6 +115,7 @@ func (v Valkey) SavePost(hash string, post CachePostRecord) error {
 	return nil
 }
 
+// ReadPost reads a post record from the cache. If the record does not exist, return an empty record.
 func (v Valkey) ReadPost(hash string) (CachePostRecord, error) {
 	key := fmt.Sprintf("post:%s", hash)
 	cmd := v.client.B().Get().Key(key).Build()
@@ -118,6 +139,18 @@ func (v Valkey) ReadPost(hash string) (CachePostRecord, error) {
 	}
 
 	return record, nil
+}
+
+// RefreshPost refreshes the TTL of a post record in the cache.
+func (v Valkey) RefreshPost(hash string) error {
+	key := fmt.Sprintf("post:%s", hash)
+	cmd := v.client.B().Expire().Key(key).Seconds(TTLSeconds).Build()
+	err := v.client.Do(context.Background(), cmd).Error()
+	if err != nil {
+		return util.WrapErr("failed to expire key", err)
+	}
+
+	return nil
 }
 
 func (v Valkey) Close() {

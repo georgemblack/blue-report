@@ -82,6 +82,34 @@ func (mr *MockCacheMockRecorder) ReadURL(hash any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadURL", reflect.TypeOf((*MockCache)(nil).ReadURL), hash)
 }
 
+// RefreshPost mocks base method.
+func (m *MockCache) RefreshPost(hash string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshPost", hash)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RefreshPost indicates an expected call of RefreshPost.
+func (mr *MockCacheMockRecorder) RefreshPost(hash any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshPost", reflect.TypeOf((*MockCache)(nil).RefreshPost), hash)
+}
+
+// RefreshURL mocks base method.
+func (m *MockCache) RefreshURL(hash string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshURL", hash)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RefreshURL indicates an expected call of RefreshURL.
+func (mr *MockCacheMockRecorder) RefreshURL(hash any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshURL", reflect.TypeOf((*MockCache)(nil).RefreshURL), hash)
+}
+
 // SavePost mocks base method.
 func (m *MockCache) SavePost(hash string, post cache.CachePostRecord) error {
 	m.ctrl.T.Helper()
