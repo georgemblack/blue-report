@@ -205,9 +205,11 @@ func format(count map[string]Count) (Report, error) {
 
 func hydrate(ch Cache, stg Storage, report Report) (Report, error) {
 	var err error
+
+	// Display in Eastern time, as this site is targeted at a US audience
 	report.GeneratedAt = util.ToEastern(time.Now()).Format("Jan 2, 2006 at 3:04pm (MST)")
 
-	// For each report item, fetch the URL record from the cache and populate.
+	// For each report item, fetch the URL record from the cache and populate
 	for i := range report.NewsItems {
 		report.NewsItems[i], err = hydrateItem(ch, stg, i, report.NewsItems[i])
 		if err != nil {
