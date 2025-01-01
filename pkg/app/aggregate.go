@@ -139,7 +139,7 @@ func count(stg Storage) (map[string]Count, error) {
 	return count, nil
 }
 
-// Generate a unique 'fingerprint' for a given user (DID) and URL combination.
+// Generate a unique 'fingerprint' for a given user (DID), URL, and event type combination.
 func fingerprint(record storage.EventRecord) string {
 	return util.Hash(fmt.Sprintf("%d%s%s", record.Type, record.DID, record.URL))
 }
