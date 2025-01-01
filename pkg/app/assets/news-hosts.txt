@@ -60,6 +60,7 @@ www.texastribune.org
 www.theatlantic.com
 www.thedailybeast.com
 www.theguardian.com
+www.theverge.com
 www.usatoday.com
 www.usnews.com
 www.voanews.com
