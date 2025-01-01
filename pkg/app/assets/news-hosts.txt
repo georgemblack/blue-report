@@ -3,6 +3,7 @@ apnews.com
 apple.news
 bylinetimes.com
 deadline.com
+finance.yahoo.com
 fortune.com
 globalnews.ca
 ground.news
@@ -22,6 +23,7 @@ uk.news.yahoo.com
 wapo.st
 www.abc.net.au
 www.ajc.com
+www.aljazeera.com
 www.axios.com
 www.bbc.co.uk
 www.bbc.com
@@ -31,8 +33,10 @@ www.cbsnews.com
 www.cnn.com
 www.comicsands.com
 www.dailymail.co.uk
+www.eonline.com
 www.essence.com
 www.forbes.com.au
+www.foxnews.com
 www.ft.com
 www.hollywoodreporter.com
 www.huffpost.com
@@ -46,12 +50,12 @@ www.nbcnews.com
 www.newsweek.com
 www.npr.org
 www.nytimes.com
-www.pbs.org
 www.politico.com
 www.propublica.org
 www.rawstory.com
 www.reuters.com
 www.rollingstone.com
+www.smithfieldtimes.com
 www.texastribune.org
 www.theatlantic.com
 www.thedailybeast.com
