@@ -54,6 +54,7 @@ www.politico.com
 www.propublica.org
 www.rawstory.com
 www.reuters.com
+www.cnbc.com
 www.rollingstone.com
 www.smithfieldtimes.com
 www.texastribune.org
@@ -64,6 +65,7 @@ www.theverge.com
 www.usatoday.com
 www.usnews.com
 www.voanews.com
+www.404media.co
 www.vox.com
 www.washingtonpost.com
 www.wsj.com
