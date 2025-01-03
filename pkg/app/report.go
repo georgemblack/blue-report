@@ -9,9 +9,9 @@ type Count struct {
 }
 
 // Score determins a URL's rank on the final report.
-// At the moment, a post is worth 10 'points', and a repost is worth 1.
+// A post is worth 100 points, a repost 10 points, and a like 1 point.
 func (c Count) Score() int {
-	return c.PostCount*10 + c.RepostCount
+	return (c.PostCount * 100) + (c.RepostCount * 10) + c.LikeCount
 }
 
 // Report represents all data requried to render the webpage.
