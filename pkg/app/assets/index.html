@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="Trending links and news stories on Bluesky"
+      content="The top links on Bluesky over the last 24 hours. Updated hourly."
     />
     <meta name="author" content="George Black" />
     <title>The Blue Report</title>
@@ -16,7 +16,7 @@
     <meta property="og:type" content="website" />
     <meta
       property="og:description"
-      content="Trending links and news stories on Bluesky"
+      content="The top links on Bluesky over the last 24 hours. Updated hourly."
     />
     <!-- External -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -29,10 +29,11 @@
     <style>
       :root {
         /* primary fonts */
-        --primary-font: "Crete Round", serif;
+        --header-font: "Crete Round", serif;
+        --primary-font: system-ui;
 
         /* font weights */
-        --font-weight-bold: 900;
+        --font-weight-bold: 800;
         --font-weight-normal: 400;
 
         /* general purpose colors */
@@ -63,14 +64,17 @@
 
       body {
         margin: 1em auto;
+        padding: 0 1em;
         max-width: 56rem;
-        font-family: var(--primary-font);
         font-weight: 400;
+        font-family: var(--primary-font);
+        line-height: 150%;
         background-color: var(--background-color);
       }
 
       header {
         text-align: center;
+        font-family: var(--header-font);
         margin: 2em 1em 0 1em;
       }
 
@@ -78,14 +82,28 @@
         color: var(--header-accent-color);
       }
 
+      header .subtitle {
+        margin-top: 0.5em;
+      }
+
       main {
-        margin: 1em 1em 0 1em;
+        margin-top: 1em;
       }
 
       footer {
-        margin: 4em 1em 6em 1em;
+        margin: 4em 0;
         text-align: center;
-        color: var(--faded-text-color);
+      }
+
+      /* medium break-point */
+      @media screen and (max-width: 46em) {
+        footer {
+          margin-left: auto;
+          margin-right: auto;
+          text-align: left;
+          max-width: 36rem;
+          font-size: 0.85em;
+        }
       }
 
       a {
@@ -107,10 +125,11 @@
         max-width: 28em;
         display: flex;
         padding: 0.25em;
+        font-family: var(--header-font);
+        line-height: 100%;
         border-radius: 2em;
         background-color: var(--toggle-background-color);
         box-shadow: 5px 6px 23px -10px rgba(0, 0, 0, 0.25);
-        line-height: 100%;
       }
 
       .toggle .news,
@@ -156,6 +175,10 @@
         border-top: 2px solid var(--line-separator-color);
       }
 
+      .link-group .link:last-of-type {
+        border-bottom: 2px solid var(--line-separator-color);
+      }
+
       .link .preview img,
       .link .preview .placeholder {
         display: block;
@@ -182,12 +205,17 @@
 
       .link .title {
         font-size: 1.25em;
-        font-weight: var(--font-weight-bold);
+        font-family: var(--header-font);
         overflow-wrap: anywhere;
       }
 
       .link .metadata {
         margin: 1rem 0 0 0;
+        color: var(--faded-text-color);
+      }
+
+      .last-updated {
+        margin-top: 0.25em;
         color: var(--faded-text-color);
       }
 
@@ -220,6 +248,49 @@
         .link .metadata {
           font-size: 0.85em;
         }
+      }
+
+      /* time machine */
+      .time-machine {
+        margin-top: 2em;
+        padding: 1em 1.5em;
+        background-color: rgba(255, 255, 255, 0.25);
+        border-radius: 1em;
+        box-shadow: 5px 6px 23px -10px rgba(0, 0, 0, 0.05);
+      }
+
+      .time-machine .title {
+        font-weight: var(--font-weight-bold);
+      }
+
+      .time-machine .subtitle {
+        margin-top: 0.25em;
+      }
+
+      .time-machine form {
+        margin-top: 1em;
+        display: flex;
+        align-items: center;
+        gap: 0.75em;
+      }
+
+      .time-machine input,
+      .time-machine button {
+        min-width: 5em;
+        height: 3em;
+        padding: 0.5em 1em;
+        border-radius: 0.5em;
+        border: 1px solid #dadada;
+      }
+
+      .time-machine input {
+        min-width: 12em;
+      }
+
+      .time-machine button {
+        color: white;
+        background-color: var(--header-accent-color);
+        cursor: pointer;
       }
     </style>
   </head>
@@ -279,21 +350,40 @@
         </div>
         {{ end }}
       </div>
+      <p class="last-updated">Last updated {{ .GeneratedAt }}</p>
+      <div class="time-machine">
+        <p class="title">⏳ Time Machine</p>
+        <p class="subtitle">
+          View this page at any point in the past, starting January 1st, 2025:
+        </p>
+        <form id="time-machine">
+          <label for="start">Date:</label>
+          <input
+            type="date"
+            id="date-picker"
+            name="date"
+            value="2025-01-01"
+            min="2025-01-01"
+          />
+          <button type="submit">Go</button>
+        </form>
+      </div>
     </main>
     <footer>
-      <p>Last updated {{ .GeneratedAt }}</p>
-      <div style="margin-top: 2em">
-        <p>
-          Created and maintained by
-          <a href="https://bsky.app/profile/george.black">George Black</a>.
-        </p>
-        <p>
-          The code is
-          <a href="https://github.com/georgemblack/blue-report">open source</a>.
-          The project as a whole was inspired by
-          <a href="https://sill.social">Sill</a>, go check it out!
-        </p>
-      </div>
+      <p>
+        Created and maintained by
+        <a href="https://bsky.app/profile/george.black">George Black</a>.
+      </p>
+      <p>
+        The code is
+        <a href="https://github.com/georgemblack/blue-report">open source</a>.
+        The project as a whole was inspired by
+        <a href="https://sill.social">Sill</a>, go check it out!
+      </p>
+      <p>
+        Links are ranked based on score, calculated by: (10 × posts) + (10 ×
+        reposts) + (1 × likes).
+      </p>
     </footer>
     <!-- Script for handling tab selection -->
     <script>
@@ -348,6 +438,23 @@
           selectEverythingTab(); // Set initial state
         }
       });
+    </script>
+    <!-- Script for handling the time machine -->
+    <script>
+      document
+        .getElementById("time-machine")
+        .addEventListener("submit", (event) => {
+          event.preventDefault();
+          const date = new Date(
+            document.getElementById("date-picker").valueAsNumber
+          );
+          if (!date) return;
+          window.location.href = `${
+            window.location.origin
+          }/archive/${date.getFullYear()}/${
+            date.getMonth() + 1
+          }/${date.getDate()}`;
+        });
     </script>
   </body>
 </html>
