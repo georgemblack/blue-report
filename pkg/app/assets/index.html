@@ -360,7 +360,7 @@
       <div class="time-machine">
         <p class="title">⏳ Time Machine</p>
         <p class="subtitle">
-          View this page at any point in the past, starting January 3rd, 2025:
+          View this page at any point in the past, starting January 5th, 2025:
         </p>
         <form id="time-machine">
           <label for="start">Date:</label>
@@ -368,8 +368,8 @@
             type="date"
             id="date-picker"
             name="date"
-            value="2025-01-03"
-            min="2025-01-03"
+            value="2025-01-05"
+            min="2025-01-05"
           />
           <button type="submit">Go</button>
         </form>
@@ -451,15 +451,16 @@
         .getElementById("time-machine")
         .addEventListener("submit", (event) => {
           event.preventDefault();
-          const date = new Date(
-            document.getElementById("date-picker").valueAsNumber
-          );
+          const date = document.getElementById("date-picker").value;
           if (!date) return;
-          window.location.href = `${
-            window.location.origin
-          }/archive/${date.getFullYear()}/${
-            date.getMonth() + 1
-          }/${date.getDate()}/index.html`;
+
+          // Parse year, month, day from 'YYYY-MM-DD'
+          // Strip leading zeros from month and day
+          const [year, month, day] = date
+            .split("-")
+            .map((x) => parseInt(x, 10));
+
+          window.location.href = `${window.location.origin}/archive/${year}/${month}/${day}/index.html`;
         });
     </script>
   </body>
