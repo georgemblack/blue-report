@@ -43,15 +43,14 @@
         --line-separator-color: rgba(0, 0, 0, 0.05);
 
         /* text colors */
-        --header-color: #424242;
         --header-accent-color: #4286f4;
-        --body-color: #242424;
         --link-color: #2b589f;
         --link-hover-color: #1f4a8f;
         --body-text-color: #2d2d2d;
         --faded-text-color: rgba(0, 0, 0, 0.4);
 
         /* toggle colors */
+        --toggle-text-color: #2d2d2d;
         --toggle-background-color: #f4f0eb;
         --toggle-selected-color: rgba(66, 134, 244, 0.25);
       }
@@ -67,6 +66,7 @@
         padding: 0 1em;
         max-width: 56rem;
         line-height: 150%;
+        color: var(--body-text-color);
         font-family: var(--primary-font);
         background-color: var(--background-color);
         background-image: radial-gradient(
@@ -88,6 +88,17 @@
 
       header .subtitle {
         margin-top: 0.5em;
+        display: flex;
+        justify-content: center;
+        gap: 0.25em;
+      }
+
+      /* small break-point */
+      @media screen and (max-width: 36em) {
+        header .subtitle {
+          flex-direction: column;
+          gap: 0;
+        }
       }
 
       main {
@@ -118,10 +129,6 @@
       a:hover {
         color: var(--link-hover-color);
         text-decoration: underline;
-      }
-
-      p {
-        color: var(--body-text-color);
       }
 
       /* view toggle */
@@ -220,7 +227,7 @@
       }
 
       .last-updated {
-        margin-top: 0.25em;
+        margin-top: 0.5em;
         color: var(--faded-text-color);
       }
 
@@ -304,7 +311,8 @@
     <header>
       <h1>The<span class="accent">Blue</span>Report</h1>
       <p class="subtitle">
-        The top links on Bluesky over the last 24 hours. Updated hourly.
+        <span>The top links on Bluesky over the last 24 hours.</span>
+        <span>Updated hourly.</span>
       </p>
     </header>
     <main>
