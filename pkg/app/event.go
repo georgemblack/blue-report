@@ -1,6 +1,10 @@
 package app
 
-import "github.com/georgemblack/blue-report/pkg/app/util"
+import (
+	"fmt"
+
+	"github.com/georgemblack/blue-report/pkg/app/util"
+)
 
 // StreamEvent (and subtypes) represent a message from the Jetstream.
 // Fields for both posts and reposts are included.
@@ -102,4 +106,39 @@ func (s *StreamEvent) valid() bool {
 		return false
 	}
 	return true
+}
+
+// Parse a post even to extract the URL, title, and image.
+// Post events without embeds will only return a URL.
+func (s *StreamEvent) parsePost() (string, string, string) {
+	if !s.isPost() {
+		return "", "", ""
+	}
+
+	// Search embed for URL, title, and image
+	embed := s.Commit.Record.Embed
+	if embed.Type == "app.bsky.embed.external" {
+		uri := embed.External.URI
+		title := embed.External.Title
+		image := ""
+
+		// Add image if it exists
+		thumb := embed.External.Thumb
+		if thumb.Type == "blob" && thumb.MimeType == "image/jpeg" {
+			image = fmt.Sprintf("https://cdn.bsky.app/img/feed_thumbnail/plain/%s/%s", s.DID, thumb.Ref.Link)
+		}
+
+		return uri, title, image
+	}
+
+	// Otherwise, search for link facet
+	for _, facet := range s.Commit.Record.Facets {
+		for _, feature := range facet.Features {
+			if feature.Type == "app.bsky.richtext.facet#link" && feature.URI != "" {
+				return feature.URI, "", ""
+			}
+		}
+	}
+
+	return "", "", ""
 }

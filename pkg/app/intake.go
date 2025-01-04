@@ -92,13 +92,15 @@ func Intake() error {
 	return nil
 }
 
+// The intake worker is responsible for processing events from the stream. This includes:
+// - Determining whether the event is valid (i.e. a post, like, or repost, and references a URL)
+// - Transforming the event into a storage record (and saving to S3)
+// - Updating metadata in the cache
 func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, st Storage, wg *sync.WaitGroup) {
 	slog.Info(fmt.Sprintf("starting worker %d", id))
 	defer wg.Done()
 
-	// Buffer used to store events before they are flushed to storage.
-	buffer := make([]storage.EventRecord, 0, EventBufferSize)
-
+	buffer := make([]storage.EventRecord, 0, EventBufferSize) // Aggregate records before writing to storage
 	stats := newStats()
 
 	for {
@@ -122,7 +124,6 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 			continue
 		}
 
-		// Handle event by type
 		record := storage.EventRecord{}
 		skip := false
 		err := error(nil)
@@ -154,9 +155,9 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 			stats.reposts++
 		}
 
-		// Save event to the buffer. Once the buffer is full, write to storage asynchronously
+		// Save event to the buffer.
+		// Once the buffer is full, write to storage asynchronously.
 		buffer = append(buffer, record)
-
 		if len(buffer) >= EventBufferSize {
 			// Create local copies of buffer & stats to prevent the reset from occurring before the flush
 			localBuffer := buffer
@@ -181,7 +182,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 // Save the post to the cache so it can be quickly referenced for reposts and likes.
 // Save the URL metadata to the cache.
 func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) {
-	url, title, image := parse(event)
+	url, title, image := event.parsePost()
 
 	// Filter out unwanted URLs (or posts with no URL)
 	if !include(url) {
@@ -253,37 +254,6 @@ func HandleLikeOrRepost(ch Cache, event StreamEvent) (storage.EventRecord, bool,
 	return storageRecord, false, nil
 }
 
-// Intended for parsing post events.
-func parse(post StreamEvent) (string, string, string) {
-
-	// Search embed for URL, title, and image
-	embed := post.Commit.Record.Embed
-	if embed.Type == "app.bsky.embed.external" {
-		uri := embed.External.URI
-		title := embed.External.Title
-		image := ""
-
-		// Add image if it exists
-		thumb := embed.External.Thumb
-		if thumb.Type == "blob" && thumb.MimeType == "image/jpeg" {
-			image = fmt.Sprintf("https://cdn.bsky.app/img/feed_thumbnail/plain/%s/%s", post.DID, thumb.Ref.Link)
-		}
-
-		return uri, title, image
-	}
-
-	// Otherwise, search for link facet
-	for _, facet := range post.Commit.Record.Facets {
-		for _, feature := range facet.Features {
-			if feature.Type == "app.bsky.richtext.facet#link" && feature.URI != "" {
-				return feature.URI, "", ""
-			}
-		}
-	}
-
-	return "", "", ""
-}
-
 // Determine whether to include a given URL.
 // Ignore known image hosts, bad websites, and gifs/images.
 func include(url string) bool {
@@ -307,8 +277,7 @@ func include(url string) bool {
 		return false
 	}
 
-	// Ignore links to the app itself
-	// (The Blue Report is intended to track exteranl links)
+	// Ignore links to the app itself. The purpose of this project is to track external links.
 	if strings.HasPrefix(url, "https://bsky.app") || strings.HasPrefix(url, "https://go.bsky.app") {
 		return false
 	}
