@@ -182,9 +182,8 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 	}
 }
 
-// If posts contain a URL, save it as an event in storage.
-// Save the post to the cache so it can be quickly referenced for reposts and likes.
-// Save the URL metadata to the cache.
+// HandlePost saves an event in storage if a post contains a valid URL.
+// Save the post (and URL metadata, if found) to the cache so it can be quickly referenced for quote posts, reposts, and likes.
 func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) {
 	url, title, image := event.ParsePost()
 
