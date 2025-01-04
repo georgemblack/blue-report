@@ -96,8 +96,13 @@ func count(stg Storage) (map[string]Count, error) {
 				continue
 			}
 
+			// URLs stored in events should already be normalized.
+			// However, as normalization rules change, past events may not be normalized.
+			// This ensures the most up-to-date rules are applied.
+			normalizedURL := Normalize(record.URL)
+
 			// Update count for the URL and add fingerprint to set
-			item := count[record.URL]
+			item := count[normalizedURL]
 			if record.IsPost() {
 				item.PostCount++
 			} else if record.IsRepost() {
@@ -105,7 +110,7 @@ func count(stg Storage) (map[string]Count, error) {
 			} else if record.IsLike() {
 				item.LikeCount++
 			}
-			count[record.URL] = item
+			count[normalizedURL] = item
 			fingerprints.Add(print)
 		}
 
