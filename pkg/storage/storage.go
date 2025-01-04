@@ -41,6 +41,7 @@ func (s S3) PublishSite(site []byte) error {
 		Body:                 bytes.NewReader(site),
 		ServerSideEncryption: "AES256",
 		ContentType:          aws.String("text/html"),
+		CacheControl:         aws.String("max-age=600"), // 10 minutes
 	})
 	if err != nil {
 		return util.WrapErr("failed to put object", err)
@@ -56,6 +57,7 @@ func (s S3) PublishSite(site []byte) error {
 		Body:                 bytes.NewReader(site),
 		ServerSideEncryption: "AES256",
 		ContentType:          aws.String("text/html"),
+		CacheControl:         aws.String("max-age=86400"), // 1 day
 	})
 	if err != nil {
 		return util.WrapErr("failed to put object", err)
@@ -196,6 +198,7 @@ func (s S3) SaveThumbnail(id string, url string) error {
 		Body:                 bytes.NewReader(image),
 		ServerSideEncryption: "AES256",
 		ContentType:          aws.String("image/jpeg"),
+		CacheControl:         aws.String("max-age=86400"), // 1 day
 	})
 	if err != nil {
 		return util.WrapErr("failed to put object", err)
