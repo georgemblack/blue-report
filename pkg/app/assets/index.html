@@ -38,6 +38,7 @@
 
         /* general purpose colors */
         --background-color: #f0ece9;
+        --background-dot-color: #dcd7d3;
         --blockquote-border-color: #e4e1de;
         --line-separator-color: rgba(0, 0, 0, 0.05);
 
@@ -45,15 +46,14 @@
         --header-color: #424242;
         --header-accent-color: #4286f4;
         --body-color: #242424;
-        --link-color: #18468f;
+        --link-color: #2b589f;
+        --link-hover-color: #1f4a8f;
         --body-text-color: #2d2d2d;
-        --link-hover-color: #2359b0;
         --faded-text-color: rgba(0, 0, 0, 0.4);
 
         /* toggle colors */
         --toggle-background-color: #f4f0eb;
         --toggle-selected-color: rgba(66, 134, 244, 0.25);
-        --toggle-selected-text-color: #4286f4;
       }
 
       * {
@@ -66,10 +66,14 @@
         margin: 1em auto;
         padding: 0 1em;
         max-width: 56rem;
-        font-weight: 400;
-        font-family: var(--primary-font);
         line-height: 150%;
+        font-family: var(--primary-font);
         background-color: var(--background-color);
+        background-image: radial-gradient(
+          var(--background-dot-color) 0.5px,
+          var(--background-color) 0.5px
+        );
+        background-size: 10px 10px;
       }
 
       header {
@@ -113,6 +117,7 @@
 
       a:hover {
         color: var(--link-hover-color);
+        text-decoration: underline;
       }
 
       p {
@@ -147,7 +152,7 @@
       }
 
       .toggle .active p {
-        color: var(--toggle-selected-text-color);
+        color: var(--header-accent-color);
       }
 
       /* small break-point */
@@ -253,7 +258,7 @@
 
       /* time machine */
       .time-machine {
-        margin-top: 2em;
+        margin-top: 4em;
         padding: 1em 1.5em;
         background-color: rgba(255, 255, 255, 0.25);
         border-radius: 1em;
