@@ -119,7 +119,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 		}
 
 		// Check whether event is a valid post, repost, or like
-		if !event.valid() {
+		if !event.Valid() {
 			stats.invalid++
 			continue
 		}
@@ -127,10 +127,14 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 		record := storage.EventRecord{}
 		skip := false
 		err := error(nil)
-		if event.isPost() {
+
+		if event.IsPost() && !event.IsQuotePost() {
 			record, skip, err = HandlePost(ch, event)
 		}
-		if event.isLike() || event.isRepost() {
+		if event.IsPost() && event.IsQuotePost() {
+			record, skip, err = HandleQuotePost(ch, event)
+		}
+		if event.IsLike() || event.IsRepost() {
 			record, skip, err = HandleLikeOrRepost(ch, event)
 		}
 
@@ -145,13 +149,13 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 		}
 
 		// Update stats with event type
-		if event.isPost() {
+		if event.IsPost() {
 			stats.posts++
 		}
-		if event.isLike() {
+		if event.IsLike() {
 			stats.likes++
 		}
-		if event.isRepost() {
+		if event.IsRepost() {
 			stats.reposts++
 		}
 
@@ -182,7 +186,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 // Save the post to the cache so it can be quickly referenced for reposts and likes.
 // Save the URL metadata to the cache.
 func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) {
-	url, title, image := event.parsePost()
+	url, title, image := event.ParsePost()
 
 	// Filter out unwanted URLs (or posts with no URL)
 	if !include(url) {
@@ -213,7 +217,7 @@ func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) 
 
 	// Create and return storage event
 	storageRecord := storage.EventRecord{
-		Type:      event.typeOf(),
+		Type:      event.TypeOf(),
 		URL:       normalizedURL,
 		DID:       event.DID,
 		Timestamp: time.Now(),
@@ -221,7 +225,43 @@ func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) 
 	return storageRecord, false, nil
 }
 
-// Check if a like/repost references a post stored in the cache. If it does, save the event to storage.
+// HandleQuotePost handles posts with a record embed.
+// If the embed references a post in the cache, return a storage event.
+func HandleQuotePost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) {
+	postCID := event.Commit.Record.Embed.Record.CID
+	postHash := util.Hash(postCID)
+	postRecord, err := ch.ReadPost(postHash)
+	if err != nil {
+		return storage.EventRecord{}, false, util.WrapErr("failed to read post record", err)
+	}
+	if !postRecord.Valid() {
+		return storage.EventRecord{}, true, nil
+	}
+
+	// Post & and URL records have a short TTL in the cache.
+	// Refresh the TTL of the embedded post, and the referenced URL.
+	// This allows us to reduce the overall size of the cache, while still retaining popular posts & URLs.
+	err = ch.RefreshPost(postHash)
+	if err != nil {
+		slog.Warn(util.WrapErr("failed to refresh ttl of post", err).Error())
+	}
+	err = ch.RefreshURL(util.Hash(postRecord.URL))
+	if err != nil {
+		slog.Warn(util.WrapErr("failed to refresh ttl of url", err).Error())
+	}
+
+	// Create and return storage event
+	storageRecord := storage.EventRecord{
+		Type:      event.TypeOf(),
+		URL:       postRecord.URL,
+		DID:       event.DID,
+		Timestamp: time.Now(),
+	}
+	return storageRecord, false, nil
+}
+
+// HandleLikeOrRepost checks if a like/repost references a post stored in the cache.
+// If it does, return a storage event.
 func HandleLikeOrRepost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) {
 	postCID := event.Commit.Record.Subject.CID
 	postHash := util.Hash(postCID)
@@ -246,7 +286,7 @@ func HandleLikeOrRepost(ch Cache, event StreamEvent) (storage.EventRecord, bool,
 	}
 
 	storageRecord := storage.EventRecord{
-		Type:      event.typeOf(),
+		Type:      event.TypeOf(),
 		URL:       postRecord.URL,
 		DID:       event.DID,
 		Timestamp: time.Now(),

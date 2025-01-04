@@ -29,15 +29,20 @@ type Record struct {
 }
 
 type Embed struct {
-	Type     string   `json:"$type"`
-	External External `json:"external"`
+	Type     string        `json:"$type"`
+	External ExternalEmbed `json:"external"`
+	Record   RecordEmbed   `json:"record"`
 }
 
-type External struct {
+type ExternalEmbed struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	URI         string `json:"uri"`
 	Thumb       Thumb  `json:"thumb"`
+}
+
+type RecordEmbed struct {
+	CID string `json:"cid"`
 }
 
 type Thumb struct {
@@ -63,59 +68,56 @@ type Feature struct {
 	URI  string `json:"uri"`
 }
 
-func (s *StreamEvent) isPost() bool {
-	return s.Commit.Record.Type == "app.bsky.feed.post"
-}
-
-func (s *StreamEvent) isRepost() bool {
-	return s.Commit.Record.Type == "app.bsky.feed.repost"
-}
-
-func (s *StreamEvent) isLike() bool {
-	return s.Commit.Record.Type == "app.bsky.feed.like"
-}
-
-func (s *StreamEvent) typeOf() int {
-	if s.isPost() {
-		return 0
-	}
-	if s.isRepost() {
-		return 1
-	}
-	if s.isLike() {
-		return 2
-	}
-	return -1
-}
-
-func (s *StreamEvent) isEnglish() bool {
-	return util.Contains(s.Commit.Record.Languages, "en")
-}
-
-func (s *StreamEvent) valid() bool {
+// Valid determines whether a stream event can be processed by our application.
+func (s *StreamEvent) Valid() bool {
 	if s.Kind != "commit" {
 		return false
 	}
 	if s.Commit.Operation != "create" {
 		return false
 	}
-	if !s.isPost() && !s.isRepost() && !s.isLike() {
+	if !s.IsPost() && !s.IsRepost() && !s.IsLike() {
 		return false
 	}
-	if s.isPost() && !s.isEnglish() {
+	if s.IsPost() && !s.IsEnglish() {
 		return false
 	}
 	return true
 }
 
-// Parse a post even to extract the URL, title, and image.
-// Post events without embeds will only return a URL.
-func (s *StreamEvent) parsePost() (string, string, string) {
-	if !s.isPost() {
+func (s *StreamEvent) IsPost() bool {
+	return s.Commit.Record.Type == "app.bsky.feed.post"
+}
+
+// IsQuotePost determines whether the event is a quote post.
+// Quote posts are a subset of posts that contain record embeds.
+func (s *StreamEvent) IsQuotePost() bool {
+	if !s.IsPost() {
+		return false
+	}
+	return s.Commit.Record.Embed.Type == "app.bsky.embed.record"
+}
+
+func (s *StreamEvent) IsRepost() bool {
+	return s.Commit.Record.Type == "app.bsky.feed.repost"
+}
+
+func (s *StreamEvent) IsLike() bool {
+	return s.Commit.Record.Type == "app.bsky.feed.like"
+}
+
+func (s *StreamEvent) IsEnglish() bool {
+	return util.Contains(s.Commit.Record.Languages, "en")
+}
+
+// Parse a post to extract the URL, title, and image.
+// The URL may be in an embed, or a link facet.
+func (s *StreamEvent) ParsePost() (string, string, string) {
+	if !s.IsPost() {
 		return "", "", ""
 	}
 
-	// Search embed for URL, title, and image
+	// Search for an external embed
 	embed := s.Commit.Record.Embed
 	if embed.Type == "app.bsky.embed.external" {
 		uri := embed.External.URI
@@ -131,7 +133,7 @@ func (s *StreamEvent) parsePost() (string, string, string) {
 		return uri, title, image
 	}
 
-	// Otherwise, search for link facet
+	// Search for a link facet
 	for _, facet := range s.Commit.Record.Facets {
 		for _, feature := range facet.Features {
 			if feature.Type == "app.bsky.richtext.facet#link" && feature.URI != "" {
@@ -141,4 +143,17 @@ func (s *StreamEvent) parsePost() (string, string, string) {
 	}
 
 	return "", "", ""
+}
+
+func (s *StreamEvent) TypeOf() int {
+	if s.IsPost() {
+		return 0
+	}
+	if s.IsRepost() {
+		return 1
+	}
+	if s.IsLike() {
+		return 2
+	}
+	return -1
 }

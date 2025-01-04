@@ -6,6 +6,7 @@ import (
 	"github.com/georgemblack/blue-report/pkg/app"
 	"github.com/georgemblack/blue-report/pkg/app/util"
 	"github.com/georgemblack/blue-report/pkg/cache"
+	"github.com/georgemblack/blue-report/pkg/storage"
 	"github.com/georgemblack/blue-report/pkg/testutil"
 	"go.uber.org/mock/gomock"
 )
@@ -130,5 +131,67 @@ func TestHandlePostWithPartialURLData(t *testing.T) {
 	}
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+// Test handling a quote post
+func TestHandleQuotePost(t *testing.T) {
+	event, err := testutil.GetStreamEvent("post-quote.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedRecord := storage.EventRecord{
+		Type: 0,
+		URL:  "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
+		DID:  "did:plc:ruzlll5u7u7pfxybmppqyxbx",
+	}
+
+	hashedCID := util.Hash("bafyreihhlj7nktvq3h6issjqxor5ldy7yq64qv5wk5jawqeorfhn65evoe")
+	hashedURL := util.Hash(expectedRecord.URL)
+
+	mockCache := testutil.NewMockCache(gomock.NewController(t))
+	mockCache.EXPECT().ReadPost(hashedCID).Return(cache.PostRecord{URL: expectedRecord.URL}, nil) // Check for existing post record (it exists)
+	mockCache.EXPECT().RefreshPost(hashedCID).Return(nil)                                         // Refresh the TTL of the referenced post
+	mockCache.EXPECT().RefreshURL(hashedURL).Return(nil)                                          // Refresh the TTL of the referenced URL
+
+	record, skip, err := app.HandleQuotePost(mockCache, event)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if skip {
+		t.Error("unexpected event skip")
+	}
+	if record.Type != expectedRecord.Type {
+		t.Errorf("unexpected type: %d", record.Type)
+	}
+	if record.DID != expectedRecord.DID {
+		t.Errorf("unexpected did: %s", record.DID)
+	}
+	if record.URL != expectedRecord.URL {
+		t.Errorf("unexpected url: %s", record.URL)
+	}
+}
+
+// Test handling a quote post that references a post that doesn't exist in the cache.
+func TestHandleQuotePostWithInvalidReference(t *testing.T) {
+	event, err := testutil.GetStreamEvent("post-quote.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hashedCID := util.Hash("bafyreihhlj7nktvq3h6issjqxor5ldy7yq64qv5wk5jawqeorfhn65evoe")
+
+	mockCache := testutil.NewMockCache(gomock.NewController(t))
+	mockCache.EXPECT().ReadPost(hashedCID).Return(cache.PostRecord{}, nil) // Check for existing post record (it doesn't exist)
+
+	_, skip, err := app.HandleQuotePost(mockCache, event)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !skip {
+		t.Error("expected event skip")
 	}
 }
