@@ -1,25 +1,17 @@
 package app
 
 import (
-	"bytes"
 	"embed"
 	"fmt"
 	"log/slog"
-	"os"
-	"regexp"
 	"slices"
 	"strings"
-	"text/template"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/georgemblack/blue-report/pkg/app/util"
 	"github.com/georgemblack/blue-report/pkg/cache"
 	"github.com/georgemblack/blue-report/pkg/storage"
-	minify "github.com/tdewolff/minify/v2"
-	"github.com/tdewolff/minify/v2/css"
-	"github.com/tdewolff/minify/v2/html"
-	"github.com/tdewolff/minify/v2/js"
 	"golang.org/x/text/message"
 )
 
@@ -30,62 +22,46 @@ const (
 	ListSize = 10
 )
 
-// Aggregate runs a single aggregation cycle and exits.
-// All events are read from storage, and the score of each URL is generated.
-// The top N URLs are hydrated with additional data, and used to generate the final site.
-func Aggregate() error {
-	slog.Info("starting aggregation")
+// Generate fetches all events from storage, aggregates trending URLs, and generates a final report.
+// Metadata for each URL is hydrated from the cache, and thumbnails for each URL are stored in S3.
+func Generate() (Report, error) {
+	slog.Info("starting report generation")
 	start := time.Now()
 
 	// Build the cache client
 	ch, err := cache.New()
 	if err != nil {
-		return util.WrapErr("failed to create the cache client", err)
+		return Report{}, util.WrapErr("failed to create the cache client", err)
 	}
 	defer ch.Close()
 
 	// Build storage client
 	stg, err := storage.New()
 	if err != nil {
-		return util.WrapErr("failed to create storage client", err)
+		return Report{}, util.WrapErr("failed to create storage client", err)
 	}
 
 	// Run the count
 	count, err := count(stg)
 	if err != nil {
-		return util.WrapErr("failed to generate count", err)
+		return Report{}, util.WrapErr("failed to generate count", err)
 	}
 
 	// Format results
 	formatted, err := format(count)
 	if err != nil {
-		return util.WrapErr("failed to format results", err)
+		return Report{}, util.WrapErr("failed to format results", err)
 	}
 
 	// Hydrate report with data from cache, i.e. titles, image URLs, and more for each report item.
 	hydrated, err := hydrate(ch, stg, formatted)
 	if err != nil {
-		return util.WrapErr("failed to hydrate report", err)
-	}
-
-	// Convert to HTML
-	result, err := generate(hydrated)
-	if err != nil {
-		return util.WrapErr("failed to generate html", err)
-	}
-
-	if util.GetEnvBool("DEBUG", false) {
-		os.WriteFile("result.html", result, 0644)
-	}
-
-	err = stg.PublishSite(result)
-	if err != nil {
-		return util.WrapErr("failed to publish report", err)
+		return Report{}, util.WrapErr("failed to hydrate report", err)
 	}
 
 	duration := time.Since(start)
 	slog.Info("aggregation complete", "seconds", duration.Seconds())
-	return nil
+	return hydrated, nil
 }
 
 // Scan all events within the last 24 hours, and return a map of URLs and their associated counts.
@@ -93,7 +69,7 @@ func Aggregate() error {
 // Example count: { "https://example.com": { Posts: 1, Reposts: 0, Likes: 0 } }
 func count(stg Storage) (map[string]Count, error) {
 	count := make(map[string]Count)         // Track each instance of a URL being shared
-	fingerprints := mapset.NewSet[string]() // Track unique DID and URL combinations
+	fingerprints := mapset.NewSet[string]() // Track unique DID, URL, and event type combinations
 	events := 0                             // Track total events processed
 	denied := 0                             // Track duplicate URLs from the same user
 
@@ -266,29 +242,4 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 
 	slog.Debug("hydrated", "record", item)
 	return item, nil
-}
-
-func generate(report Report) ([]byte, error) {
-	tmpl, err := template.ParseFS(indexTmpl, "assets/index.html")
-	if err != nil {
-		return nil, util.WrapErr("failed to parse template", err)
-	}
-	var buf bytes.Buffer
-	err = tmpl.Execute(&buf, report)
-	if err != nil {
-		return nil, util.WrapErr("failed to execute template", err)
-	}
-
-	// Minify HTML
-	minifier := minify.New()
-	minifier.Add("text/html", &html.Minifier{
-		KeepDefaultAttrVals: true,
-		KeepDocumentTags:    true,
-		KeepEndTags:         true,
-		KeepQuotes:          true,
-	})
-	minifier.AddFunc("text/css", css.Minify)
-	minifier.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
-
-	return minifier.Bytes("text/html", buf.Bytes())
 }
