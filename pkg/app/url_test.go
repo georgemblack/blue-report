@@ -49,3 +49,21 @@ func TestNormalizeQueryParamAllowList(t *testing.T) {
 		t.Errorf("expected '%s', got '%s'", clean, result)
 	}
 }
+
+func TestNormalizeSubstackWithoutOpenLink(t *testing.T) {
+	dirty := "https://newsletter.pragmaticengineer.com/p/state-of-eng-market-2024?r=46a2f&utm_campaign=post&utm_medium=web&showWelcomeOnShare=true"
+	clean := "https://newsletter.pragmaticengineer.com/p/state-of-eng-market-2024"
+	result := app.Normalize(dirty)
+	if result != clean {
+		t.Errorf("expected '%s', got '%s'", clean, result)
+	}
+}
+
+func TestNormalizeSubstackWithOpenLink(t *testing.T) {
+	dirty := "https://open.substack.com/pub/verdeallday/p/ilie-sanchez-new-austin-fc-signing-analysis?r=46a2f&utm_campaign=post&utm_medium=web&showWelcomeOnShare=true"
+	clean := "https://verdeallday.substack.com/p/ilie-sanchez-new-austin-fc-signing-analysis"
+	result := app.Normalize(dirty)
+	if result != clean {
+		t.Errorf("expected '%s', got '%s'", clean, result)
+	}
+}

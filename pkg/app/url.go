@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 
@@ -22,7 +23,7 @@ func Normalize(input string) string {
 		return result
 	}
 
-	// Convert YouTube URLs to short form.
+	// Normalize YouTube share links.
 	// Examples:
 	//	- 'https://youtube.com/watch?abc123' -> 'https://youtu.be/abc123'
 	if util.Contains(YouTubeHostList, parsed.Hostname()) {
@@ -39,6 +40,18 @@ func Normalize(input string) string {
 	index := strings.Index(result, "?")
 	if !util.Contains(QueryParamAllowList, parsed.Hostname()) && index != -1 {
 		result = result[:index]
+	}
+
+	// Normalize Substack share links.
+	// Examples:
+	// 	- 'https://open.substack.com/pub/my-substack/p/my-article' -> 'https://my-substack.substack.com/p/my-article'
+	regex := `https://open\.substack\.com/pub/([^/]+)/p/(.+)`
+	matched, err := util.Match(regex, result)
+	if err != nil {
+		slog.Warn(err.Error())
+	} else if matched {
+		result = strings.Replace(result, "https://open.substack.com/pub/", "https://", 1)
+		result = strings.Replace(result, "/p/", ".substack.com/p/", 1)
 	}
 
 	return result

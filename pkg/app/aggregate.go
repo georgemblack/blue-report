@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"slices"
+	"strings"
 	"text/template"
 	"time"
 
@@ -254,7 +255,7 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 		item.ThumbnailURL = fmt.Sprintf("/thumbnails/%s.jpg", hashedURL)
 	}
 
-	item.Host = hostname(item.URL)
+	item.Host = strings.TrimPrefix(hostname(item.URL), "www.")
 	item.Title = record.Title
 	item.Rank = index + 1
 
