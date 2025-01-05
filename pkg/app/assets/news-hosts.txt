@@ -21,6 +21,7 @@ thehill.com
 time.com
 uk.news.yahoo.com
 wapo.st
+www.404media.co
 www.abc.net.au
 www.ajc.com
 www.aljazeera.com
@@ -30,6 +31,7 @@ www.bbc.com
 www.bridgemi.com
 www.cbc.ca
 www.cbsnews.com
+www.cnbc.com
 www.cnn.com
 www.comicsands.com
 www.dailymail.co.uk
@@ -42,6 +44,7 @@ www.hollywoodreporter.com
 www.huffpost.com
 www.independent.co.uk
 www.inquirer.com
+www.mediaite.com
 www.mercurynews.com
 www.miamiherald.com
 www.motherjones.com
@@ -54,7 +57,6 @@ www.politico.com
 www.propublica.org
 www.rawstory.com
 www.reuters.com
-www.cnbc.com
 www.rollingstone.com
 www.smithfieldtimes.com
 www.texastribune.org
@@ -65,7 +67,6 @@ www.theverge.com
 www.usatoday.com
 www.usnews.com
 www.voanews.com
-www.404media.co
 www.vox.com
 www.washingtonpost.com
 www.wsj.com
