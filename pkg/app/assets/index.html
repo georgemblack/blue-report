@@ -36,6 +36,9 @@
         --font-weight-bold: 800;
         --font-weight-normal: 400;
 
+        /* font sizes */
+        --font-size-small: 0.85em;
+
         /* general purpose colors */
         --background-color: #f0ece9;
         --blockquote-border-color: #e4e1de;
@@ -111,7 +114,7 @@
           margin-right: auto;
           text-align: left;
           max-width: 36rem;
-          font-size: 0.85em;
+          font-size: var(--font-size-small);
         }
       }
 
@@ -160,7 +163,7 @@
       @media screen and (max-width: 36em) {
         .toggle .news,
         .toggle .everything {
-          font-size: 0.85em;
+          font-size: var(--font-size-small);
         }
       }
 
@@ -188,8 +191,8 @@
       .link .preview img,
       .link .preview .placeholder {
         display: block;
-        height: 6rem;
         width: 10rem;
+        height: 6rem;
         object-fit: cover;
         border-radius: 0.5rem;
         box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
@@ -209,6 +212,7 @@
         justify-content: space-between;
       }
 
+      /* inline-block to prevent extra vertical space due to line-height */
       .link .title {
         font-size: 1.25em;
         font-family: var(--header-font);
@@ -218,6 +222,8 @@
       .link .metadata {
         margin: 1rem 0 0 0;
         color: var(--faded-text-color);
+        display: flex;
+        gap: 0.5em;
       }
 
       .last-updated {
@@ -228,12 +234,35 @@
       /* medium break-point */
       @media screen and (max-width: 46em) {
         .link {
-          gap: 1.5em;
+          gap: 1em;
+        }
+
+        .link .title {
+          font-size: 1.15em;
         }
 
         .link .preview img,
         .link .preview .placeholder {
           width: 8rem;
+          height: 5rem;
+        }
+
+        .link .preview .placeholder {
+          font-size: 2em;
+        }
+
+        .link .metadata {
+          font-size: var(--font-size-small);
+          flex-direction: column;
+          gap: 0;
+        }
+
+        .link .metadata .bullet {
+          display: none;
+        }
+
+        .last-updated {
+          font-size: var(--font-size-small);
         }
       }
 
@@ -241,19 +270,18 @@
       @media screen and (max-width: 36em) {
         .link {
           padding: 2em 0;
-          flex-direction: column;
-          gap: 1em;
+          gap: 0.85em;
+        }
+
+        .link .title {
+          font-size: 1em;
         }
 
         .link .preview img,
         .link .preview .placeholder {
-          width: 100%;
-          height: 12rem;
-        }
-
-        .link .metadata,
-        .last-updated {
-          font-size: 0.85em;
+          margin-top: 0.15em;
+          width: 5rem;
+          height: 3rem;
         }
       }
 
@@ -329,8 +357,12 @@
               <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
             </p>
             <p class="metadata">
-              {{ .Host }} • {{ .PostCountStr }} posts, {{ .RepostCountStr }}
-              reposts, {{ .LikeCountStr }} likes
+              <span>{{ .Host }}</span>
+              <span class="bullet">•</span>
+              <span
+                >{{ .PostCountStr }} posts, {{ .RepostCountStr }} reposts,
+                {{.LikeCountStr }} likes</span
+              >
             </p>
           </div>
         </div>
@@ -351,8 +383,12 @@
               <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
             </p>
             <p class="metadata">
-              {{ .Host }} • {{ .PostCountStr }} posts, {{ .RepostCountStr }}
-              reposts, {{ .LikeCountStr }} likes
+              <span>{{ .Host }}</span>
+              <span class="bullet">•</span>
+              <span
+                >{{ .PostCountStr }} posts, {{ .RepostCountStr }} reposts,
+                {{.LikeCountStr }} likes</span
+              >
             </p>
           </div>
         </div>
