@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"github.com/georgemblack/blue-report/pkg/app/util"
@@ -17,14 +16,12 @@ import (
 const TTLSeconds = 43200 // 12 hours
 
 type Valkey struct {
-	client    valkey.Client
-	secondary valkey.Client
+	client valkey.Client
 }
 
 // New creates a new Valkey client.
 func New() (Valkey, error) {
 	address := util.GetEnvStr("VALKEY_ADDRESS", "127.0.0.1:6379")
-	secondaryAddress := util.GetEnvStr("VALKEY_SECONDARY_ADDRESS", "127.0.0.1:6379")
 	tlsEnabled := util.GetEnvBool("VALKEY_TLS_ENABLED", false)
 
 	var tlsConfig *tls.Config // nil by default
@@ -35,25 +32,14 @@ func New() (Valkey, error) {
 	}
 
 	client, err := valkey.NewClient(valkey.ClientOption{
-		InitAddress:  []string{address},
-		TLSConfig:    tlsConfig,
-		DisableCache: true, // ElastiCache serverless doesn't support client-side cache
+		InitAddress: []string{address},
+		TLSConfig:   tlsConfig,
 	})
 	if err != nil {
 		return Valkey{}, util.WrapErr("failed to create valkey client", err)
 	}
 
-	// Create a temporary, secondary client to mirror data.
-	// TODO: Remove this once migration to the new cache is complete.
-	secondary, err := valkey.NewClient(valkey.ClientOption{
-		InitAddress: []string{secondaryAddress},
-		TLSConfig:   tlsConfig,
-	})
-	if err != nil {
-		return Valkey{}, util.WrapErr("failed to create secondary valkey client", err)
-	}
-
-	return Valkey{client: client, secondary: secondary}, nil
+	return Valkey{client: client}, nil
 }
 
 // SaveURL saves a URL record to the cache.
@@ -68,14 +54,6 @@ func (v Valkey) SaveURL(hash string, url URLRecord) error {
 	err = v.client.Do(context.Background(), cmd).Error()
 	if err != nil {
 		return util.WrapErr("failed to set key", err)
-	}
-
-	// Mirror data to the secondary client.
-	// TODO: Remove once migration is complete
-	cmd2 := v.secondary.B().Set().Key(key).Value(string(bytes)).Ex(time.Second * TTLSeconds).Build()
-	err = v.secondary.Do(context.Background(), cmd2).Error()
-	if err != nil {
-		slog.Warn("failed to mirror data to secondary client", "error", err)
 	}
 
 	return nil
@@ -116,14 +94,6 @@ func (v Valkey) RefreshURL(hash string) error {
 		return util.WrapErr("failed to expire key", err)
 	}
 
-	// Mirror data to the secondary client.
-	// TODO: Remove once migration is complete
-	cmd2 := v.secondary.B().Expire().Key(key).Seconds(TTLSeconds).Build()
-	err = v.secondary.Do(context.Background(), cmd2).Error()
-	if err != nil {
-		slog.Warn("failed to mirror data to secondary client", "error", err)
-	}
-
 	return nil
 }
 
@@ -139,14 +109,6 @@ func (v Valkey) SavePost(hash string, post PostRecord) error {
 	err = v.client.Do(context.Background(), cmd).Error()
 	if err != nil {
 		return util.WrapErr("failed to set key", err)
-	}
-
-	// Mirror data to the secondary client.
-	// TODO: Remove once migration is complete
-	cmd2 := v.secondary.B().Set().Key(key).Value(string(bytes)).Ex(time.Second * TTLSeconds).Build()
-	err = v.secondary.Do(context.Background(), cmd2).Error()
-	if err != nil {
-		slog.Warn("failed to mirror data to secondary client", "error", err)
 	}
 
 	return nil
@@ -185,14 +147,6 @@ func (v Valkey) RefreshPost(hash string) error {
 	err := v.client.Do(context.Background(), cmd).Error()
 	if err != nil {
 		return util.WrapErr("failed to expire key", err)
-	}
-
-	// Mirror data to the secondary client.
-	// TODO: Remove once migration is complete
-	cmd2 := v.secondary.B().Expire().Key(key).Seconds(TTLSeconds).Build()
-	err = v.secondary.Do(context.Background(), cmd2).Error()
-	if err != nil {
-		slog.Warn("failed to mirror data to secondary client", "error", err)
 	}
 
 	return nil
