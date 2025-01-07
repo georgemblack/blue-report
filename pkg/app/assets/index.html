@@ -104,17 +104,15 @@
 
       footer {
         margin: 4em 0;
+        font-size: var(--font-size-small);
         text-align: center;
       }
 
-      /* medium break-point */
-      @media screen and (max-width: 46em) {
-        footer {
-          margin-left: auto;
-          margin-right: auto;
+      /* small break-point */
+      @media screen and (max-width: 36em) {
+        footer p {
           text-align: left;
-          max-width: 36rem;
-          font-size: var(--font-size-small);
+          margin-top: 1em;
         }
       }
 
@@ -397,13 +395,7 @@
         </p>
         <form id="time-machine">
           <label for="date">Date:</label>
-          <input
-            type="date"
-            id="date-picker"
-            name="date"
-            value="2025-01-05"
-            min="2025-01-05"
-          />
+          <input type="date" id="date-picker" name="date" min="2025-01-05" />
           <button type="submit">Go</button>
         </form>
       </div>
@@ -420,8 +412,11 @@
         <a href="https://sill.social">Sill</a>, go check it out!
       </p>
       <p>
-        Links are ranked based on score, calculated by: (10 × posts) + (10 ×
-        reposts) + (1 × likes).
+        Information on how data is aggregated and how links are ranked is
+        <a
+          href="https://github.com/georgemblack/blue-report/blob/master/RANKING.md"
+          >available here</a
+        >.
       </p>
     </footer>
     <!-- Script for handling tab selection -->

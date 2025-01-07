@@ -236,8 +236,12 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 		item.ThumbnailURL = fmt.Sprintf("/thumbnails/%s.jpg", hashedURL)
 	}
 
-	item.Host = strings.TrimPrefix(hostname(item.URL), "www.")
 	item.Title = record.Title
+	if item.Title == "" {
+		item.Title = "(No title)"
+	}
+
+	item.Host = strings.TrimPrefix(hostname(item.URL), "www.")
 	item.Rank = index + 1
 
 	p := message.NewPrinter(message.MatchLanguage("en"))
