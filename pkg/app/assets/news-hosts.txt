@@ -5,6 +5,7 @@ bylinetimes.com
 deadline.com
 finance.yahoo.com
 fortune.com
+forward.com
 globalnews.ca
 ground.news
 jacobin.com
@@ -53,6 +54,7 @@ www.nbcnews.com
 www.newsweek.com
 www.npr.org
 www.nytimes.com
+www.platformer.news
 www.politico.com
 www.propublica.org
 www.rawstory.com
@@ -69,5 +71,6 @@ www.usnews.com
 www.voanews.com
 www.vox.com
 www.washingtonpost.com
+www.wired.com
 www.wsj.com
 www.yahoo.com
