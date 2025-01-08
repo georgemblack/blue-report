@@ -245,9 +245,9 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 	item.Rank = index + 1
 
 	p := message.NewPrinter(message.MatchLanguage("en"))
-	item.PostCountStr = p.Sprintf("%d", item.Count.PostCount)
-	item.RepostCountStr = p.Sprintf("%d", item.Count.RepostCount)
-	item.LikeCountStr = p.Sprintf("%d", item.Count.LikeCount)
+	item.PostCountStr = p.Sprintf("%d", record.Totals.Posts)
+	item.RepostCountStr = p.Sprintf("%d", record.Totals.Reposts)
+	item.LikeCountStr = p.Sprintf("%d", record.Totals.Likes)
 
 	slog.Debug("hydrated", "record", item)
 	return item, nil
