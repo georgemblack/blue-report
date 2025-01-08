@@ -124,18 +124,19 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 			continue
 		}
 
-		record := storage.EventRecord{}
+		stgRecord := storage.EventRecord{}
+		urlRecord := cache.URLRecord{}
 		skip := false
 		err := error(nil)
 
 		if event.IsPost() && !event.IsQuotePost() {
-			record, skip, err = HandlePost(ch, event)
+			stgRecord, urlRecord, skip, err = HandlePost(ch, event)
 		}
 		if event.IsPost() && event.IsQuotePost() {
-			record, skip, err = HandleQuotePost(ch, event)
+			stgRecord, urlRecord, skip, err = HandleQuotePost(ch, event)
 		}
 		if event.IsLike() || event.IsRepost() {
-			record, skip, err = HandleLikeOrRepost(ch, event)
+			stgRecord, urlRecord, skip, err = HandleLikeOrRepost(ch, event)
 		}
 
 		if err != nil {
@@ -159,9 +160,18 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 			stats.reposts++
 		}
 
+		// Save or update the URL record to cache.
+		// This record contains metadata for the URL, as well as post/repost/like counts.
+		// This also has the side-effect of refreshing the TTL of the URL record.
+		err = ch.SaveURL(util.Hash(stgRecord.URL), urlRecord)
+		if err != nil {
+			slog.Error(util.WrapErr("failed to save url record", err).Error())
+			return
+		}
+
 		// Save event to the buffer.
 		// Once the buffer is full, write to storage asynchronously.
-		buffer = append(buffer, record)
+		buffer = append(buffer, stgRecord)
 		if len(buffer) >= EventBufferSize {
 			// Create local copies of buffer & stats to prevent the reset from occurring before the flush
 			localBuffer := buffer
@@ -182,14 +192,14 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 	}
 }
 
-// HandlePost saves an event in storage if a post contains a valid URL.
-// Save the post (and URL metadata, if found) to the cache so it can be quickly referenced for quote posts, reposts, and likes.
-func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) {
+// HandlePost processes a 'post' stream event.
+// The post is also saved to the cache to be later referenced by quote posts, reposts, and likes.
+func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLRecord, bool, error) {
 	url, title, image := event.ParsePost()
 
 	// Filter out unwanted URLs (or posts with no URL)
 	if !include(url) {
-		return storage.EventRecord{}, true, nil
+		return storage.EventRecord{}, cache.URLRecord{}, true, nil
 	}
 
 	normalizedURL := Normalize(url)
@@ -205,92 +215,105 @@ func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) 
 	// This has the side-effect of refreshing the TTL of existing URL records.
 	old, err := ch.ReadURL(hashedURL)
 	if err != nil {
-		return storage.EventRecord{}, false, util.WrapErr("failed to read url record", err)
+		return storage.EventRecord{}, cache.URLRecord{}, false, util.WrapErr("failed to read url record", err)
 	}
 	new := cache.URLRecord{
-		URL:      normalizedURL,
 		Title:    title,
 		ImageURL: image,
 	}
-	ch.SaveURL(hashedURL, merge(old, new))
+	urlRecord := merge(old, new)
+
+	// Increment the post count in the URL record
+	urlRecord.Totals.Posts++
 
 	// Create and return storage event
-	storageRecord := storage.EventRecord{
+	stgRecord := storage.EventRecord{
 		Type:      event.TypeOf(),
 		URL:       normalizedURL,
 		DID:       event.DID,
 		Timestamp: time.Now(),
 	}
-	return storageRecord, false, nil
+	return stgRecord, urlRecord, false, nil
 }
 
-// HandleQuotePost handles posts with a record embed.
-// If the embed references a post in the cache, return a storage event.
-func HandleQuotePost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) {
+// HandleQuotePost processes a 'quote post' stream event.
+// If the embed references a post in the cache, return a storage event and URL record to save.
+func HandleQuotePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLRecord, bool, error) {
 	postCID := event.Commit.Record.Embed.Record.CID
 	postHash := util.Hash(postCID)
 	postRecord, err := ch.ReadPost(postHash)
 	if err != nil {
-		return storage.EventRecord{}, false, util.WrapErr("failed to read post record", err)
+		return storage.EventRecord{}, cache.URLRecord{}, false, util.WrapErr("failed to read post record", err)
 	}
 	if !postRecord.Valid() {
-		return storage.EventRecord{}, true, nil
+		return storage.EventRecord{}, cache.URLRecord{}, true, nil
 	}
 
-	// Post & and URL records have a short TTL in the cache.
-	// Refresh the TTL of the embedded post, and the referenced URL.
-	// This allows us to reduce the overall size of the cache, while still retaining popular posts & URLs.
+	// Post & and URL records have a short TTL in the cache. Refresh the TTL of the embedded post.
+	// This allows us to reduce the overall size of the cache, while still retaining popular posts.
 	err = ch.RefreshPost(postHash)
 	if err != nil {
 		slog.Warn(util.WrapErr("failed to refresh ttl of post", err).Error())
 	}
-	err = ch.RefreshURL(util.Hash(postRecord.URL))
+
+	// Find the URL record and increment the post count.
+	urlHash := util.Hash(postRecord.URL)
+	urlRecord, err := ch.ReadURL(urlHash)
 	if err != nil {
-		slog.Warn(util.WrapErr("failed to refresh ttl of url", err).Error())
+		return storage.EventRecord{}, cache.URLRecord{}, false, util.WrapErr("failed to read url record", err)
 	}
+	urlRecord.Totals.Posts++
 
 	// Create and return storage event
-	storageRecord := storage.EventRecord{
+	stgRecord := storage.EventRecord{
 		Type:      event.TypeOf(),
 		URL:       postRecord.URL,
 		DID:       event.DID,
 		Timestamp: time.Now(),
 	}
-	return storageRecord, false, nil
+	return stgRecord, urlRecord, false, nil
 }
 
-// HandleLikeOrRepost checks if a like/repost references a post stored in the cache.
-// If it does, return a storage event.
-func HandleLikeOrRepost(ch Cache, event StreamEvent) (storage.EventRecord, bool, error) {
+// HandleLikeOrRepost processes a 'like' or 'repost' stream event.
+// If the like or repost references a post in the cache, return a storage event and URL record to save.
+func HandleLikeOrRepost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLRecord, bool, error) {
 	postCID := event.Commit.Record.Subject.CID
 	postHash := util.Hash(postCID)
 	postRecord, err := ch.ReadPost(postHash)
 	if err != nil {
-		return storage.EventRecord{}, false, util.WrapErr("failed to read event record", err)
+		return storage.EventRecord{}, cache.URLRecord{}, false, util.WrapErr("failed to read event record", err)
 	}
 	if !postRecord.Valid() {
-		return storage.EventRecord{}, true, nil
+		return storage.EventRecord{}, cache.URLRecord{}, true, nil
 	}
 
-	// Post & and URL records have a short TTL in the cache.
-	// Refresh the TTL of each record, as it has been referenced by a like or repost.
-	// This allows us to reduce the overall size of the cache, while still retaining popular posts & URLs.
+	// Post & and URL records have a short TTL in the cache. Refresh the TTL of the related post.
+	// This allows us to reduce the overall size of the cache, while still retaining popular posts.
 	err = ch.RefreshPost(postHash)
 	if err != nil {
 		slog.Warn(util.WrapErr("failed to refresh ttl of post", err).Error())
 	}
-	err = ch.RefreshURL(util.Hash(postRecord.URL))
+
+	// Find the URL record and increment the post count.
+	urlHash := util.Hash(postRecord.URL)
+	urlRecord, err := ch.ReadURL(urlHash)
 	if err != nil {
-		slog.Warn(util.WrapErr("failed to refresh ttl of url", err).Error())
+		return storage.EventRecord{}, cache.URLRecord{}, false, util.WrapErr("failed to read url record", err)
+	}
+	if event.IsRepost() {
+		urlRecord.Totals.Reposts++
+	}
+	if event.IsLike() {
+		urlRecord.Totals.Likes++
 	}
 
-	storageRecord := storage.EventRecord{
+	stgRecord := storage.EventRecord{
 		Type:      event.TypeOf(),
 		URL:       postRecord.URL,
 		DID:       event.DID,
 		Timestamp: time.Now(),
 	}
-	return storageRecord, false, nil
+	return stgRecord, urlRecord, false, nil
 }
 
 // Determine whether to include a given URL.
@@ -340,9 +363,6 @@ func include(url string) bool {
 
 // Merge two URL records, returning the updated record.
 func merge(old, new cache.URLRecord) cache.URLRecord {
-	if old.URL == "" {
-		old.URL = new.URL
-	}
 	if old.Title == "" {
 		old.Title = new.Title
 	}

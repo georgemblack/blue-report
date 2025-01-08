@@ -157,17 +157,19 @@ func (v Valkey) Close() {
 }
 
 type URLRecord struct {
-	URL      string `msgpack:"u"`
 	Title    string `msgpack:"t"`
 	ImageURL string `msgpack:"p"` // Bluesky CDN URL of the thumbnail
+	Totals   Totals `msgpack:"m"`
 }
 
-func (r URLRecord) MissingURL() bool {
-	return r.URL == ""
+type Totals struct {
+	Posts   int `msgpack:"p"`
+	Reposts int `msgpack:"r"`
+	Likes   int `msgpack:"l"`
 }
 
 func (r URLRecord) MissingFields() bool {
-	if (r.URL == "") || (r.Title == "") || (r.ImageURL == "") {
+	if (r.Title == "") || (r.ImageURL == "") {
 		return true
 	}
 	return false
