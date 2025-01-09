@@ -202,7 +202,7 @@ func handlePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLReco
 		return storage.EventRecord{}, cache.URLRecord{}, true, nil
 	}
 
-	normalizedURL := Normalize(url)
+	normalizedURL := normalize(url)
 	hashedURL := util.Hash(normalizedURL)
 
 	// Add the post to the cache, so it can be quickly referenced by reposts and likes.

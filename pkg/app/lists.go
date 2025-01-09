@@ -11,7 +11,7 @@ import (
 //go:embed assets/news-hosts.txt
 var listSource embed.FS
 
-func GetNewsHosts() (mapset.Set[string], error) {
+func getNewsHosts() (mapset.Set[string], error) {
 	file, err := listSource.Open("assets/news-hosts.txt")
 	if err != nil {
 		return nil, util.WrapErr("failed to open news-hosts.txt", err)

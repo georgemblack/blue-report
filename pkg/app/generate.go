@@ -67,8 +67,8 @@ func Generate() (Report, error) {
 // Scan all events within the last 24 hours, and return a map of URLs and their associated counts.
 // Ignore duplicate URLs from the same user.
 // Example count: { "https://example.com": { Posts: 1, Reposts: 0, Likes: 0 } }
-func count(stg Storage) (map[string]Count, error) {
-	count := make(map[string]Count)         // Track each instance of a URL being shared
+func count(stg Storage) (map[string]Aggregation, error) {
+	count := make(map[string]Aggregation)   // Track each instance of a URL being shared
 	fingerprints := mapset.NewSet[string]() // Track unique DID, URL, and event type combinations
 	events := 0                             // Track total events processed
 	denied := 0                             // Track duplicate URLs from the same user
@@ -99,16 +99,16 @@ func count(stg Storage) (map[string]Count, error) {
 			// URLs stored in events should already be normalized.
 			// However, as normalization rules change, past events may not be normalized.
 			// This ensures the most up-to-date rules are applied.
-			normalizedURL := Normalize(record.URL)
+			normalizedURL := normalize(record.URL)
 
 			// Update count for the URL and add fingerprint to set
 			item := count[normalizedURL]
 			if record.IsPost() {
-				item.PostCount++
+				item.Posts++
 			} else if record.IsRepost() {
-				item.RepostCount++
+				item.Reposts++
 			} else if record.IsLike() {
-				item.LikeCount++
+				item.Likes++
 			}
 			count[normalizedURL] = item
 			fingerprints.Add(print)
@@ -127,8 +127,8 @@ func fingerprint(record storage.EventRecord) string {
 }
 
 // Format the result of an aggregation into a report.
-func format(count map[string]Count) (Report, error) {
-	newsHosts, err := GetNewsHosts()
+func format(count map[string]Aggregation) (Report, error) {
+	newsHosts, err := getNewsHosts()
 	if err != nil {
 		slog.Error("failed to get news hosts", "error", err)
 	}
@@ -136,14 +136,14 @@ func format(count map[string]Count) (Report, error) {
 	// Convert each item in map to ReportItem
 	converted := make([]ReportItem, 0, len(count))
 	for k, v := range count {
-		converted = append(converted, ReportItem{URL: k, Count: v})
+		converted = append(converted, ReportItem{URL: k, Aggregation: v})
 	}
 
 	// Sort ReportItems by score
 	sorted := converted
 	slices.SortFunc(sorted, func(a, b ReportItem) int {
-		scoreA := a.Count.Score()
-		scoreB := b.Count.Score()
+		scoreA := a.Aggregation.Score()
+		scoreB := b.Aggregation.Score()
 
 		if scoreA > scoreB {
 			return -1
@@ -245,9 +245,9 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 	item.Rank = index + 1
 
 	p := message.NewPrinter(message.MatchLanguage("en"))
-	item.PostCountStr = p.Sprintf("%d", record.Totals.Posts)
-	item.RepostCountStr = p.Sprintf("%d", record.Totals.Reposts)
-	item.LikeCountStr = p.Sprintf("%d", record.Totals.Likes)
+	item.Display.Posts = p.Sprintf("%d", record.Totals.Posts)
+	item.Display.Reposts = p.Sprintf("%d", record.Totals.Reposts)
+	item.Display.Likes = p.Sprintf("%d", record.Totals.Likes)
 
 	slog.Debug("hydrated", "record", item)
 	return item, nil

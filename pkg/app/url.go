@@ -15,8 +15,8 @@ var QueryParamAllowList = []string{"abcnews.go.com"}
 
 var YouTubeHostList = []string{"www.youtube.com", "youtube.com", "m.youtube.com", "music.youtube.com"}
 
-// Normalize a URL by removing query parameters, and performing domain-specific transformations.
-func Normalize(input string) string {
+// normalize a URL by removing query parameters, and performing domain-specific transformations.
+func normalize(input string) string {
 	result := input
 	parsed, err := url.Parse(input)
 	if err != nil {
