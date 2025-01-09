@@ -17,6 +17,7 @@ const (
 	WorkerPoolSize   = 1
 	StreamBufferSize = 10000
 	EventBufferSize  = 10000
+	ErrorThreshold   = 10
 	JetstreamURL     = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost&wantedCollections=app.bsky.feed.like"
 )
 
@@ -75,12 +76,20 @@ func Intake() error {
 	defer conn.Close()
 
 	// Send Jetstream messages to workers
+	errors := 0
 	for {
 		event := StreamEvent{}
 		err := conn.ReadJSON(&event)
 		if err != nil {
-			slog.Error(util.WrapErr("failed to read json", err).Error())
-			break
+			errors++
+			slog.Warn(util.WrapErr("failed to read json", err).Error())
+
+			if errors > ErrorThreshold {
+				slog.Error("encountered too many errors reading from jetstream")
+				break
+			}
+
+			continue
 		}
 
 		stream <- event
