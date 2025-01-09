@@ -124,19 +124,19 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 			continue
 		}
 
-		stgRecord := storage.EventRecord{}
+		stRecord := storage.EventRecord{}
 		urlRecord := cache.URLRecord{}
 		skip := false
 		err := error(nil)
 
 		if event.IsPost() && !event.IsQuotePost() {
-			stgRecord, urlRecord, skip, err = HandlePost(ch, event)
+			stRecord, urlRecord, skip, err = handlePost(ch, event)
 		}
 		if event.IsPost() && event.IsQuotePost() {
-			stgRecord, urlRecord, skip, err = HandleQuotePost(ch, event)
+			stRecord, urlRecord, skip, err = handleQuotePost(ch, event)
 		}
 		if event.IsLike() || event.IsRepost() {
-			stgRecord, urlRecord, skip, err = HandleLikeOrRepost(ch, event)
+			stRecord, urlRecord, skip, err = handleLikeOrRepost(ch, event)
 		}
 
 		if err != nil {
@@ -163,7 +163,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 		// Save or update the URL record to cache.
 		// This record contains metadata for the URL, as well as post/repost/like counts.
 		// This also has the side-effect of refreshing the TTL of the URL record.
-		err = ch.SaveURL(util.Hash(stgRecord.URL), urlRecord)
+		err = ch.SaveURL(util.Hash(stRecord.URL), urlRecord)
 		if err != nil {
 			slog.Error(util.WrapErr("failed to save url record", err).Error())
 			return
@@ -171,7 +171,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 
 		// Save event to the buffer.
 		// Once the buffer is full, write to storage asynchronously.
-		buffer = append(buffer, stgRecord)
+		buffer = append(buffer, stRecord)
 		if len(buffer) >= EventBufferSize {
 			// Create local copies of buffer & stats to prevent the reset from occurring before the flush
 			localBuffer := buffer
@@ -192,9 +192,9 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 	}
 }
 
-// HandlePost processes a 'post' stream event.
+// handlePost processes a 'post' stream event.
 // The post is also saved to the cache to be later referenced by quote posts, reposts, and likes.
-func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLRecord, bool, error) {
+func handlePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLRecord, bool, error) {
 	url, title, image := event.ParsePost()
 
 	// Filter out unwanted URLs (or posts with no URL)
@@ -236,9 +236,9 @@ func HandlePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLReco
 	return stgRecord, urlRecord, false, nil
 }
 
-// HandleQuotePost processes a 'quote post' stream event.
+// handleQuotePost processes a 'quote post' stream event.
 // If the embed references a post in the cache, return a storage event and URL record to save.
-func HandleQuotePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLRecord, bool, error) {
+func handleQuotePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLRecord, bool, error) {
 	postCID := event.Commit.Record.Embed.Record.CID
 	postHash := util.Hash(postCID)
 	postRecord, err := ch.ReadPost(postHash)
@@ -274,9 +274,9 @@ func HandleQuotePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.UR
 	return stgRecord, urlRecord, false, nil
 }
 
-// HandleLikeOrRepost processes a 'like' or 'repost' stream event.
+// handleLikeOrRepost processes a 'like' or 'repost' stream event.
 // If the like or repost references a post in the cache, return a storage event and URL record to save.
-func HandleLikeOrRepost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLRecord, bool, error) {
+func handleLikeOrRepost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLRecord, bool, error) {
 	postCID := event.Commit.Record.Subject.CID
 	postHash := util.Hash(postCID)
 	postRecord, err := ch.ReadPost(postHash)

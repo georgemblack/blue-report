@@ -1,4 +1,4 @@
-package app_test
+package app
 
 import (
 	"testing"
@@ -8,10 +8,8 @@ import (
 
 // Test parsing a post with no URL at all.
 func TestParsePostWithNoURL(t *testing.T) {
-	event, err := testutil.GetStreamEvent("post-no-url.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	bytes := testutil.GetStreamEvent("post-no-url.json")
+	event := toStreamEvent(bytes)
 
 	url, title, image := event.ParsePost()
 	if url != "" {
@@ -27,10 +25,8 @@ func TestParsePostWithNoURL(t *testing.T) {
 
 // Test parsing a post that contains a URL, title, and thumbnail via external embed.
 func TestParsePostWithExternalEmbed(t *testing.T) {
-	event, err := testutil.GetStreamEvent("post-embed-only.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	bytes := testutil.GetStreamEvent("post-embed-only.json")
+	event := toStreamEvent(bytes)
 
 	url, title, image := event.ParsePost()
 	if url != "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge" {
@@ -46,10 +42,8 @@ func TestParsePostWithExternalEmbed(t *testing.T) {
 
 // Test parsing a post that only contains a link, but no title/thumbnail.
 func TestParsePostWithFacetOnly(t *testing.T) {
-	event, err := testutil.GetStreamEvent("post-facet-only.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	bytes := testutil.GetStreamEvent("post-facet-only.json")
+	event := toStreamEvent(bytes)
 
 	url, title, image := event.ParsePost()
 	if url != "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge" {
