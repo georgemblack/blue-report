@@ -79,7 +79,7 @@ func Intake() error {
 		event := StreamEvent{}
 		err := conn.ReadJSON(&event)
 		if err != nil {
-			slog.Warn(util.WrapErr("failed to read json", err).Error())
+			slog.Error(util.WrapErr("failed to read json", err).Error())
 			break
 		}
 
@@ -110,8 +110,8 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 		select {
 		case event, ok = <-stream:
 			if !ok {
-				slog.Error("error reading message from channel, terminating worker")
-				return
+				slog.Error("error reading message from channel")
+				continue
 			}
 		case <-shutdown:
 			slog.Info(fmt.Sprintf("shutting down worker %d", id))
