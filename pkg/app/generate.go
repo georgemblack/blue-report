@@ -19,7 +19,7 @@ import (
 var indexTmpl embed.FS
 
 const (
-	ListSize = 10
+	ListSize = 15
 )
 
 // Generate fetches all events from storage, aggregates trending URLs, and generates a final report.
@@ -128,11 +128,6 @@ func fingerprint(record storage.EventRecord) string {
 
 // Format the result of an aggregation into a report.
 func format(count map[string]Aggregation) (Report, error) {
-	newsHosts, err := getNewsHosts()
-	if err != nil {
-		slog.Error("failed to get news hosts", "error", err)
-	}
-
 	// Convert each item in map to ReportItem
 	converted := make([]ReportItem, 0, len(count))
 	for k, v := range count {
@@ -154,34 +149,18 @@ func format(count map[string]Aggregation) (Report, error) {
 		return 0
 	})
 
-	// Find top N items in 'news' category
-	news := make([]ReportItem, 0, ListSize)
+	// Find top N items
+	items := make([]ReportItem, 0, ListSize)
 	for i := range sorted {
-		if len(news) >= ListSize {
+		if len(items) >= ListSize {
 			break
 		}
-
-		if newsHosts.Contains(hostname(sorted[i].URL)) {
-			news = append(news, sorted[i])
-		}
-	}
-
-	// Find top N items in 'everything else' category
-	everything := make([]ReportItem, 0, ListSize)
-	for i := range sorted {
-		if len(everything) >= ListSize {
-			break
-		}
-
-		if !newsHosts.Contains(hostname(sorted[i].URL)) {
-			everything = append(everything, sorted[i])
-		}
+		items = append(items, sorted[i])
 	}
 
 	// Assemble report
 	return Report{
-		NewsItems:       news,
-		EverythingItems: everything,
+		Items: items,
 	}, nil
 }
 
@@ -192,14 +171,8 @@ func hydrate(ch Cache, stg Storage, report Report) (Report, error) {
 	report.GeneratedAt = util.ToEastern(time.Now()).Format("Jan 2, 2006 at 3:04pm (MST)")
 
 	// For each report item, fetch the URL record from the cache and populate
-	for i := range report.NewsItems {
-		report.NewsItems[i], err = hydrateItem(ch, stg, i, report.NewsItems[i])
-		if err != nil {
-			return Report{}, util.WrapErr("failed to hydrate item", err)
-		}
-	}
-	for i := range report.EverythingItems {
-		report.EverythingItems[i], err = hydrateItem(ch, stg, i, report.EverythingItems[i])
+	for i := range report.Items {
+		report.Items[i], err = hydrateItem(ch, stg, i, report.Items[i])
 		if err != nil {
 			return Report{}, util.WrapErr("failed to hydrate item", err)
 		}

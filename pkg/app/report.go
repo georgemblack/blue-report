@@ -24,9 +24,8 @@ type Display struct {
 
 // Report represents all data requried to render the webpage.
 type Report struct {
-	NewsItems       []ReportItem // News articles
-	EverythingItems []ReportItem // Everything but news articles
-	GeneratedAt     string
+	Items       []ReportItem
+	GeneratedAt string
 }
 
 // ReportItem represents a single item to be rendered on the webpage

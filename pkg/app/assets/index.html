@@ -126,53 +126,9 @@
         text-decoration: underline;
       }
 
-      /* view toggle */
-      .toggle {
-        margin: 0 auto;
-        max-width: 28em;
-        display: flex;
-        padding: 0.25em;
-        font-family: var(--header-font);
-        line-height: 100%;
-        border-radius: 2em;
-        background-color: var(--toggle-background-color);
-        box-shadow: 5px 6px 23px -10px rgba(0, 0, 0, 0.25);
-      }
-
-      .toggle .news,
-      .toggle .everything {
-        flex-grow: 1;
-        flex-basis: 0;
-        padding: 0.5em 1em;
-        border-radius: 2em;
-        cursor: pointer;
-        text-align: center;
-      }
-
-      .toggle .active {
-        background-color: var(--toggle-selected-color);
-      }
-
-      .toggle .active p {
-        color: var(--header-accent-color);
-      }
-
-      /* small break-point */
-      @media screen and (max-width: 36em) {
-        .toggle .news,
-        .toggle .everything {
-          font-size: var(--font-size-small);
-        }
-      }
-
       /* links */
       .link-group {
         margin-top: 2em;
-        display: none;
-      }
-
-      .link-group.visible {
-        display: block;
       }
 
       .link {
@@ -331,38 +287,8 @@
       </p>
     </header>
     <main>
-      <div class="toggle">
-        <div class="news active"><p>🗞️ News</p></div>
-        <div class="everything"><p>☀️ Everything Else</p></div>
-      </div>
-      <div class="link-group news visible">
-        {{ range .NewsItems }}
-        <div class="link">
-          <a href="{{ .URL }}" class="preview">
-            {{ if .ThumbnailURL }}
-            <img src="{{ .ThumbnailURL }}" />
-            {{ else }}
-            <div class="placeholder">🔗</div>
-            {{ end }}
-          </a>
-          <div class="content">
-            <p class="title">
-              <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
-            </p>
-            <p class="metadata">
-              <span>{{ .Host }}</span>
-              <span class="bullet">•</span>
-              <span
-                >{{ .Display.Posts }} posts, {{ .Display.Reposts }} reposts, {{
-                .Display.Likes }} likes</span
-              >
-            </p>
-          </div>
-        </div>
-        {{ end }}
-      </div>
-      <div class="link-group everything">
-        {{ range .EverythingItems }}
+      <div class="link-group">
+        {{ range .Items }}
         <div class="link">
           <a href="{{ .URL }}" class="preview">
             {{ if .ThumbnailURL }}
@@ -419,60 +345,6 @@
         >.
       </p>
     </footer>
-    <!-- Script for handling tab selection -->
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const newsTab = document.querySelectorAll(".toggle .news");
-        const everythingTab = document.querySelectorAll(".toggle .everything");
-        const newsContent = document.querySelectorAll(".link-group.news");
-        const everythingContent = document.querySelectorAll(
-          ".link-group.everything"
-        );
-
-        const getQueryParam = (param) => {
-          const urlParams = new URLSearchParams(window.location.search);
-          return urlParams.get(param);
-        };
-
-        const setQueryParam = (param, value) => {
-          const url = new URL(window.location.href);
-          url.searchParams.set(param, value);
-          window.history.pushState({}, "", url); // Update the URL without reloading
-        };
-
-        const selectNewsTab = () => {
-          everythingTab.forEach((t) => t.classList.remove("active"));
-          everythingContent.forEach((c) => c.classList.remove("visible"));
-          newsTab.forEach((t) => t.classList.add("active"));
-          newsContent.forEach((c) => c.classList.add("visible"));
-          setQueryParam("tab", "news");
-        };
-
-        const selectEverythingTab = () => {
-          newsTab.forEach((t) => t.classList.remove("active"));
-          newsContent.forEach((c) => c.classList.remove("visible"));
-          everythingTab.forEach((t) => t.classList.add("active"));
-          everythingContent.forEach((c) => c.classList.add("visible"));
-          setQueryParam("tab", "everything");
-        };
-
-        newsTab.forEach((tab) => {
-          tab.addEventListener("click", () => {
-            selectNewsTab();
-          });
-        });
-
-        everythingTab.forEach((tab) => {
-          tab.addEventListener("click", () => {
-            selectEverythingTab();
-          });
-        });
-
-        if (getQueryParam("tab") === "everything") {
-          selectEverythingTab(); // Set initial state
-        }
-      });
-    </script>
     <!-- Script for handling the time machine -->
     <script>
       document

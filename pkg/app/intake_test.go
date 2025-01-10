@@ -214,6 +214,7 @@ func TestWorkerWithInvalidEvent(t *testing.T) {
 }
 
 // Test worker a number of events that match the buffer size, to ensure events are flushed to storage.
+// TODO: This is flakey, fix it.
 func TestWorkerWithFlush(t *testing.T) {
 	bytes := testutil.GetStreamEvent("post-facet-only.json")
 	event := toStreamEvent(bytes)
