@@ -16,6 +16,7 @@ Where:
 
 The following rules also apply:
 
+* Only English language posts are counted
 * Only posts/reposts/likes that have occurred within the last 24 hours are counted in the score
 * Only one post/repost/like is counted per user, per link
   * Example: if a user likes five separate posts containing the same link, this is counted as one like
