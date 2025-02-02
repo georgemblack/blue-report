@@ -348,6 +348,11 @@ func include(url string) bool {
 		return false
 	}
 
+	// Ignore known spam
+	if strings.HasPrefix(url, "https://beacons.ai") {
+		return false
+	}
+
 	// Ignore links to the app itself. The purpose of this project is to track external links.
 	if strings.HasPrefix(url, "https://bsky.app") || strings.HasPrefix(url, "https://go.bsky.app") {
 		return false
