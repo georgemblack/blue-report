@@ -115,6 +115,7 @@ func count(stg Storage) (map[string]Aggregation, error) {
 		}
 
 		events += len(records)
+		records = nil // Help the garbage collector
 	}
 
 	slog.Info("finished generating count", "chunks", len(chunks), "processed", events, "denied", denied, "urls", len(count))
