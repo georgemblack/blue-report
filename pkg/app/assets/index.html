@@ -61,6 +61,7 @@
         --link-hover-color: #1f4a8f;
         --body-text-color: #2d2d2d;
         --faded-text-color: rgba(0, 0, 0, 0.4);
+        --link-host-color: #606060;
 
         /* toggle colors */
         --toggle-text-color: #2d2d2d;
@@ -198,6 +199,10 @@
         gap: 0.5em;
       }
 
+      .link .metadata .host {
+        color: var(--link-host-color);
+      }
+
       .last-updated {
         margin-top: 0.75em;
         color: var(--faded-text-color);
@@ -321,7 +326,7 @@
               <a href="https://redirect.theblue.report?url={{ .EscapedURL }}" class="redirect-link" data-original-url="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
             </p>
             <p class="metadata">
-              <span>{{ .Host }}</span>
+              <span class="host">{{ .Host }}</span>
               <span class="bullet">•</span>
               <span
                 >{{ .Display.Posts }} posts, {{ .Display.Reposts }} reposts, {{
