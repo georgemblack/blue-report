@@ -20,6 +20,7 @@ type Display struct {
 	Posts   string
 	Reposts string
 	Likes   string
+	Clicks  string
 }
 
 // Report represents all data requried to render the webpage.

@@ -309,7 +309,7 @@
       <div class="link-group">
         {{ range .Items }}
         <div class="link">
-          <a href="https://redirect.theblue.report?url={{ .EscapedURL }}" class="preview">
+          <a href="https://redirect.theblue.report?url={{ .EscapedURL }}" class="preview redirect-link" data-original-url="{{ .URL }}">
             {{ if .ThumbnailURL }}
             <img src="{{ .ThumbnailURL }}" />
             {{ else }}
@@ -318,7 +318,7 @@
           </a>
           <div class="content">
             <p class="title">
-              <a href="https://redirect.theblue.report?url={{ .EscapedURL }}">{{ .Rank }}. {{ .Title }}</a>
+              <a href="https://redirect.theblue.report?url={{ .EscapedURL }}" class="redirect-link" data-original-url="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
             </p>
             <p class="metadata">
               <span>{{ .Host }}</span>
@@ -327,6 +327,8 @@
                 >{{ .Display.Posts }} posts, {{ .Display.Reposts }} reposts, {{
                 .Display.Likes }} likes</span
               >
+              <span class="bullet">•</span>
+              <span>{{ .Display.Clicks }} clicks</span>
             </p>
           </div>
         </div>
@@ -397,6 +399,27 @@
 
           window.location.href = `${window.location.origin}/archive/${year}/${month}/${day}/index.html`;
         });
+    </script>
+    <!-- Script for handling clipboard events, to prevent users from copying redirect URLs -->
+    <script>
+      document.querySelectorAll("a.redirect-link").forEach(link => {
+          link.addEventListener("contextmenu", () => {
+              link.dataset.tempHref = link.href; // Store the original redirect link
+              link.href = link.dataset.originalUrl; // Set the href to the original URL
+          });
+      
+          link.addEventListener("mouseleave", () => {
+              if (link.dataset.tempHref) {
+                  link.href = link.dataset.tempHref; // Restore the original redirect link
+                  delete link.dataset.tempHref;
+              }
+          });
+      
+          link.addEventListener("copy", (event) => {
+              event.preventDefault();
+              event.clipboardData.setData("text/plain", link.dataset.originalUrl);
+          });
+      });
     </script>
     <!-- 100% privacy-first analytics -->
     <script

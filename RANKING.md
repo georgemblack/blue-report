@@ -25,11 +25,13 @@ The following rules also apply:
 
 ## Displayed Information
 
-The information displayed under each link represents the **overall** number of posts/reposts/likes for the link, with the following caveats:
+The 'posts/reposts/likes' displayed under each link represents the **overall** number of each for the given link, with the following caveats:
 
 * Duplicate events per user are not checked
   * Example: if a user likes five posts containing the same link, this is counted as five likes
   * Example: if a user likes and un-likes the same post five times, this is counted as five likes
+
+The 'clicks' displayed under each link represents how many times users have clicked the given link from The Blue Report's website.
 
 ## Disclaimers
 

@@ -2,8 +2,10 @@ package app
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"net/url"
 	"slices"
 	"strings"
@@ -194,6 +196,8 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 		return ReportItem{}, util.WrapErr("failed to read url record", err)
 	}
 
+	item.EscapedURL = url.QueryEscape(item.URL)
+
 	// Fetch the thumbnail from the Bluesky CDN and store it in our S3 bucket.
 	// The thumbnail ID is the hash of the URL.
 	if record.ImageURL != "" {
@@ -211,11 +215,11 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 		item.ThumbnailURL = fmt.Sprintf("/thumbnails/%s.jpg", hashedURL)
 	}
 
+	// Set display items, such as title, host, and stats
 	item.Title = record.Title
 	if item.Title == "" {
 		item.Title = "(No title)"
 	}
-
 	item.Host = strings.TrimPrefix(hostname(item.URL), "www.")
 	item.Rank = index + 1
 
@@ -223,10 +227,36 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 	item.Display.Posts = p.Sprintf("%d", record.Totals.Posts)
 	item.Display.Reposts = p.Sprintf("%d", record.Totals.Reposts)
 	item.Display.Likes = p.Sprintf("%d", record.Totals.Likes)
-
-	// URL encode the URL
-	item.EscapedURL = url.QueryEscape(item.URL)
+	item.Display.Clicks = p.Sprintf("%d", clicks(item.URL))
 
 	slog.Debug("hydrated", "record", item)
 	return item, nil
+}
+
+// Get the number of clicks for a given URL.
+// This data is provided by The Blue Report API.
+func clicks(url string) int {
+	resp, err := http.Get(fmt.Sprintf("https://api.theblue.report?url=%s", url))
+	if err != nil {
+		err = util.WrapErr("failed to get clicks", err)
+		slog.Error(err.Error(), "url", url)
+		return 0
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		slog.Error("failed to get clicks", "url", url, "status", resp.StatusCode)
+		return 0
+	}
+
+	var result struct {
+		Count int `json:"count"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		err = util.WrapErr("failed to decode clicks response", err)
+		slog.Error(err.Error(), "url", url)
+		return 0
+	}
+
+	return result.Count
 }
