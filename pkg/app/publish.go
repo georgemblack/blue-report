@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"log/slog"
+	"os"
 	"regexp"
 	"text/template"
 	"time"
@@ -30,6 +31,10 @@ func Publish(report Report) error {
 	result, err := convert(report)
 	if err != nil {
 		return util.WrapErr("failed to generate html", err)
+	}
+
+	if os.Getenv("DEBUG") == "true" {
+		os.WriteFile("index.html", result, 0644)
 	}
 
 	err = stg.PublishSite(result)
@@ -64,5 +69,8 @@ func convert(report Report) ([]byte, error) {
 	minifier.AddFunc("text/css", css.Minify)
 	minifier.AddFuncRegexp(regexp.MustCompile("^(application|text)/(x-)?(java|ecma)script$"), js.Minify)
 
+	if os.Getenv("DEBUG") == "true" {
+		return buf.Bytes(), nil
+	}
 	return minifier.Bytes("text/html", buf.Bytes())
 }

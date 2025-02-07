@@ -309,7 +309,7 @@
       <div class="link-group">
         {{ range .Items }}
         <div class="link">
-          <a href="{{ .URL }}" class="preview">
+          <a href="https://redirect.theblue.report?url={{ .EscapedURL }}" class="preview">
             {{ if .ThumbnailURL }}
             <img src="{{ .ThumbnailURL }}" />
             {{ else }}
@@ -318,7 +318,7 @@
           </a>
           <div class="content">
             <p class="title">
-              <a href="{{ .URL }}">{{ .Rank }}. {{ .Title }}</a>
+              <a href="https://redirect.theblue.report?url={{ .EscapedURL }}">{{ .Rank }}. {{ .Title }}</a>
             </p>
             <p class="metadata">
               <span>{{ .Host }}</span>

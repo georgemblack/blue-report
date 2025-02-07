@@ -32,6 +32,7 @@ type Report struct {
 type ReportItem struct {
 	Rank         int
 	URL          string
+	EscapedURL   string
 	Host         string
 	Title        string
 	ThumbnailURL string

@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -222,6 +223,9 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 	item.Display.Posts = p.Sprintf("%d", record.Totals.Posts)
 	item.Display.Reposts = p.Sprintf("%d", record.Totals.Reposts)
 	item.Display.Likes = p.Sprintf("%d", record.Totals.Likes)
+
+	// URL encode the URL
+	item.EscapedURL = url.QueryEscape(item.URL)
 
 	slog.Debug("hydrated", "record", item)
 	return item, nil
