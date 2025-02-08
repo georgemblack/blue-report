@@ -14,8 +14,8 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/georgemblack/blue-report/pkg/app/util"
 	"github.com/georgemblack/blue-report/pkg/cache"
+	"github.com/georgemblack/blue-report/pkg/display"
 	"github.com/georgemblack/blue-report/pkg/storage"
-	"golang.org/x/text/message"
 )
 
 //go:embed assets/index.html
@@ -223,11 +223,10 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 	item.Host = strings.TrimPrefix(hostname(item.URL), "www.")
 	item.Rank = index + 1
 
-	p := message.NewPrinter(message.MatchLanguage("en"))
-	item.Display.Posts = p.Sprintf("%d", record.Totals.Posts)
-	item.Display.Reposts = p.Sprintf("%d", record.Totals.Reposts)
-	item.Display.Likes = p.Sprintf("%d", record.Totals.Likes)
-	item.Display.Clicks = p.Sprintf("%d", clicks(item.URL))
+	item.Display.Posts = display.FormatCount(record.Totals.Posts)
+	item.Display.Reposts = display.FormatCount(record.Totals.Reposts)
+	item.Display.Likes = display.FormatCount(record.Totals.Likes)
+	item.Display.Clicks = display.FormatCount(clicks(item.URL))
 
 	slog.Debug("hydrated", "record", item)
 	return item, nil
