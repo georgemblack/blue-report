@@ -408,22 +408,26 @@
     <!-- Script for handling clipboard events, to prevent users from copying redirect URLs -->
     <script>
       document.querySelectorAll("a.redirect-link").forEach(link => {
-          link.addEventListener("contextmenu", () => {
-              link.dataset.tempHref = link.href; // Store the original redirect link
-              link.href = link.dataset.originalUrl; // Set the href to the original URL
-          });
-      
-          link.addEventListener("mouseleave", () => {
-              if (link.dataset.tempHref) {
-                  link.href = link.dataset.tempHref; // Restore the original redirect link
-                  delete link.dataset.tempHref;
-              }
-          });
-      
-          link.addEventListener("copy", (event) => {
-              event.preventDefault();
-              event.clipboardData.setData("text/plain", link.dataset.originalUrl);
-          });
+        function setOriginalHref() {
+          link.dataset.tempHref = link.href; // Save original redirect link
+          link.href = link.dataset.originalUrl; // Set to original URL for copying
+        }
+
+        function restoreHref() {
+          if (link.dataset.tempHref) {
+              link.href = link.dataset.tempHref; // Restore the original redirect link
+              delete link.dataset.tempHref;
+          }
+        }
+
+        // For desktop (right-click "Copy Link Address")
+        link.addEventListener("contextmenu", setOriginalHref);
+        link.addEventListener("mouseleave", restoreHref);
+
+        // For mobile (long-press "Copy Link")
+        link.addEventListener("touchstart", setOriginalHref);
+        link.addEventListener("touchend", restoreHref);
+        link.addEventListener("touchcancel", restoreHref);
       });
     </script>
     <!-- 100% privacy-first analytics -->
