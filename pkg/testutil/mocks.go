@@ -193,6 +193,20 @@ func (mr *MockStorageMockRecorder) ListEventChunks(start, end any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEventChunks", reflect.TypeOf((*MockStorage)(nil).ListEventChunks), start, end)
 }
 
+// PublishArchive mocks base method.
+func (m *MockStorage) PublishArchive(site []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PublishArchive", site)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PublishArchive indicates an expected call of PublishArchive.
+func (mr *MockStorageMockRecorder) PublishArchive(site any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishArchive", reflect.TypeOf((*MockStorage)(nil).PublishArchive), site)
+}
+
 // PublishSite mocks base method.
 func (m *MockStorage) PublishSite(site []byte) error {
 	m.ctrl.T.Helper()

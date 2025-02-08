@@ -47,11 +47,15 @@ func (s S3) PublishSite(site []byte) error {
 		return util.WrapErr("failed to put object", err)
 	}
 
+	return nil
+}
+
+func (s S3) PublishArchive(site []byte) error {
 	// Add or update today's page in the archive.
 	// Use Eastern time, as the site is primarily for a US audience.
 	now := util.ToEastern(time.Now())
 	path := fmt.Sprintf("archive/%d/%d/%d/index.html", now.Year(), now.Month(), now.Day())
-	_, err = s.client.PutObject(context.Background(), &s3.PutObjectInput{
+	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:               aws.String(siteBucketName()),
 		Key:                  aws.String(path),
 		Body:                 bytes.NewReader(site),

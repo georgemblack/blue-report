@@ -27,7 +27,8 @@ func Publish(report Report) error {
 		return util.WrapErr("failed to create storage client", err)
 	}
 
-	// Convert report to HTML
+	// Generate webpage and publish
+	report.Archive = false
 	result, err := convert(report)
 	if err != nil {
 		return util.WrapErr("failed to generate html", err)
@@ -39,7 +40,24 @@ func Publish(report Report) error {
 
 	err = stg.PublishSite(result)
 	if err != nil {
-		return util.WrapErr("failed to publish report", err)
+		return util.WrapErr("failed to publish site", err)
+	}
+
+	// Generate a second copy of the webpage, and publish to the archive.
+	// This version of the page has a disclosure in the header.
+	report.Archive = true
+	result, err = convert(report)
+	if err != nil {
+		return util.WrapErr("failed to generate html", err)
+	}
+
+	if os.Getenv("DEBUG") == "true" {
+		os.WriteFile("archive.html", result, 0644)
+	}
+
+	err = stg.PublishArchive(result)
+	if err != nil {
+		return util.WrapErr("failed to publish archive", err)
 	}
 
 	duration := time.Since(start)

@@ -261,8 +261,17 @@
       /* time machine */
       .time-machine {
         margin-top: 4em;
+      }
+
+      .time-machine-disclosure {
+        text-align: center;
+        font-size: 0.85em;
+      }
+
+      .time-machine,
+      .time-machine-disclosure {
         padding: 1em 1.5em;
-        background-color: rgba(255, 255, 255, 0.25);
+        background-color: rgba(255, 255, 255, 0.35);
         border-radius: 1em;
         box-shadow: 5px 6px 23px -10px rgba(0, 0, 0, 0.05);
       }
@@ -303,6 +312,11 @@
     </style>
   </head>
   <body>
+    {{ if .Archive }}
+    <div class="time-machine-disclosure">
+      <p>⏳ This is an archived page from {{ .GeneratedAt }}. <a href="https://theblue.report">Click here to return to the present.</a></p>
+    </div>
+    {{ end }}
     <header>
       <h1>The<span class="accent">Blue</span>Report</h1>
       <p class="subtitle">

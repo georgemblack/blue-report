@@ -27,6 +27,7 @@ type Display struct {
 type Report struct {
 	Items       []ReportItem
 	GeneratedAt string
+	Archive     bool // Whether or not to generate the page for the archive
 }
 
 // ReportItem represents a single item to be rendered on the webpage

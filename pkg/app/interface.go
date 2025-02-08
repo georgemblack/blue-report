@@ -19,6 +19,7 @@ type Cache interface {
 
 type Storage interface {
 	PublishSite(site []byte) error
+	PublishArchive(site []byte) error
 	ReadEvents(key string) ([]storage.EventRecord, error)
 	FlushEvents(start time.Time, events []storage.EventRecord) error
 	ListEventChunks(start, end time.Time) ([]string, error)
