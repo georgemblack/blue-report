@@ -15,21 +15,21 @@ func TestFormatCount(t *testing.T) {
 		},
 		{
 			name:   "between 1000 and 10000, rounding down",
-			count:  1549,
+			count:  1599,
 			output: "1.5k",
 		},
 		{
-			name:   "between 1000 and 10000, rounding up",
-			count:  1549,
+			name:   "between 1000 and 10000, no rounding",
+			count:  1500,
 			output: "1.5k",
 		},
 		{
-			name:   "over 10000, no rounding",
+			name:   "over 10000, rounding down",
 			count:  15999,
 			output: "15k",
 		},
 		{
-			name:   "over 10000",
+			name:   "over 10000, no rounding",
 			count:  16000,
 			output: "16k",
 		},

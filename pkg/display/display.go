@@ -18,7 +18,7 @@ func FormatCount(count int) string {
 	//	- 1,500 -> 1.5k
 	//	- 9,999 -> 9.9k
 	if count < 10000 {
-		return fmt.Sprintf("%.1fk", float64(count)/1000)
+		return fmt.Sprintf("%.1fk", math.Floor(float64(count)/100)/10)
 	}
 
 	// If the number is greater than 10,000, format as thousands with no decimal places.
