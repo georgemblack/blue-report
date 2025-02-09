@@ -1,6 +1,6 @@
 publish.sh
-result.html
+node_modules
+dist
 .DS_Store
 .astro
 .vscode
-node_modules

@@ -221,6 +221,20 @@ func (mr *MockStorageMockRecorder) PublishSite(site any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishSite", reflect.TypeOf((*MockStorage)(nil).PublishSite), site)
 }
 
+// PublishSnapshot mocks base method.
+func (m *MockStorage) PublishSnapshot(snapshot []byte) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PublishSnapshot", snapshot)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PublishSnapshot indicates an expected call of PublishSnapshot.
+func (mr *MockStorageMockRecorder) PublishSnapshot(snapshot any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishSnapshot", reflect.TypeOf((*MockStorage)(nil).PublishSnapshot), snapshot)
+}
+
 // ReadEvents mocks base method.
 func (m *MockStorage) ReadEvents(key string) ([]storage.EventRecord, error) {
 	m.ctrl.T.Helper()

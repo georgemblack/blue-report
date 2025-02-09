@@ -27,44 +27,52 @@ const (
 
 // Generate fetches all events from storage, aggregates trending URLs, and generates a final report.
 // Metadata for each URL is hydrated from the cache, and thumbnails for each URL are stored in S3.
-func Generate() (Report, error) {
+// DEPRECATED: Remove 'Report' from return values
+func Generate() (Report, Snapshot, error) {
 	slog.Info("starting report generation")
 	start := time.Now()
 
 	// Build the cache client
 	ch, err := cache.New()
 	if err != nil {
-		return Report{}, util.WrapErr("failed to create the cache client", err)
+		return Report{}, Snapshot{}, util.WrapErr("failed to create the cache client", err)
 	}
 	defer ch.Close()
 
 	// Build storage client
 	stg, err := storage.New()
 	if err != nil {
-		return Report{}, util.WrapErr("failed to create storage client", err)
+		return Report{}, Snapshot{}, util.WrapErr("failed to create storage client", err)
 	}
 
 	// Run the count
 	count, err := count(stg)
 	if err != nil {
-		return Report{}, util.WrapErr("failed to generate count", err)
+		return Report{}, Snapshot{}, util.WrapErr("failed to generate count", err)
 	}
 
 	// Format results
 	formatted, err := format(count)
 	if err != nil {
-		return Report{}, util.WrapErr("failed to format results", err)
+		return Report{}, Snapshot{}, util.WrapErr("failed to format results", err)
+	}
+
+	// DEPRECATED
+	// Hydrate report with data from cache, i.e. titles, image URLs, and more for each report item.
+	hydratedReport, err := hydrateReport(ch, stg, formatted)
+	if err != nil {
+		return Report{}, Snapshot{}, util.WrapErr("failed to hydrate report", err)
 	}
 
 	// Hydrate report with data from cache, i.e. titles, image URLs, and more for each report item.
 	hydrated, err := hydrate(ch, stg, formatted)
 	if err != nil {
-		return Report{}, util.WrapErr("failed to hydrate report", err)
+		return Report{}, Snapshot{}, util.WrapErr("failed to hydrate report", err)
 	}
 
 	duration := time.Since(start)
 	slog.Info("aggregation complete", "seconds", duration.Seconds())
-	return hydrated, nil
+	return hydratedReport, hydrated, nil
 }
 
 // Scan all events within the last 24 hours, and return a map of URLs and their associated counts.
@@ -168,7 +176,8 @@ func format(count map[string]Aggregation) (Report, error) {
 	}, nil
 }
 
-func hydrate(ch Cache, stg Storage, report Report) (Report, error) {
+// DEPRECATED
+func hydrateReport(ch Cache, stg Storage, report Report) (Report, error) {
 	var err error
 
 	// Display in Eastern time, as this site is targeted at a US audience
@@ -176,7 +185,7 @@ func hydrate(ch Cache, stg Storage, report Report) (Report, error) {
 
 	// For each report item, fetch the URL record from the cache and populate
 	for i := range report.Items {
-		report.Items[i], err = hydrateItem(ch, stg, i, report.Items[i])
+		report.Items[i], err = hydrateReportItem(ch, stg, i, report.Items[i])
 		if err != nil {
 			return Report{}, util.WrapErr("failed to hydrate item", err)
 		}
@@ -185,11 +194,33 @@ func hydrate(ch Cache, stg Storage, report Report) (Report, error) {
 	return report, nil
 }
 
+func hydrate(ch Cache, stg Storage, report Report) (Snapshot, error) {
+	var snapshot Snapshot
+	snapshot.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
+
+	// For each report item, fetch the URL record from the cache and populate
+	snapshot.Links = make([]Link, 0, len(report.Items))
+	for i := range report.Items {
+		link := Link{
+			URL: report.Items[i].URL,
+		}
+		link, err := hydrateLink(ch, stg, i, link)
+		if err != nil {
+			return Snapshot{}, util.WrapErr("failed to hydrate link", err)
+		}
+		snapshot.Links = append(snapshot.Links, link)
+	}
+
+	return snapshot, nil
+}
+
 // Hydrate a single report item with:
 //   - Metadata from the cache (title)
 //   - Thumbnail image from S3
 //   - Nicely formatted strings for rendering the report template
-func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem, error) {
+//
+// DEPRECATED
+func hydrateReportItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem, error) {
 	hashedURL := util.Hash(item.URL)
 	record, err := ch.ReadURL(hashedURL)
 	if err != nil {
@@ -226,10 +257,52 @@ func hydrateItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem,
 	item.Display.Posts = display.FormatCount(record.Totals.Posts)
 	item.Display.Reposts = display.FormatCount(record.Totals.Reposts)
 	item.Display.Likes = display.FormatCount(record.Totals.Likes)
-	item.Display.Clicks = display.FormatCount(clicks(item.URL))
+
+	clicks := clicks(item.URL)
+	item.Display.Clicks = display.FormatCount(clicks)
 
 	slog.Debug("hydrated", "record", item)
 	return item, nil
+}
+
+func hydrateLink(ch Cache, stg Storage, index int, link Link) (Link, error) {
+	hashedURL := util.Hash(link.URL)
+	record, err := ch.ReadURL(hashedURL)
+	if err != nil {
+		return Link{}, util.WrapErr("failed to read url record", err)
+	}
+
+	// Fetch the thumbnail from the Bluesky CDN and store it in our S3 bucket.
+	// The thumbnail ID is the hash of the URL.
+	if record.ImageURL != "" {
+		err := stg.SaveThumbnail(hashedURL, record.ImageURL)
+		if err != nil {
+			slog.Warn(util.WrapErr("failed to save thumbnail", err).Error(), "url", link.URL)
+		}
+	}
+
+	// Set the thumbnail ID if it exists
+	exists, err := stg.ThumbnailExists(hashedURL)
+	if err != nil {
+		slog.Warn(util.WrapErr("failed to check for thumbnail", err).Error(), "url", link.URL)
+	} else if exists {
+		link.ThumbnailID = hashedURL
+	}
+
+	// Set display items, such as title, host, and stats
+	link.Title = record.Title
+	if link.Title == "" {
+		link.Title = "(No title)"
+	}
+	link.Rank = index + 1
+
+	link.Aggregation.Posts = record.Totals.Posts
+	link.Aggregation.Reposts = record.Totals.Reposts
+	link.Aggregation.Likes = record.Totals.Likes
+	link.Aggregation.Clicks = clicks(link.URL)
+
+	slog.Debug("hydrated", "record", link)
+	return link, nil
 }
 
 // Get the number of clicks for a given URL.

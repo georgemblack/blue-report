@@ -2,6 +2,7 @@ package app
 
 import (
 	"bytes"
+	"encoding/json"
 	"log/slog"
 	"os"
 	"regexp"
@@ -17,7 +18,7 @@ import (
 )
 
 // Publish converts a report to HTML and JSON, and publishes to an S3 bucket where the site is hosted.
-func Publish(report Report) error {
+func Publish(report Report, snapshot Snapshot) error {
 	slog.Info("starting report publish")
 	start := time.Now()
 
@@ -35,7 +36,7 @@ func Publish(report Report) error {
 	}
 
 	if os.Getenv("DEBUG") == "true" {
-		os.WriteFile("index.html", result, 0644)
+		os.WriteFile("dist/index.html", result, 0644)
 	}
 
 	err = stg.PublishSite(result)
@@ -52,12 +53,26 @@ func Publish(report Report) error {
 	}
 
 	if os.Getenv("DEBUG") == "true" {
-		os.WriteFile("archive.html", result, 0644)
+		os.WriteFile("dist/archive.html", result, 0644)
 	}
 
 	err = stg.PublishArchive(result)
 	if err != nil {
 		return util.WrapErr("failed to publish archive", err)
+	}
+
+	// Save snapshot to storage as JSON
+	data, err := json.Marshal(snapshot)
+	if err != nil {
+		return util.WrapErr("failed to marshal snapshot", err)
+	}
+	err = stg.PublishSnapshot(data)
+	if err != nil {
+		return util.WrapErr("failed to publish snapshot", err)
+	}
+
+	if os.Getenv("DEBUG") == "true" {
+		os.WriteFile("dist/snapshot.json", data, 0644)
 	}
 
 	duration := time.Since(start)
