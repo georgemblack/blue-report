@@ -3,13 +3,16 @@ package app
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"regexp"
 	"text/template"
 	"time"
 
 	"github.com/georgemblack/blue-report/pkg/app/util"
+	"github.com/georgemblack/blue-report/pkg/secrets"
 	"github.com/georgemblack/blue-report/pkg/storage"
 	minify "github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
@@ -26,6 +29,12 @@ func Publish(report Report, snapshot Snapshot) error {
 	stg, err := storage.New()
 	if err != nil {
 		return util.WrapErr("failed to create storage client", err)
+	}
+
+	// Build secrets client
+	sec, err := secrets.New()
+	if err != nil {
+		return util.WrapErr("failed to create secrets client", err)
 	}
 
 	// Generate webpage and publish
@@ -75,6 +84,11 @@ func Publish(report Report, snapshot Snapshot) error {
 		os.WriteFile("dist/snapshot.json", data, 0644)
 	}
 
+	err = deploy(sec)
+	if err != nil {
+		return util.WrapErr("failed to deploy", err)
+	}
+
 	duration := time.Since(start)
 	slog.Info("publish complete", "seconds", duration.Seconds())
 	return nil
@@ -106,4 +120,26 @@ func convert(report Report) ([]byte, error) {
 		return buf.Bytes(), nil
 	}
 	return minifier.Bytes("text/html", buf.Bytes())
+}
+
+// Deploy the site on CloudFlare Pages by making an HTTP POST request to the deploy webhook.
+// The deploy hook URL is considered a secret.
+// TODO: Hoist secrets handling up to a global config thing.
+func deploy(sec Secrets) error {
+	deployHookURL, err := sec.GetDeployHook()
+	if err != nil {
+		return util.WrapErr("failed to get deploy hook URL", err)
+	}
+
+	resp, err := http.Post(deployHookURL, "application/json", nil)
+	if err != nil {
+		return util.WrapErr("failed to trigger deploy", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return util.WrapErr("failed to trigger deploy", fmt.Errorf("unexpected status code: %d", resp.StatusCode))
+	}
+
+	return nil
 }

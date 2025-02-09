@@ -27,3 +27,7 @@ type Storage interface {
 	SaveThumbnail(id string, url string) error
 	ThumbnailExists(id string) (bool, error)
 }
+
+type Secrets interface {
+	GetDeployHook() (string, error)
+}

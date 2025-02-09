@@ -278,3 +278,42 @@ func (mr *MockStorageMockRecorder) ThumbnailExists(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ThumbnailExists", reflect.TypeOf((*MockStorage)(nil).ThumbnailExists), id)
 }
+
+// MockSecrets is a mock of Secrets interface.
+type MockSecrets struct {
+	ctrl     *gomock.Controller
+	recorder *MockSecretsMockRecorder
+	isgomock struct{}
+}
+
+// MockSecretsMockRecorder is the mock recorder for MockSecrets.
+type MockSecretsMockRecorder struct {
+	mock *MockSecrets
+}
+
+// NewMockSecrets creates a new mock instance.
+func NewMockSecrets(ctrl *gomock.Controller) *MockSecrets {
+	mock := &MockSecrets{ctrl: ctrl}
+	mock.recorder = &MockSecretsMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSecrets) EXPECT() *MockSecretsMockRecorder {
+	return m.recorder
+}
+
+// GetDeployHook mocks base method.
+func (m *MockSecrets) GetDeployHook() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDeployHook")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDeployHook indicates an expected call of GetDeployHook.
+func (mr *MockSecretsMockRecorder) GetDeployHook() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeployHook", reflect.TypeOf((*MockSecrets)(nil).GetDeployHook))
+}
