@@ -1,22 +1,123 @@
+---
+import "../styles/main.css";
+---
+
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-	</body>
-</html>
+  <head>
+    <!-- Metadata -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="The top links on Bluesky over the last 24 hours. Updated hourly."
+    />
+    <meta name="author" content="George Black" />
+    <title>The Blue Report</title>
+    <!-- Open Graph tags -->
+    <meta property="og:title" content="The Blue Report" />
+    <meta
+      property="og:description"
+      content="The top links on Bluesky over the last 24 hours. Updated hourly."
+    />
+    <meta
+      property="og:image"
+      content="https://theblue.report/assets/preview.jpg"
+    />
+    <meta property="og:image:alt" content="The Blue Report" />
+    <meta property="og:url" content="https://theblue.report" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="The Blue Report" />
+    <!-- Icons -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="/icons/favicon-96x96.png"
+      sizes="96x96"
+    />
+    <link rel="icon" type="image/svg+xml" href="/icons/favicon.svg" />
+    <link rel="shortcut icon" href="/icons/favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/icons/apple-touch-icon.png"
+    />
+    <link rel="manifest" href="/icons/site.webmanifest" />
+    <!-- Theme color -->
+    <meta name="theme-color" content="#f0ece9" />
+    <!-- External -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Crete+Round&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header>
+      <h1>The<span class="accent">Blue</span>Report</h1>
+      <p class="subtitle">
+        <span>The top links on Bluesky over the last 24 hours.</span>
+        <span>Updated hourly.</span>
+      </p>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer>
+      <p>
+        Created by <a href="https://bsky.app/profile/george.black"
+          >George Black</a
+        >, inspired by <a href="https://sill.social">Sill</a>.
+      </p>
+      <p>
+        The source code, as well as information on how links are ranked is <a
+          href="https://github.com/georgemblack/blue-report/blob/master/RANKING.md"
+          >available here</a
+        >.
+      </p>
+      <div style="margin-top: 2em;">
+        <script
+          type="text/javascript"
+          src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js"
+          data-name="bmc-button"
+          data-slug="georgeblack"
+          data-color="#FFDD00"
+          data-emoji=""
+          data-font="Cookie"
+          data-text="Buy me a coffee!"
+          data-outline-color="#000000"
+          data-font-color="#000000"
+          data-coffee-color="#ffffff"></script>
+      </div>
+    </footer>
+    <!-- Script for handling clipboard events, to prevent users from copying redirect URLs -->
+    <script>
+      document.querySelectorAll("a.redirect-link").forEach((link) => {
+        function setOriginalHref() {
+          link.dataset.tempHref = link.href; // Save original redirect link
+          link.href = link.dataset.originalUrl; // Set to original URL for copying
+        }
 
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>
+        function restoreHref() {
+          if (link.dataset.tempHref) {
+            link.href = link.dataset.tempHref; // Restore the original redirect link
+            delete link.dataset.tempHref;
+          }
+        }
+
+        // For desktop (right-click "Copy Link Address")
+        link.addEventListener("contextmenu", setOriginalHref);
+        link.addEventListener("mouseleave", restoreHref);
+
+        // For mobile (long-press "Copy Link")
+        link.addEventListener("touchstart", setOriginalHref);
+        link.addEventListener("touchend", restoreHref);
+        link.addEventListener("touchcancel", restoreHref);
+      });
+    </script>
+    <!-- 100% privacy-first analytics -->
+    <script async src="https://scripts.simpleanalyticscdn.com/latest.js"
+    ></script>
+  </body>
+</html>
