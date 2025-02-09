@@ -13,6 +13,7 @@ type Link struct {
 	Aggregation LinkAggregation `json:"aggregation"`
 }
 
+// TODO: Rename 'Aggregation'
 type LinkAggregation struct {
 	Posts   int `json:"posts"`
 	Reposts int `json:"reposts"`

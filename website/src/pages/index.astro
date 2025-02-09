@@ -1,5 +1,56 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import { fetchSnapshot } from "../util/Data";
+import { formatHost, formatCount, formatDate } from "../util/Format";
+
+const snapshot = await fetchSnapshot();
 ---
 
-<Layout>Placeholder</Layout>
+<Layout>
+  <div class="link-group">
+    {
+      snapshot.links.map((link) => (
+        <div class="link">
+          <a
+            href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
+            class="preview redirect-link"
+            data-original-url={link.url}
+          >
+            {link.thumbnail_id ? (
+              <img
+                src={`https://theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
+              />
+            ) : (
+              <div class="placeholder">🔗</div>
+            )}
+          </a>
+          <div class="content">
+            <p class="title">
+              <a
+                href="https://redirect.theblue.report?url={{ .EscapedURL }}"
+                class="redirect-link"
+                data-original-url="{{ .URL }}"
+              >
+                {link.rank}. {link.title}
+              </a>
+            </p>
+            <p class="metadata">
+              <span class="host">{formatHost(link.url)}</span>
+              <span class="bullet">•</span>
+              <span>
+                {formatCount(link.aggregation.posts)} posts,{" "}
+                {formatCount(link.aggregation.reposts)} reposts,{" "}
+                {formatCount(link.aggregation.likes)} likes
+              </span>
+              <span class="bullet">•</span>
+              <span>
+                {formatCount(link.aggregation.clicks)} blue report clicks
+              </span>
+            </p>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+  <p class="last-updated">Last updated {formatDate(snapshot.generated_at)}</p>
+</Layout>
