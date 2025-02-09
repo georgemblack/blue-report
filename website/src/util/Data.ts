@@ -1,4 +1,4 @@
-const API_URL = "https://theblue.report/snapshot.json";
+const API_URL = "https://assets.theblue.report/snapshot.json";
 
 interface Snapshot {
   generated_at: string;
