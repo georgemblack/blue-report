@@ -1,4 +1,3 @@
-import { format } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
 
 export function formatHost(url: string): string {
@@ -28,11 +27,9 @@ export function formatCount(count: number): string {
 
 // Convert a date '2025-02-09T04:13:31Z' to 'Feb 8, 2025 at 11:03pm (EST)'
 export function formatDate(iso: string): string {
-  const timeZone = "America/New_York";
-  const formattedDate = formatInTimeZone(
+  return formatInTimeZone(
     iso,
-    timeZone,
+    "America/New_York",
     "MMM d, yyyy 'at' h:mma (zzz)"
   );
-  return formattedDate;
 }

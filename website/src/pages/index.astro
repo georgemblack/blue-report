@@ -27,9 +27,9 @@ const snapshot = await fetchSnapshot();
           <div class="content">
             <p class="title">
               <a
-                href="https://redirect.theblue.report?url={{ .EscapedURL }}"
+                href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
                 class="redirect-link"
-                data-original-url="{{ .URL }}"
+                data-original-url={link.url}
               >
                 {link.rank}. {link.title}
               </a>
