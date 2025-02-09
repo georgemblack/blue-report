@@ -1,3 +1,6 @@
 publish.sh
 result.html
 .DS_Store
+.astro
+.vscode
+node_modules
