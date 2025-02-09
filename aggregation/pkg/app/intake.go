@@ -241,6 +241,7 @@ func handlePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLReco
 		URL:       normalizedURL,
 		DID:       event.DID,
 		Timestamp: time.Now(),
+		Post:      fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.DID, event.Commit.RKey), // AT URI of the current post
 	}
 	return stgRecord, urlRecord, false, nil
 }
@@ -279,6 +280,7 @@ func handleQuotePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.UR
 		URL:       postRecord.URL,
 		DID:       event.DID,
 		Timestamp: time.Now(),
+		Post:      event.Commit.Record.Embed.Record.URI, // AT URI of the embedded post
 	}
 	return stgRecord, urlRecord, false, nil
 }
@@ -321,6 +323,7 @@ func handleLikeOrRepost(ch Cache, event StreamEvent) (storage.EventRecord, cache
 		URL:       postRecord.URL,
 		DID:       event.DID,
 		Timestamp: time.Now(),
+		Post:      event.Commit.Record.Subject.URI, // AT URI of the liked/reposted post
 	}
 	return stgRecord, urlRecord, false, nil
 }

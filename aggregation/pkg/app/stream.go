@@ -17,6 +17,7 @@ type StreamEvent struct {
 type Commit struct {
 	Operation string `json:"operation"`
 	Record    Record `json:"record"`
+	RKey      string `json:"rkey"`
 	CID       string `json:"cid"`
 }
 
@@ -43,6 +44,7 @@ type ExternalEmbed struct {
 
 type RecordEmbed struct {
 	CID string `json:"cid"`
+	URI string `json:"uri"`
 }
 
 type Thumb struct {
@@ -61,6 +63,7 @@ type Facet struct {
 
 type Subject struct {
 	CID string `json:"cid"`
+	URI string `json:"uri"`
 }
 
 type Feature struct {

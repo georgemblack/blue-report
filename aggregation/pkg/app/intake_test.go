@@ -13,7 +13,7 @@ import (
 )
 
 func TestHandlePostNoURL(t *testing.T) {
-	bytes := testutil.GetStreamEvent("post-no-url.json")
+	bytes := testutil.GetTestData("post-no-url.json")
 	event := toStreamEvent(bytes)
 
 	// The cache should not be called – the event does not contain a URL
@@ -32,7 +32,7 @@ func TestHandlePostNoURL(t *testing.T) {
 }
 
 func TestHandlePostWithEmbed(t *testing.T) {
-	bytes := testutil.GetStreamEvent("post-embed-only.json")
+	bytes := testutil.GetTestData("post-embed-only.json")
 	event := toStreamEvent(bytes)
 
 	expectedPost := cache.PostRecord{
@@ -52,7 +52,7 @@ func TestHandlePostWithEmbed(t *testing.T) {
 	mockCache.EXPECT().SavePost(hashedCID, expectedPost)                 // Save the post
 	mockCache.EXPECT().ReadURL(hashedURL).Return(cache.URLRecord{}, nil) // Check for existing URL record (it doesn't exist)
 
-	_, url, skip, err := handlePost(mockCache, event)
+	stg, url, skip, err := handlePost(mockCache, event)
 
 	if skip {
 		t.Error("unexpected event skip")
@@ -69,11 +69,17 @@ func TestHandlePostWithEmbed(t *testing.T) {
 	if url.Totals.Posts != expectedURL.Totals.Posts {
 		t.Errorf("unexpected post count: %d", url.Totals.Posts)
 	}
+	if stg.DID != "did:plc:ruzlll5u7u7pfxybmppqyxbx" {
+		t.Errorf("unexpected did: %s", stg.DID)
+	}
+	if stg.Post != "at://did:plc:ruzlll5u7u7pfxybmppqyxbx/app.bsky.feed.post/3ldkcy6xjvc2l" {
+		t.Errorf("unexpected at uri for post: %s", stg.Post)
+	}
 }
 
 // Save a post with a URL that has already been cached. The cached URL is missing data, so it should be updated.
 func TestHandlePostWithPartiallySavedURL(t *testing.T) {
-	bytes := testutil.GetStreamEvent("post-embed-only.json")
+	bytes := testutil.GetTestData("post-embed-only.json")
 	event := toStreamEvent(bytes)
 
 	expectedPost := cache.PostRecord{
@@ -99,7 +105,7 @@ func TestHandlePostWithPartiallySavedURL(t *testing.T) {
 	mockCache.EXPECT().SavePost(hashedCID, expectedPost)           // Save the post
 	mockCache.EXPECT().ReadURL(hashedURL).Return(existingURL, nil) // Check for existing URL record (it exists, with missing data)
 
-	_, url, skip, err := handlePost(mockCache, event)
+	stg, url, skip, err := handlePost(mockCache, event)
 
 	if skip {
 		t.Error("unexpected event skip")
@@ -116,11 +122,17 @@ func TestHandlePostWithPartiallySavedURL(t *testing.T) {
 	if url.Totals.Posts != expectedURL.Totals.Posts {
 		t.Errorf("unexpected post count: %d", url.Totals.Posts)
 	}
+	if stg.DID != "did:plc:ruzlll5u7u7pfxybmppqyxbx" {
+		t.Errorf("unexpected did: %s", stg.DID)
+	}
+	if stg.Post != "at://did:plc:ruzlll5u7u7pfxybmppqyxbx/app.bsky.feed.post/3ldkcy6xjvc2l" {
+		t.Errorf("unexpected at uri for post: %s", stg.Post)
+	}
 }
 
 // Test handling a quote post
 func TestHandleQuotePost(t *testing.T) {
-	bytes := testutil.GetStreamEvent("post-quote.json")
+	bytes := testutil.GetTestData("post-quote.json")
 	event := toStreamEvent(bytes)
 
 	existingURL := cache.URLRecord{
@@ -142,7 +154,7 @@ func TestHandleQuotePost(t *testing.T) {
 	mockCache.EXPECT().RefreshPost(hashedCID).Return(nil)                                         // Refresh the TTL of the referenced post
 	mockCache.EXPECT().ReadURL(hashedURL).Return(existingURL, nil)                                // Check for existing URL record (it doesn't exist)
 
-	record, url, skip, err := handleQuotePost(mockCache, event)
+	stg, url, skip, err := handleQuotePost(mockCache, event)
 
 	if err != nil {
 		t.Fatal(err)
@@ -150,23 +162,26 @@ func TestHandleQuotePost(t *testing.T) {
 	if skip {
 		t.Error("unexpected event skip")
 	}
-	if record.Type != expectedRecord.Type {
-		t.Errorf("unexpected type: %d", record.Type)
-	}
-	if record.DID != expectedRecord.DID {
-		t.Errorf("unexpected did: %s", record.DID)
-	}
-	if record.URL != expectedRecord.URL {
-		t.Errorf("unexpected url: %s", record.URL)
-	}
 	if url.Totals.Posts != 2 {
 		t.Errorf("unexpected post count: %d", url.Totals.Posts)
+	}
+	if stg.Type != expectedRecord.Type {
+		t.Errorf("unexpected type: %d", stg.Type)
+	}
+	if stg.DID != expectedRecord.DID {
+		t.Errorf("unexpected did: %s", stg.DID)
+	}
+	if stg.URL != expectedRecord.URL {
+		t.Errorf("unexpected url: %s", stg.URL)
+	}
+	if stg.Post != "at://did:plc:ruzlll5u7u7pfxybmppqyxbx/app.bsky.feed.post/3lewu3lbitc2v" {
+		t.Errorf("unexpected at uri for post: %s", stg.Post)
 	}
 }
 
 // Test handling a quote post that references a post that doesn't exist in the cache.
 func TestHandleQuotePostWithInvalidReference(t *testing.T) {
-	bytes := testutil.GetStreamEvent("post-quote.json")
+	bytes := testutil.GetTestData("post-quote.json")
 	event := toStreamEvent(bytes)
 
 	hashedCID := util.Hash("bafyreihhlj7nktvq3h6issjqxor5ldy7yq64qv5wk5jawqeorfhn65evoe")
@@ -187,7 +202,7 @@ func TestHandleQuotePostWithInvalidReference(t *testing.T) {
 // Test worker with an invalid event.
 // Cache and storage APIs should not be called.
 func TestWorkerWithInvalidEvent(t *testing.T) {
-	bytes := testutil.GetStreamEvent("invalid-event.json")
+	bytes := testutil.GetTestData("invalid-event.json")
 	event := toStreamEvent(bytes)
 
 	stream := make(chan StreamEvent, 1)
@@ -216,7 +231,7 @@ func TestWorkerWithInvalidEvent(t *testing.T) {
 // Test worker a number of events that match the buffer size, to ensure events are flushed to storage.
 // TODO: This is flakey, fix it.
 func TestWorkerWithFlush(t *testing.T) {
-	bytes := testutil.GetStreamEvent("post-facet-only.json")
+	bytes := testutil.GetTestData("post-facet-only.json")
 	event := toStreamEvent(bytes)
 
 	stream := make(chan StreamEvent, 1)

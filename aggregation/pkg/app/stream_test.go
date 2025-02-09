@@ -8,7 +8,7 @@ import (
 
 // Test parsing a post with no URL at all.
 func TestParsePostWithNoURL(t *testing.T) {
-	bytes := testutil.GetStreamEvent("post-no-url.json")
+	bytes := testutil.GetTestData("post-no-url.json")
 	event := toStreamEvent(bytes)
 
 	url, title, image := event.ParsePost()
@@ -25,7 +25,7 @@ func TestParsePostWithNoURL(t *testing.T) {
 
 // Test parsing a post that contains a URL, title, and thumbnail via external embed.
 func TestParsePostWithExternalEmbed(t *testing.T) {
-	bytes := testutil.GetStreamEvent("post-embed-only.json")
+	bytes := testutil.GetTestData("post-embed-only.json")
 	event := toStreamEvent(bytes)
 
 	url, title, image := event.ParsePost()
@@ -42,7 +42,7 @@ func TestParsePostWithExternalEmbed(t *testing.T) {
 
 // Test parsing a post that only contains a link, but no title/thumbnail.
 func TestParsePostWithFacetOnly(t *testing.T) {
-	bytes := testutil.GetStreamEvent("post-facet-only.json")
+	bytes := testutil.GetTestData("post-facet-only.json")
 	event := toStreamEvent(bytes)
 
 	url, title, image := event.ParsePost()

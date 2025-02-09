@@ -274,6 +274,7 @@ type EventRecord struct {
 	URL       string    `json:"url"`
 	DID       string    `json:"did"`
 	Timestamp time.Time `json:"timestamp"`
+	Post      string    `json:"post"` // AT URI of the post that was created/liked/reposted
 }
 
 func (s EventRecord) IsPost() bool {
