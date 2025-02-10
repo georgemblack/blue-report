@@ -13,7 +13,7 @@
   /* general purpose colors */
   --background-color: #f0ece9;
   --blockquote-border-color: #e4e1de;
-  --line-separator-color: rgba(204, 132, 132, 0.05);
+  --line-separator-color: rgba(0, 0, 0, 0.05);
 
   /* text colors */
   --header-accent-color: #4286f4;
