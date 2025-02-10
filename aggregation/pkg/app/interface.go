@@ -3,6 +3,7 @@ package app
 import (
 	"time"
 
+	"github.com/georgemblack/blue-report/pkg/bluesky"
 	"github.com/georgemblack/blue-report/pkg/cache"
 	"github.com/georgemblack/blue-report/pkg/storage"
 )
@@ -30,4 +31,8 @@ type Storage interface {
 
 type Secrets interface {
 	GetDeployHook() (string, error)
+}
+
+type Bluesky interface {
+	GetPost(atURI string) (bluesky.Post, error)
 }

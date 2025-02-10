@@ -31,6 +31,9 @@ func TestGetPost(t *testing.T) {
 	if post.URI != postURI {
 		t.Errorf("unexpected post uri: %s", post.URI)
 	}
+	if post.LikeCount != 2 {
+		t.Errorf("unexpected like count: %d", post.LikeCount)
+	}
 	if post.Author.DisplayName != "George Black" {
 		t.Errorf("unexpected author display name: %s", post.Author.DisplayName)
 	}
@@ -39,5 +42,8 @@ func TestGetPost(t *testing.T) {
 	}
 	if post.Record.CreatedAt != "2025-02-09T03:23:42.882Z" {
 		t.Errorf("unexpected record created at: %s", post.Record.CreatedAt)
+	}
+	if !post.IsEnglish() {
+		t.Errorf("unexpected record languages: %v", post.Record.Languages)
 	}
 }

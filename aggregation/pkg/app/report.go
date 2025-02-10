@@ -1,19 +1,5 @@
 package app
 
-// Aggregation represents an a set of aggregated counts for a given URL.
-// i.e. how many times it was posted, reposted, as well as its score.
-type Aggregation struct {
-	Posts   int
-	Reposts int
-	Likes   int
-}
-
-// Score determins a URL's rank on the final report.
-// A post is worth 10 points, a repost 10 points, and a like 1 point.
-func (c Aggregation) Score() int {
-	return (c.Posts * 10) + (c.Reposts * 10) + c.Likes
-}
-
 // Display represents numbers that are formatted for rendering in the template.
 // ie. "1,000,000"
 type Display struct {
@@ -38,6 +24,6 @@ type ReportItem struct {
 	Host         string
 	Title        string
 	ThumbnailURL string
-	Aggregation  Aggregation
+	Aggregation  URLAggregation
 	Display      Display
 }

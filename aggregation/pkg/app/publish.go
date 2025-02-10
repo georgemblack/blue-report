@@ -84,6 +84,7 @@ func Publish(report Report, snapshot Snapshot) error {
 		os.WriteFile("dist/snapshot.json", data, 0644)
 	}
 
+	slog.Info("triggering deployment")
 	err = deploy(sec)
 	if err != nil {
 		return util.WrapErr("failed to deploy", err)

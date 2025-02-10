@@ -6,15 +6,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"slices"
-	"strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/georgemblack/blue-report/pkg/app/util"
+	"github.com/georgemblack/blue-report/pkg/bluesky"
 	"github.com/georgemblack/blue-report/pkg/cache"
-	"github.com/georgemblack/blue-report/pkg/display"
 	"github.com/georgemblack/blue-report/pkg/storage"
 )
 
@@ -45,41 +43,52 @@ func Generate() (Report, Snapshot, error) {
 		return Report{}, Snapshot{}, util.WrapErr("failed to create storage client", err)
 	}
 
-	// Run the count
-	count, err := count(stg)
+	// Build Bluesky client
+	bs := bluesky.New()
+
+	// Run the aggregation process, collecting data on each URL.
+	// Collect data in a map of 'URL' -> 'URLAggregation'.
+	aggregation, err := aggregate(stg)
 	if err != nil {
 		return Report{}, Snapshot{}, util.WrapErr("failed to generate count", err)
 	}
 
+	// Find the top URLs based on score
+	top := topURLs(aggregation)
+
+	// Build an empty snapshot
+	snapshot := newSnapshot(top)
+
+	// Hydrate each item in the snapshot with data from the cache & storage
+	snapshot, err = hydrate(ch, stg, bs, aggregation, snapshot)
+	if err != nil {
+		return Report{}, Snapshot{}, util.WrapErr("failed to hydrate snapshot", err)
+	}
+
+	// DEPRECATED
 	// Format results
-	formatted, err := format(count)
+	formattedReport, err := formatReport(aggregation)
 	if err != nil {
 		return Report{}, Snapshot{}, util.WrapErr("failed to format results", err)
 	}
 
 	// DEPRECATED
 	// Hydrate report with data from cache, i.e. titles, image URLs, and more for each report item.
-	hydratedReport, err := hydrateReport(ch, stg, formatted)
-	if err != nil {
-		return Report{}, Snapshot{}, util.WrapErr("failed to hydrate report", err)
-	}
-
-	// Hydrate report with data from cache, i.e. titles, image URLs, and more for each report item.
-	hydrated, err := hydrate(ch, stg, formatted)
+	hydratedReport, err := hydrateReport(ch, stg, formattedReport)
 	if err != nil {
 		return Report{}, Snapshot{}, util.WrapErr("failed to hydrate report", err)
 	}
 
 	duration := time.Since(start)
 	slog.Info("aggregation complete", "seconds", duration.Seconds())
-	return hydratedReport, hydrated, nil
+	return hydratedReport, snapshot, nil
 }
 
 // Scan all events within the last 24 hours, and return a map of URLs and their associated counts.
 // Ignore duplicate URLs from the same user.
-// Example count: { "https://example.com": { Posts: 1, Reposts: 0, Likes: 0 } }
-func count(stg Storage) (map[string]Aggregation, error) {
-	count := make(map[string]Aggregation)   // Track each instance of a URL being shared
+// Example aggregate: { "https://example.com": { Posts: 1, Reposts: 0, Likes: 0 } }
+func aggregate(stg Storage) (Aggregation, error) {
+	count := make(Aggregation)              // Track each instance of a URL being shared
 	fingerprints := mapset.NewSet[string]() // Track unique DID, URL, and event type combinations
 	events := 0                             // Track total events processed
 	denied := 0                             // Track duplicate URLs from the same user
@@ -112,16 +121,21 @@ func count(stg Storage) (map[string]Aggregation, error) {
 			// This ensures the most up-to-date rules are applied.
 			normalizedURL := normalize(record.URL)
 
-			// Update count for the URL and add fingerprint to set
-			item := count[normalizedURL]
+			// Update post/respot/like count for the URL
+			agg := count[normalizedURL]
 			if record.IsPost() {
-				item.Posts++
+				agg.IncrementPostCount()
 			} else if record.IsRepost() {
-				item.Reposts++
+				agg.IncrementRepostCount()
 			} else if record.IsLike() {
-				item.Likes++
+				agg.IncrementLikeCount()
 			}
-			count[normalizedURL] = item
+
+			// Update the set of posts referencing the URL
+			agg.CountPost(record.Post)
+
+			// Set the new aggregation, and update our set of fingerprints
+			count[normalizedURL] = agg
 			fingerprints.Add(print)
 		}
 
@@ -133,22 +147,19 @@ func count(stg Storage) (map[string]Aggregation, error) {
 	return count, nil
 }
 
-// Generate a unique 'fingerprint' for a given user (DID), URL, and event type combination.
-func fingerprint(record storage.EventRecord) string {
-	return util.Hash(fmt.Sprintf("%d%s%s", record.Type, record.DID, record.URL))
-}
-
-// Format the result of an aggregation into a report.
-func format(count map[string]Aggregation) (Report, error) {
-	// Convert each item in map to ReportItem
-	converted := make([]ReportItem, 0, len(count))
-	for k, v := range count {
-		converted = append(converted, ReportItem{URL: k, Aggregation: v})
+func topURLs(agg Aggregation) []string {
+	// Convert map to slice
+	type kv struct {
+		URL         string
+		Aggregation URLAggregation
+	}
+	var kvs []kv
+	for k, v := range agg {
+		kvs = append(kvs, kv{URL: k, Aggregation: v})
 	}
 
-	// Sort ReportItems by score
-	sorted := converted
-	slices.SortFunc(sorted, func(a, b ReportItem) int {
+	// Sort by score
+	slices.SortFunc(kvs, func(a, b kv) int {
 		scoreA := a.Aggregation.Score()
 		scoreB := b.Aggregation.Score()
 
@@ -162,110 +173,35 @@ func format(count map[string]Aggregation) (Report, error) {
 	})
 
 	// Find top N items
-	items := make([]ReportItem, 0, ListSize)
-	for i := range sorted {
-		if len(items) >= ListSize {
+	urls := make([]string, 0, ListSize)
+	for i := range kvs {
+		if len(urls) >= ListSize {
 			break
 		}
-		items = append(items, sorted[i])
+		urls = append(urls, kvs[i].URL)
 	}
 
-	// Assemble report
-	return Report{
-		Items: items,
-	}, nil
+	return urls
 }
 
-// DEPRECATED
-func hydrateReport(ch Cache, stg Storage, report Report) (Report, error) {
-	var err error
-
-	// Display in Eastern time, as this site is targeted at a US audience
-	report.GeneratedAt = util.ToEastern(time.Now()).Format("Jan 2, 2006 at 3:04pm (MST)")
-
-	// For each report item, fetch the URL record from the cache and populate
-	for i := range report.Items {
-		report.Items[i], err = hydrateReportItem(ch, stg, i, report.Items[i])
-		if err != nil {
-			return Report{}, util.WrapErr("failed to hydrate item", err)
-		}
-	}
-
-	return report, nil
+// Generate a unique 'fingerprint' for a given user (DID), URL, and event type combination.
+func fingerprint(record storage.EventRecord) string {
+	return util.Hash(fmt.Sprintf("%d%s%s", record.Type, record.DID, record.URL))
 }
 
-func hydrate(ch Cache, stg Storage, report Report) (Snapshot, error) {
-	var snapshot Snapshot
-	snapshot.GeneratedAt = time.Now().UTC().Format(time.RFC3339)
-
-	// For each report item, fetch the URL record from the cache and populate
-	snapshot.Links = make([]Link, 0, len(report.Items))
-	for i := range report.Items {
-		link := Link{
-			URL: report.Items[i].URL,
-		}
-		link, err := hydrateLink(ch, stg, i, link)
+func hydrate(ch Cache, stg Storage, bs Bluesky, agg Aggregation, snapshot Snapshot) (Snapshot, error) {
+	for i := range snapshot.Links {
+		link, err := hydrateLink(ch, stg, bs, agg, i, snapshot.Links[i])
 		if err != nil {
 			return Snapshot{}, util.WrapErr("failed to hydrate link", err)
 		}
-		snapshot.Links = append(snapshot.Links, link)
+		snapshot.Links[i] = link
 	}
 
 	return snapshot, nil
 }
 
-// Hydrate a single report item with:
-//   - Metadata from the cache (title)
-//   - Thumbnail image from S3
-//   - Nicely formatted strings for rendering the report template
-//
-// DEPRECATED
-func hydrateReportItem(ch Cache, stg Storage, index int, item ReportItem) (ReportItem, error) {
-	hashedURL := util.Hash(item.URL)
-	record, err := ch.ReadURL(hashedURL)
-	if err != nil {
-		return ReportItem{}, util.WrapErr("failed to read url record", err)
-	}
-
-	item.EscapedURL = url.QueryEscape(item.URL)
-
-	// Fetch the thumbnail from the Bluesky CDN and store it in our S3 bucket.
-	// The thumbnail ID is the hash of the URL.
-	if record.ImageURL != "" {
-		err := stg.SaveThumbnail(hashedURL, record.ImageURL)
-		if err != nil {
-			slog.Warn(util.WrapErr("failed to save thumbnail", err).Error(), "url", item.URL)
-		}
-	}
-
-	// Set the thumbnail URL if it exists
-	exists, err := stg.ThumbnailExists(hashedURL)
-	if err != nil {
-		slog.Warn(util.WrapErr("failed to check for thumbnail", err).Error(), "url", item.URL)
-	} else if exists {
-		item.ThumbnailURL = fmt.Sprintf("/thumbnails/%s.jpg", hashedURL)
-	}
-
-	// Set display items, such as title, host, and stats
-	item.Title = record.Title
-	if item.Title == "" {
-		item.Title = "(No title)"
-	}
-	item.Host = strings.TrimPrefix(hostname(item.URL), "www.")
-	item.Rank = index + 1
-
-	item.Display.Posts = display.FormatCount(record.Totals.Posts)
-	item.Display.Reposts = display.FormatCount(record.Totals.Reposts)
-	item.Display.Likes = display.FormatCount(record.Totals.Likes)
-
-	clicks := clicks(item.URL)
-	item.Display.Clicks = display.FormatCount(clicks)
-
-	slog.Debug("hydrated", "record", item)
-	return item, nil
-}
-
-func hydrateLink(ch Cache, stg Storage, index int, link Link) (Link, error) {
+func hydrateLink(ch Cache, stg Storage, bs Bluesky, agg Aggregation, index int, link Link) (Link, error) {
 	hashedURL := util.Hash(link.URL)
 	record, err := ch.ReadURL(hashedURL)
 	if err != nil {
@@ -289,24 +225,60 @@ func hydrateLink(ch Cache, stg Storage, index int, link Link) (Link, error) {
 		link.ThumbnailID = hashedURL
 	}
 
-	// Set display items, such as title, host, and stats
+	// Set display items, such as rank, title, host, and stats
+	link.Rank = index + 1
 	link.Title = record.Title
 	if link.Title == "" {
 		link.Title = "(No title)"
 	}
-	link.Rank = index + 1
+	link.PostCount = record.Totals.Posts
+	link.RepostCount = record.Totals.Reposts
+	link.LikeCount = record.Totals.Likes
+	link.ClickCount = clicks(link.URL)
 
-	link.Aggregation.Posts = record.Totals.Posts
-	link.Aggregation.Reposts = record.Totals.Reposts
-	link.Aggregation.Likes = record.Totals.Likes
-	link.Aggregation.Clicks = clicks(link.URL)
+	// Generate a list of the most popular 2-5 posts referencing the URL.
+	// Posts should contain commentary on the subject of the link.
+	aggregationItem := agg[link.URL]
+	link.RecommendedPosts = recommendedPosts(bs, aggregationItem.TopPosts())
 
 	slog.Debug("hydrated", "record", link)
 	return link, nil
 }
 
+func recommendedPosts(bs Bluesky, uris []string) []Post {
+	posts := make([]Post, 0)
+
+	// For each AT URI, fetch the post from the Bluesky API.
+	// If the post has enough text/commentary, add it to the list of recommended posts.
+	for _, uri := range uris {
+		if len(posts) >= 5 {
+			break
+		}
+
+		postData, err := bs.GetPost(uri)
+		if err != nil {
+			slog.Warn(util.WrapErr("failed to get post", err).Error(), "at_uri", uri)
+			continue
+		}
+
+		// In order for the post to be recommended, it must:
+		//   - Be greater than 32 characters in length (to avoid posts that only contain the link)
+		//   - Be in English (until there's multi language/region support)
+		//   - Must have at least 50 likes (to avoid spam)
+		if len(postData.Record.Text) >= 32 && postData.IsEnglish() && postData.LikeCount > 50 {
+			posts = append(posts, Post{
+				AtURI:    uri,
+				Username: postData.Author.DisplayName,
+				Handle:   postData.Author.Handle,
+				Text:     postData.Record.Text,
+			})
+		}
+	}
+
+	return posts
+}
+
 // Get the number of clicks for a given URL.
-// This data is provided by The Blue Report API.
 func clicks(url string) int {
 	resp, err := http.Get(fmt.Sprintf("https://api.theblue.report?url=%s", url))
 	if err != nil {

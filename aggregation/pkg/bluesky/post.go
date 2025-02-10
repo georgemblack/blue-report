@@ -5,9 +5,10 @@ type Posts struct {
 }
 
 type Post struct {
-	URI    string `json:"uri"`
-	Author Author `json:"author"`
-	Record Record `json:"record"`
+	URI       string `json:"uri"`
+	Author    Author `json:"author"`
+	Record    Record `json:"record"`
+	LikeCount int    `json:"likeCount"`
 }
 
 type Author struct {
@@ -16,6 +17,16 @@ type Author struct {
 }
 
 type Record struct {
-	CreatedAt string `json:"createdAt"`
-	Text      string `json:"text"`
+	CreatedAt string   `json:"createdAt"`
+	Languages []string `json:"langs"`
+	Text      string   `json:"text"`
+}
+
+func (p Post) IsEnglish() bool {
+	for _, lang := range p.Record.Languages {
+		if lang == "en" {
+			return true
+		}
+	}
+	return false
 }

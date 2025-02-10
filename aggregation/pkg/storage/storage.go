@@ -106,7 +106,7 @@ func (s S3) PublishSnapshot(snapshot []byte) error {
 
 func (s S3) ReadEvents(key string) ([]EventRecord, error) {
 	resp, err := s.client.GetObject(context.Background(), &s3.GetObjectInput{
-		Bucket: aws.String(assetsBucketName()),
+		Bucket: aws.String(readAssetsBucketName()),
 		Key:    aws.String(fmt.Sprintf("events/%s.json", key)),
 	})
 	if err != nil {
@@ -145,7 +145,7 @@ func (s S3) FlushEvents(start time.Time, events []EventRecord) error {
 	// Write to S3, with timestamp in key
 	key := fmt.Sprintf("events/%s.json", start.UTC().Format("2006-01-02-15-04-05"))
 	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:               aws.String(assetsBucketName()),
+		Bucket:               aws.String(writeAssetsBucketName()),
 		Key:                  aws.String(key),
 		Body:                 bytes.NewReader(buf.Bytes()),
 		ServerSideEncryption: "AES256",
@@ -176,7 +176,7 @@ func (s S3) ListEventChunks(start, end time.Time) ([]string, error) {
 
 	for _, prefix := range prefixes {
 		paginator := s3.NewListObjectsV2Paginator(s.client, &s3.ListObjectsV2Input{
-			Bucket: aws.String(assetsBucketName()),
+			Bucket: aws.String(readAssetsBucketName()),
 			Prefix: aws.String(prefix),
 		})
 		for paginator.HasMorePages() {
@@ -265,7 +265,11 @@ func siteBucketName() string {
 	return util.GetEnvStr("S3_BUCKET_NAME", "blue-report-test")
 }
 
-func assetsBucketName() string {
+func readAssetsBucketName() string {
+	return util.GetEnvStr("S3_ASSETS_BUCKET_NAME", "blue-report-assets")
+}
+
+func writeAssetsBucketName() string {
 	return util.GetEnvStr("S3_ASSETS_BUCKET_NAME", "blue-report-test")
 }
 
