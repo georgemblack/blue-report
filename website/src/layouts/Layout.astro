@@ -77,47 +77,42 @@ import "../styles/main.css";
         >.
       </p>
       <div style="margin-top: 2em;">
-        <script
-          type="text/javascript"
-          src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js"
-          data-name="bmc-button"
-          data-slug="georgeblack"
-          data-color="#FFDD00"
-          data-emoji=""
-          data-font="Cookie"
-          data-text="Buy me a coffee!"
-          data-outline-color="#000000"
-          data-font-color="#000000"
-          data-coffee-color="#ffffff"></script>
+        <a href="https://www.buymeacoffee.com/georgeblack" target="_blank"
+          ><img
+            src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
+            alt="Buy Me A Coffee"
+            style="height: 60px !important;width: 217px !important;"
+          /></a
+        >
       </div>
-    </footer>
-    <!-- Script for handling clipboard events, to prevent users from copying redirect URLs -->
-    <script>
-      document.querySelectorAll("a.redirect-link").forEach((link) => {
-        function setOriginalHref() {
-          link.dataset.tempHref = link.href; // Save original redirect link
-          link.href = link.dataset.originalUrl; // Set to original URL for copying
-        }
-
-        function restoreHref() {
-          if (link.dataset.tempHref) {
-            link.href = link.dataset.tempHref; // Restore the original redirect link
-            delete link.dataset.tempHref;
+      <!-- Script for handling clipboard events, to prevent users from copying redirect URLs -->
+      <script>
+        document.querySelectorAll("a.redirect-link").forEach((link) => {
+          function setOriginalHref() {
+            link.dataset.tempHref = link.href; // Save original redirect link
+            link.href = link.dataset.originalUrl; // Set to original URL for copying
           }
-        }
 
-        // For desktop (right-click "Copy Link Address")
-        link.addEventListener("contextmenu", setOriginalHref);
-        link.addEventListener("mouseleave", restoreHref);
+          function restoreHref() {
+            if (link.dataset.tempHref) {
+              link.href = link.dataset.tempHref; // Restore the original redirect link
+              delete link.dataset.tempHref;
+            }
+          }
 
-        // For mobile (long-press "Copy Link")
-        link.addEventListener("touchstart", setOriginalHref);
-        link.addEventListener("touchend", restoreHref);
-        link.addEventListener("touchcancel", restoreHref);
-      });
-    </script>
-    <!-- 100% privacy-first analytics -->
-    <script async src="https://scripts.simpleanalyticscdn.com/latest.js"
-    ></script>
+          // For desktop (right-click "Copy Link Address")
+          link.addEventListener("contextmenu", setOriginalHref);
+          link.addEventListener("mouseleave", restoreHref);
+
+          // For mobile (long-press "Copy Link")
+          link.addEventListener("touchstart", setOriginalHref);
+          link.addEventListener("touchend", restoreHref);
+          link.addEventListener("touchcancel", restoreHref);
+        });
+      </script>
+      <!-- 100% privacy-first analytics -->
+      <script async src="https://scripts.simpleanalyticscdn.com/latest.js"
+      ></script>
+    </footer>
   </body>
 </html>
