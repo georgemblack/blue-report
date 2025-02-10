@@ -10,17 +10,21 @@ interface Link {
   url: string;
   title: string;
   thumbnail_id: string;
-  aggregation: Aggregation;
+  post_count: number;
+  repost_count: number;
+  like_count: number;
+  click_count: number;
+  recommended_posts: Post[];
 }
 
-interface Aggregation {
-  posts: number;
-  reposts: number;
-  likes: number;
-  clicks: number;
+interface Post {
+  at_uri: string;
+  username: string;
+  handle: string;
+  text: string;
 }
 
 export async function fetchSnapshot(): Promise<Snapshot> {
   const response = await fetch(API_URL);
-  return response.json();
+  return await response.json();
 }

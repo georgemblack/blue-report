@@ -38,10 +38,12 @@ const snapshot = await fetchSnapshot();
               <span class="host">{formatHost(link.url)}</span>
               <span class="bullet">•</span>
               <span>
-                {formatCount(link.aggregation.posts)} posts,{" "}
-                {formatCount(link.aggregation.reposts)} reposts,{" "}
-                {formatCount(link.aggregation.likes)} likes
+                {formatCount(link.post_count)} posts,{" "}
+                {formatCount(link.repost_count)} reposts,{" "}
+                {formatCount(link.like_count)} likes
               </span>
+              <span class="bullet">•</span>
+              <span>{formatCount(link.click_count)} blue report clicks</span>
             </p>
           </div>
         </div>
