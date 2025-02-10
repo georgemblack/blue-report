@@ -33,43 +33,6 @@ func New() (S3, error) {
 	return S3{client: s3.NewFromConfig(cfg)}, nil
 }
 
-func (s S3) PublishSite(site []byte) error {
-	// Update 'index.html', the main site
-	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:               aws.String(siteBucketName()),
-		Key:                  aws.String("index.html"),
-		Body:                 bytes.NewReader(site),
-		ServerSideEncryption: "AES256",
-		ContentType:          aws.String("text/html"),
-		CacheControl:         aws.String("max-age=600"), // 10 minutes
-	})
-	if err != nil {
-		return util.WrapErr("failed to put object", err)
-	}
-
-	return nil
-}
-
-func (s S3) PublishArchive(site []byte) error {
-	// Add or update today's page in the archive.
-	// Use Eastern time, as the site is primarily for a US audience.
-	now := util.ToEastern(time.Now())
-	path := fmt.Sprintf("archive/%d/%d/%d/index.html", now.Year(), now.Month(), now.Day())
-	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:               aws.String(siteBucketName()),
-		Key:                  aws.String(path),
-		Body:                 bytes.NewReader(site),
-		ServerSideEncryption: "AES256",
-		ContentType:          aws.String("text/html"),
-		CacheControl:         aws.String("max-age=3600"), // 1 hour
-	})
-	if err != nil {
-		return util.WrapErr("failed to put object", err)
-	}
-
-	return nil
-}
-
 // Publish the snapshot of the site's data to S3.
 // Store a 'latest' version, as well as a timestamped version.
 func (s S3) PublishSnapshot(snapshot []byte) error {

@@ -13,6 +13,7 @@ import (
 	reflect "reflect"
 	time "time"
 
+	bluesky "github.com/georgemblack/blue-report/pkg/bluesky"
 	cache "github.com/georgemblack/blue-report/pkg/cache"
 	storage "github.com/georgemblack/blue-report/pkg/storage"
 	gomock "go.uber.org/mock/gomock"
@@ -193,34 +194,6 @@ func (mr *MockStorageMockRecorder) ListEventChunks(start, end any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEventChunks", reflect.TypeOf((*MockStorage)(nil).ListEventChunks), start, end)
 }
 
-// PublishArchive mocks base method.
-func (m *MockStorage) PublishArchive(site []byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PublishArchive", site)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// PublishArchive indicates an expected call of PublishArchive.
-func (mr *MockStorageMockRecorder) PublishArchive(site any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishArchive", reflect.TypeOf((*MockStorage)(nil).PublishArchive), site)
-}
-
-// PublishSite mocks base method.
-func (m *MockStorage) PublishSite(site []byte) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PublishSite", site)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// PublishSite indicates an expected call of PublishSite.
-func (mr *MockStorageMockRecorder) PublishSite(site any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishSite", reflect.TypeOf((*MockStorage)(nil).PublishSite), site)
-}
-
 // PublishSnapshot mocks base method.
 func (m *MockStorage) PublishSnapshot(snapshot []byte) error {
 	m.ctrl.T.Helper()
@@ -316,4 +289,43 @@ func (m *MockSecrets) GetDeployHook() (string, error) {
 func (mr *MockSecretsMockRecorder) GetDeployHook() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeployHook", reflect.TypeOf((*MockSecrets)(nil).GetDeployHook))
+}
+
+// MockBluesky is a mock of Bluesky interface.
+type MockBluesky struct {
+	ctrl     *gomock.Controller
+	recorder *MockBlueskyMockRecorder
+	isgomock struct{}
+}
+
+// MockBlueskyMockRecorder is the mock recorder for MockBluesky.
+type MockBlueskyMockRecorder struct {
+	mock *MockBluesky
+}
+
+// NewMockBluesky creates a new mock instance.
+func NewMockBluesky(ctrl *gomock.Controller) *MockBluesky {
+	mock := &MockBluesky{ctrl: ctrl}
+	mock.recorder = &MockBlueskyMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockBluesky) EXPECT() *MockBlueskyMockRecorder {
+	return m.recorder
+}
+
+// GetPost mocks base method.
+func (m *MockBluesky) GetPost(atURI string) (bluesky.Post, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPost", atURI)
+	ret0, _ := ret[0].(bluesky.Post)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPost indicates an expected call of GetPost.
+func (mr *MockBlueskyMockRecorder) GetPost(atURI any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPost", reflect.TypeOf((*MockBluesky)(nil).GetPost), atURI)
 }

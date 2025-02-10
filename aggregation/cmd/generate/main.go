@@ -11,11 +11,11 @@ func main() {
 	if os.Getenv("DEBUG") == "true" {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
-	report, snapshot, err := app.Generate()
+	snapshot, err := app.Generate()
 	if err != nil {
 		slog.Error(err.Error())
 	}
-	err = app.Publish(report, snapshot)
+	err = app.Publish(snapshot)
 	if err != nil {
 		slog.Error(err.Error())
 	}

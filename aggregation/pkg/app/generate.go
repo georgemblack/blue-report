@@ -1,7 +1,6 @@
 package app
 
 import (
-	"embed"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -16,31 +15,27 @@ import (
 	"github.com/georgemblack/blue-report/pkg/storage"
 )
 
-//go:embed assets/index.html
-var indexTmpl embed.FS
-
 const (
 	ListSize = 15
 )
 
 // Generate fetches all events from storage, aggregates trending URLs, and generates a final report.
 // Metadata for each URL is hydrated from the cache, and thumbnails for each URL are stored in S3.
-// DEPRECATED: Remove 'Report' from return values
-func Generate() (Report, Snapshot, error) {
+func Generate() (Snapshot, error) {
 	slog.Info("starting report generation")
 	start := time.Now()
 
 	// Build the cache client
 	ch, err := cache.New()
 	if err != nil {
-		return Report{}, Snapshot{}, util.WrapErr("failed to create the cache client", err)
+		return Snapshot{}, util.WrapErr("failed to create the cache client", err)
 	}
 	defer ch.Close()
 
 	// Build storage client
 	stg, err := storage.New()
 	if err != nil {
-		return Report{}, Snapshot{}, util.WrapErr("failed to create storage client", err)
+		return Snapshot{}, util.WrapErr("failed to create storage client", err)
 	}
 
 	// Build Bluesky client
@@ -50,7 +45,7 @@ func Generate() (Report, Snapshot, error) {
 	// Collect data in a map of 'URL' -> 'URLAggregation'.
 	aggregation, err := aggregate(stg)
 	if err != nil {
-		return Report{}, Snapshot{}, util.WrapErr("failed to generate count", err)
+		return Snapshot{}, util.WrapErr("failed to generate count", err)
 	}
 
 	// Find the top URLs based on score
@@ -62,26 +57,12 @@ func Generate() (Report, Snapshot, error) {
 	// Hydrate each item in the snapshot with data from the cache & storage
 	snapshot, err = hydrate(ch, stg, bs, aggregation, snapshot)
 	if err != nil {
-		return Report{}, Snapshot{}, util.WrapErr("failed to hydrate snapshot", err)
-	}
-
-	// DEPRECATED
-	// Format results
-	formattedReport, err := formatReport(aggregation)
-	if err != nil {
-		return Report{}, Snapshot{}, util.WrapErr("failed to format results", err)
-	}
-
-	// DEPRECATED
-	// Hydrate report with data from cache, i.e. titles, image URLs, and more for each report item.
-	hydratedReport, err := hydrateReport(ch, stg, formattedReport)
-	if err != nil {
-		return Report{}, Snapshot{}, util.WrapErr("failed to hydrate report", err)
+		return Snapshot{}, util.WrapErr("failed to hydrate snapshot", err)
 	}
 
 	duration := time.Since(start)
 	slog.Info("aggregation complete", "seconds", duration.Seconds())
-	return hydratedReport, snapshot, nil
+	return snapshot, nil
 }
 
 // Scan all events within the last 24 hours, and return a map of URLs and their associated counts.
