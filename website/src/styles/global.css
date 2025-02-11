@@ -65,6 +65,10 @@ header .subtitle {
 
 /* small break-point */
 @media screen and (max-width: 36em) {
+  body {
+    padding: 0 0.85em;
+  }
+
   header .subtitle {
     flex-direction: column;
     gap: 0;
