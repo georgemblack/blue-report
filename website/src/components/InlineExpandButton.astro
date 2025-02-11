@@ -1,0 +1,21 @@
+---
+const { id } = Astro.props;
+---
+
+<div class="expand-inline">
+  <button id={`${id}-inline`} onclick={`toggleLinkDetails('${id}')`}>
+    <div class="inner">
+      <p>Top posts</p>
+      <div class="icon">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <>
+            <path d="m0 0h24v24h-24z" fill="#fff" opacity="0"></path>
+            <path
+              d="m12 16a1 1 0 0 1 -.64-.23l-6-5a1 1 0 1 1 1.28-1.54l5.36 4.48 5.36-4.32a1 1 0 0 1 1.41.15 1 1 0 0 1 -.14 1.46l-6 4.83a1 1 0 0 1 -.63.17z"
+              fill="#2b589f"></path>
+          </>
+        </svg>
+      </div>
+    </div>
+  </button>
+</div>

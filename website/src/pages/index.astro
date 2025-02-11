@@ -1,4 +1,6 @@
 ---
+import CenteredExpandButton from "../components/CenteredExpandButton.astro";
+import InlineExpandButton from "../components/InlineExpandButton.astro";
 import Layout from "../layouts/Layout.astro";
 import { fetchSnapshot } from "../util/Data";
 import {
@@ -51,54 +53,11 @@ const snapshot = await fetchSnapshot();
                     {formatCount(link.like_count)} likes
                   </span>
                 </p>
-                <div class="expand inline">
-                  <button
-                    id={`${strip(link.url)}-inline`}
-                    onclick={`toggleLinkDetails('${strip(link.url)}')`}
-                  >
-                    <div class="inner">
-                      <p class="label">Top posts</p>
-                      <div class="icon">
-                        <svg
-                          viewBox="0 0 24 24"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <>
-                            <path d="m0 0h24v24h-24z" fill="#fff" opacity="0" />
-                            <path
-                              d="m12 16a1 1 0 0 1 -.64-.23l-6-5a1 1 0 1 1 1.28-1.54l5.36 4.48 5.36-4.32a1 1 0 0 1 1.41.15 1 1 0 0 1 -.14 1.46l-6 4.83a1 1 0 0 1 -.63.17z"
-                              fill="#2b589f"
-                            />
-                          </>
-                        </svg>
-                      </div>
-                    </div>
-                  </button>
-                </div>
+                <InlineExpandButton id={strip(link.url)} />
               </div>
             </div>
           </div>
-          <div class="expand centered">
-            <button
-              id={`${strip(link.url)}-centered`}
-              onclick={`toggleLinkDetails('${strip(link.url)}')`}
-            >
-              <div class="inner">
-                <p class="label">Top posts</p>
-                <div class="icon">
-                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <>
-                      <path d="m0 0h24v24h-24z" fill="#fff" opacity="0" />
-                      <path
-                        d="m12 16a1 1 0 0 1 -.64-.23l-6-5a1 1 0 1 1 1.28-1.54l5.36 4.48 5.36-4.32a1 1 0 0 1 1.41.15 1 1 0 0 1 -.14 1.46l-6 4.83a1 1 0 0 1 -.63.17z"
-                        fill="#2b589f"
-                      />
-                    </>
-                  </svg>
-                </div>
-              </div>
-            </button>
-          </div>
+          <CenteredExpandButton id={strip(link.url)} />
           <div class="link-details" id={strip(link.url)}>
             <div class="recommended-posts">
               {link.recommended_posts.map((post) => (

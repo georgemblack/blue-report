@@ -159,7 +159,6 @@ a:hover {
   margin: 1em 0 0 0;
   display: flex;
   justify-content: space-between;
-  align-items: center;
 }
 
 /* inline-block to prevent extra vertical space due to line-height */
@@ -238,60 +237,88 @@ a:hover {
   }
 }
 
-/* expand link button */
-.expand button {
+/* expand button (inline) */
+.expand-inline button {
+  background: none;
+  font-size: 1em;
+}
+
+.expand-inline svg {
+  width: 1em;
+}
+
+/* medium break-point */
+@media screen and (max-width: 56em) {
+  .expand-inline button {
+    font-size: var(--font-size-small);
+  }
+}
+
+/* expand button (centered) */
+.expand-centered {
+  display: none;
+  margin-top: 1em;
+}
+
+.expand-centered button {
   display: block;
   font-size: var(--font-size-small);
   margin: 0 auto;
   padding: 0.25em 2em;
   border-radius: 1em;
-  border: none;
-  color: var(--link-color);
   background-color: rgba(85, 170, 255, 0.1);
+}
+
+.expand-centered svg {
+  width: 1.25em;
+}
+
+.expand-centered button.open svg {
+  transform: rotate(180deg);
+}
+
+.expand-centered button svg {
+  transform: rotate(0deg);
+  transition: transform 0.15s ease-in-out;
+}
+
+/* expand buttons (shared) */
+.expand-centered button,
+.expand-inline button {
   line-height: 0;
   cursor: pointer;
   user-select: none;
   touch-action: manipulation;
+  color: var(--link-color);
+  border: none;
 }
 
-.expand .inner {
+.expand-centered .inner,
+.expand-inline .inner {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 0.25em;
 }
 
-.expand svg {
-  width: 1.25em;
-}
-
-.expand button.open svg {
+.expand-centered button.open svg,
+.expand-inline button.open svg {
   transform: rotate(180deg);
 }
 
-.expand button svg {
+.expand-centered button svg,
+.expand-inline button svg {
   transform: rotate(0deg);
   transition: transform 0.15s ease-in-out;
 }
 
-.expand button:hover {
-  transform: scale(1.05);
-  transition: transform 0.15s ease-in-out;
-}
-
-/* centered expand link button */
-.expand.centered {
-  display: none;
-  margin-top: 1em;
-}
-
 /* small break-point */
 @media screen and (max-width: 36em) {
-  .expand.inline {
+  .expand-inline {
     display: none;
   }
 
-  .expand.centered {
+  .expand-centered {
     display: block;
   }
 }
