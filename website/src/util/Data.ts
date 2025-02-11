@@ -1,11 +1,11 @@
 const API_URL = "https://assets.theblue.report/snapshot.json";
 
-interface Snapshot {
+export interface Snapshot {
   generated_at: string;
   links: Link[];
 }
 
-interface Link {
+export interface Link {
   rank: number;
   url: string;
   title: string;
@@ -17,7 +17,7 @@ interface Link {
   recommended_posts: Post[];
 }
 
-interface Post {
+export interface Post {
   at_uri: string;
   username: string;
   handle: string;

@@ -1,7 +1,13 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import { fetchSnapshot } from "../util/Data";
-import { formatHost, formatCount, formatDate } from "../util/Format";
+import {
+  strip,
+  formatHost,
+  formatCount,
+  formatDate,
+  urlFromPost,
+} from "../util/Format";
 
 const snapshot = await fetchSnapshot();
 ---
@@ -10,45 +16,106 @@ const snapshot = await fetchSnapshot();
   <div class="link-group">
     {
       snapshot.links.map((link) => (
-        <div class="link">
-          <a
-            href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
-            class="preview redirect-link"
-            data-original-url={link.url}
-          >
-            {link.thumbnail_id ? (
-              <img
-                src={`https://assets.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
-              />
-            ) : (
-              <div class="placeholder">🔗</div>
-            )}
-          </a>
-          <div class="content">
-            <p class="title">
-              <a
-                href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
-                class="redirect-link"
-                data-original-url={link.url}
-              >
-                {link.rank}. {link.title}
-              </a>
-            </p>
-            <p class="metadata">
-              <span class="host">{formatHost(link.url)}</span>
-              <span class="bullet">•</span>
-              <span>
-                {formatCount(link.post_count)} posts,{" "}
-                {formatCount(link.repost_count)} reposts,{" "}
-                {formatCount(link.like_count)} likes
-              </span>
-              <span class="bullet">•</span>
-              <span>{formatCount(link.click_count)} blue report clicks</span>
-            </p>
+        <div class="link-container">
+          <div class="link">
+            <a
+              href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
+              class="preview redirect-link"
+              data-original-url={link.url}
+            >
+              {link.thumbnail_id ? (
+                <img
+                  src={`https://assets.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
+                />
+              ) : (
+                <div class="placeholder">🔗</div>
+              )}
+            </a>
+            <div class="content">
+              <p class="title">
+                <a
+                  href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
+                  class="redirect-link"
+                  data-original-url={link.url}
+                >
+                  {link.rank}. {link.title}
+                </a>
+              </p>
+              <p class="metadata">
+                <span class="host">{formatHost(link.url)}</span>
+                <span class="bullet">•</span>
+                <span>
+                  {formatCount(link.post_count)} posts,{" "}
+                  {formatCount(link.repost_count)} reposts,{" "}
+                  {formatCount(link.like_count)} likes
+                </span>
+              </p>
+            </div>
+          </div>
+          <div class="expand">
+            <button
+              id={`${strip(link.url)}-button`}
+              onclick={`toggleLinkDetails('${strip(link.url)}')`}
+            >
+              <div class="inner">
+                <p class="label">Top posts</p>
+                <div class="icon">
+                  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <>
+                      <path d="m0 0h24v24h-24z" fill="#fff" opacity="0" />
+                      <path
+                        d="m12 16a1 1 0 0 1 -.64-.23l-6-5a1 1 0 1 1 1.28-1.54l5.36 4.48 5.36-4.32a1 1 0 0 1 1.41.15 1 1 0 0 1 -.14 1.46l-6 4.83a1 1 0 0 1 -.63.17z"
+                        fill="#231f20"
+                      />
+                    </>
+                  </svg>
+                </div>
+              </div>
+            </button>
+          </div>
+          <div class="link-details" id={strip(link.url)}>
+            <div class="recommended-posts">
+              {link.recommended_posts.map((post) => (
+                <div class="recommended-post">
+                  <p class="username">{post.username}</p>
+                  <a
+                    class="handle"
+                    href={`https://bsky.app/profile/${post.handle}`}
+                  >
+                    {post.handle}
+                  </a>
+                  <p class="text">{post.text}</p>
+                  <div class="view">
+                    <a href={urlFromPost(post.at_uri, post.handle)}>
+                      View Post
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       ))
     }
   </div>
   <p class="last-updated">Last updated {formatDate(snapshot.generated_at)}</p>
+  <script is:inline>
+    function toggleLinkDetails(id) {
+      const content = document.getElementById(id);
+      const button = document.getElementById(id + "-button");
+      if (!content || !button) return;
+
+      button.classList.toggle("open");
+
+      if (content.style.display === "none" || content.style.display === "") {
+        content.style.display = "block";
+        // button.classList.add("open");
+        //button.textContent = "Show less";
+      } else {
+        content.style.display = "none";
+        // button.classList.remove("open");
+        //button.textContent = "Show more";
+      }
+    }
+  </script>
 </Layout>

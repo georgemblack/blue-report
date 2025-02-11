@@ -1,7 +1,7 @@
 :root {
   /* primary fonts */
-  --header-font: "Crete Round", serif;
-  --primary-font: system-ui;
+  --serif-font: "Crete Round", serif;
+  --sans-serif-font: system-ui;
 
   /* font weights */
   --font-weight-bold: 800;
@@ -17,6 +17,7 @@
 
   /* text colors */
   --header-accent-color: #4286f4;
+  --header-accent-color-faded: rgba(66, 134, 244, 0.25);
   --link-color: #2b589f;
   --link-hover-color: #1f4a8f;
   --body-text-color: #2d2d2d;
@@ -41,14 +42,14 @@ body {
   max-width: 56rem;
   line-height: 150%;
   color: var(--body-text-color);
-  font-family: var(--primary-font);
+  font-family: var(--sans-serif-font);
   background-color: var(--background-color);
 }
 
 header {
   margin-top: 2em;
   text-align: center;
-  font-family: var(--header-font);
+  font-family: var(--serif-font);
 }
 
 header .accent {
@@ -110,15 +111,18 @@ a:hover {
   margin-top: 2em;
 }
 
-.link {
+.link-container {
   padding: 1.5em 0em;
-  display: flex;
-  gap: 2em;
   border-top: 2px solid var(--line-separator-color);
 }
 
-.link-group .link:last-of-type {
+.link-container .link:last-of-type {
   border-bottom: 2px solid var(--line-separator-color);
+}
+
+.link {
+  display: flex;
+  gap: 2em;
 }
 
 .link .preview img,
@@ -148,7 +152,7 @@ a:hover {
 /* inline-block to prevent extra vertical space due to line-height */
 .link .title {
   font-size: 1.25em;
-  font-family: var(--header-font);
+  font-family: var(--serif-font);
   overflow-wrap: anywhere;
 }
 
@@ -205,7 +209,7 @@ a:hover {
 
 /* small break-point */
 @media screen and (max-width: 36em) {
-  .link {
+  .link-container {
     padding: 2em 0;
     min-height: 12em;
   }
@@ -218,4 +222,103 @@ a:hover {
   }
 }
 
+/* expand link button */
+.expand {
+  margin-top: 1em;
+}
+
+.expand button {
+  display: block;
+  width: 100%;
+  max-width: 24em;
+  margin: 0 auto;
+  font-size: 1em;
+  border-radius: 0.5em;
+  background: none;
+  cursor: pointer;
+  border: none;
+  color: var(--link-color);
+  background-color: rgba(0, 0, 0, 0.05);
+  touch-action: manipulation;
+  user-select: none;
+  line-height: 0;
+}
+
+.expand .inner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.expand .label {
+  font-size: var(--font-size-small);
+}
+
+.expand svg {
+  width: 1.5em;
+}
+
+.expand button.open svg {
+  transform: rotate(180deg);
+}
+
+.expand button svg {
+  transform: rotate(0deg);
+  transition: transform 0.15s ease-in-out;
+}
+
+.expand button:hover {
+  transform: scale(1.05);
+  transition: transform 0.15s ease-in-out;
+}
+
 /* link details */
+.link-details {
+  margin-top: 2em;
+  display: none;
+}
+
+.link-details h3 {
+  font-size: 1em;
+}
+
+/* recommended posts */
+.recommended-posts {
+  margin-top: 0.5em;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 1em;
+  overflow-x: scroll;
+}
+
+.recommended-post {
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 18em;
+  padding: 1em;
+  border: 1px solid var(--header-accent-color-faded);
+  border-radius: 0.75rem;
+  background-color: var(--toggle-background-color);
+  box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
+}
+
+.recommended-post .username {
+  font-family: var(--serif-font);
+  line-height: 100%;
+}
+
+.recommended-post .handle {
+  font-size: 0.85em;
+  line-height: 100%;
+}
+
+.recommended-post .text {
+  margin-top: 0.5em;
+  font-size: 0.85em;
+}
+
+.recommended-post .view {
+  font-size: 0.85em;
+  text-align: right;
+}
