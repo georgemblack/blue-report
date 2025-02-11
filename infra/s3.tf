@@ -74,7 +74,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "assets" {
     }
 
     transition {
-      days          = 7
+      days          = 30
       storage_class = "GLACIER_IR"
     }
 
