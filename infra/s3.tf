@@ -80,6 +80,22 @@ resource "aws_s3_bucket_lifecycle_configuration" "assets" {
 
     status = "Enabled"
   }
+
+  rule {
+    id = "Temporary"
+
+    filter {
+      prefix = "events/"
+    }
+
+    transition {
+      days          = 1
+      storage_class = "INTELLIGENT_TIERING"
+    }
+
+    status = "Enabled"
+  }
+
 }
 
 resource "aws_s3_bucket" "test" {
