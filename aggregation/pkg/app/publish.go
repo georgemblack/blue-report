@@ -14,7 +14,7 @@ import (
 )
 
 // Publish converts a report to HTML and JSON, and publishes to an S3 bucket where the site is hosted.
-func Publish(snapshot Snapshot) error {
+func Publish(snapshot LinkSnapshot) error {
 	slog.Info("starting report publish")
 	start := time.Now()
 

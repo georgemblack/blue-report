@@ -19,23 +19,23 @@ const (
 	ListSize = 15
 )
 
-// Generate fetches all events from storage, aggregates trending URLs, and generates a final report.
+// AggregateLinks fetches all events from storage, aggregates trending URLs, and generates a snapshot.
 // Metadata for each URL is hydrated from the cache, and thumbnails for each URL are stored in S3.
-func Generate() (Snapshot, error) {
+func AggregateLinks() (LinkSnapshot, error) {
 	slog.Info("starting report generation")
 	start := time.Now()
 
 	// Build the cache client
 	ch, err := cache.New()
 	if err != nil {
-		return Snapshot{}, util.WrapErr("failed to create the cache client", err)
+		return LinkSnapshot{}, util.WrapErr("failed to create the cache client", err)
 	}
 	defer ch.Close()
 
 	// Build storage client
 	stg, err := storage.New()
 	if err != nil {
-		return Snapshot{}, util.WrapErr("failed to create storage client", err)
+		return LinkSnapshot{}, util.WrapErr("failed to create storage client", err)
 	}
 
 	// Build Bluesky client
@@ -45,19 +45,19 @@ func Generate() (Snapshot, error) {
 	// Collect data in a map of 'URL' -> 'URLAggregation'.
 	aggregation, err := aggregate(stg)
 	if err != nil {
-		return Snapshot{}, util.WrapErr("failed to generate count", err)
+		return LinkSnapshot{}, util.WrapErr("failed to generate count", err)
 	}
 
 	// Find the top URLs based on score
 	top := topURLs(aggregation)
 
 	// Build an empty snapshot
-	snapshot := newSnapshot(top)
+	snapshot := newLinkSnapshot(top)
 
 	// Hydrate each item in the snapshot with data from the cache & storage
 	snapshot, err = hydrate(ch, stg, bs, aggregation, snapshot)
 	if err != nil {
-		return Snapshot{}, util.WrapErr("failed to hydrate snapshot", err)
+		return LinkSnapshot{}, util.WrapErr("failed to hydrate snapshot", err)
 	}
 
 	duration := time.Since(start)
@@ -170,11 +170,11 @@ func fingerprint(record storage.EventRecord) string {
 	return util.Hash(fmt.Sprintf("%d%s%s", record.Type, record.DID, record.URL))
 }
 
-func hydrate(ch Cache, stg Storage, bs Bluesky, agg Aggregation, snapshot Snapshot) (Snapshot, error) {
+func hydrate(ch Cache, stg Storage, bs Bluesky, agg Aggregation, snapshot LinkSnapshot) (LinkSnapshot, error) {
 	for i := range snapshot.Links {
 		link, err := hydrateLink(ch, stg, bs, agg, i, snapshot.Links[i])
 		if err != nil {
-			return Snapshot{}, util.WrapErr("failed to hydrate link", err)
+			return LinkSnapshot{}, util.WrapErr("failed to hydrate link", err)
 		}
 		snapshot.Links[i] = link
 	}
@@ -289,4 +289,8 @@ func clicks(url string) int {
 	}
 
 	return result.Count
+}
+
+func AggregateSites() (SiteSnapshot, error) {
+	return newSiteSnapshot(), nil
 }

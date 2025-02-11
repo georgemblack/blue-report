@@ -2,8 +2,8 @@ package app
 
 import "time"
 
-// Create an empty snapshot populated wiht the 'GeneratedAt' timestamp, as well as a list of links w/URLs
-func newSnapshot(urls []string) Snapshot {
+// Create an empty snapshot populated with the 'GeneratedAt' timestamp, as well as a list of links w/URLs
+func newLinkSnapshot(urls []string) LinkSnapshot {
 	links := make([]Link, 0, len(urls))
 
 	for _, url := range urls {
@@ -12,13 +12,13 @@ func newSnapshot(urls []string) Snapshot {
 		})
 	}
 
-	return Snapshot{
+	return LinkSnapshot{
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
 		Links:       links,
 	}
 }
 
-type Snapshot struct {
+type LinkSnapshot struct {
 	GeneratedAt string `json:"generated_at"`
 	Links       []Link `json:"links"`
 }
@@ -40,4 +40,14 @@ type Post struct {
 	Username string `json:"username"`
 	Handle   string `json:"handle"`
 	Text     string `json:"text"`
+}
+
+func newSiteSnapshot() SiteSnapshot {
+	return SiteSnapshot{
+		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
+type SiteSnapshot struct {
+	GeneratedAt string `json:"generated_at"`
 }

@@ -11,12 +11,12 @@ func main() {
 	if os.Getenv("DEBUG") == "true" {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
-	snapshot, err := app.AggregateLinks()
+	_, err := app.AggregateSites()
 	if err != nil {
 		slog.Error(err.Error())
 	}
-	err = app.Publish(snapshot)
-	if err != nil {
-		slog.Error(err.Error())
-	}
+	// err = app.Publish(snapshot)
+	// if err != nil {
+	// 	slog.Error(err.Error())
+	// }
 }
