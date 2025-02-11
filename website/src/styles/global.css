@@ -1,7 +1,7 @@
 :root {
   /* primary fonts */
-  --header-font: "Crete Round", serif;
-  --primary-font: system-ui;
+  --serif-font: "Crete Round", serif;
+  --sans-serif-font: system-ui;
 
   /* font weights */
   --font-weight-bold: 800;
@@ -17,6 +17,7 @@
 
   /* text colors */
   --header-accent-color: #4286f4;
+  --header-accent-color-faded: rgba(66, 134, 244, 0.25);
   --link-color: #2b589f;
   --link-hover-color: #1f4a8f;
   --body-text-color: #2d2d2d;
@@ -41,14 +42,14 @@ body {
   max-width: 56rem;
   line-height: 150%;
   color: var(--body-text-color);
-  font-family: var(--primary-font);
+  font-family: var(--sans-serif-font);
   background-color: var(--background-color);
 }
 
 header {
   margin-top: 2em;
   text-align: center;
-  font-family: var(--header-font);
+  font-family: var(--serif-font);
 }
 
 header .accent {
@@ -110,15 +111,18 @@ a:hover {
   margin-top: 2em;
 }
 
-.link {
+.link-container {
   padding: 1.5em 0em;
-  display: flex;
-  gap: 2em;
   border-top: 2px solid var(--line-separator-color);
 }
 
-.link-group .link:last-of-type {
+.link-container .link:last-of-type {
   border-bottom: 2px solid var(--line-separator-color);
+}
+
+.link {
+  display: flex;
+  gap: 2em;
 }
 
 .link .preview img,
@@ -140,20 +144,28 @@ a:hover {
 }
 
 .link .content {
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  justify-items: center;
+}
+
+.link .subcontent {
+  margin: 1em 0 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* inline-block to prevent extra vertical space due to line-height */
 .link .title {
   font-size: 1.25em;
-  font-family: var(--header-font);
+  font-family: var(--serif-font);
   overflow-wrap: anywhere;
 }
 
 .link .metadata {
-  margin: 1rem 0 0 0;
   color: var(--faded-text-color);
   display: flex;
   gap: 0.5em;
@@ -169,7 +181,7 @@ a:hover {
 }
 
 /* medium break-point */
-@media screen and (max-width: 46em) {
+@media screen and (max-width: 56em) {
   .link {
     gap: 1em;
   }
@@ -201,11 +213,15 @@ a:hover {
   .last-updated {
     font-size: var(--font-size-small);
   }
+
+  .link .subcontent {
+    align-items: flex-end;
+  }
 }
 
 /* small break-point */
 @media screen and (max-width: 36em) {
-  .link {
+  .link-container {
     padding: 2em 0;
     min-height: 12em;
   }
@@ -218,4 +234,115 @@ a:hover {
   }
 }
 
+/* expand link button */
+.expand button {
+  display: block;
+  font-size: var(--font-size-small);
+  margin: 0 auto;
+  padding: 0.25em 2em;
+  border-radius: 1em;
+  border: none;
+  color: var(--link-color);
+  background-color: rgba(85, 170, 255, 0.1);
+  line-height: 0;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.expand .inner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25em;
+}
+
+.expand svg {
+  width: 1.25em;
+}
+
+.expand button.open svg {
+  transform: rotate(180deg);
+}
+
+.expand button svg {
+  transform: rotate(0deg);
+  transition: transform 0.15s ease-in-out;
+}
+
+.expand button:hover {
+  transform: scale(1.05);
+  transition: transform 0.15s ease-in-out;
+}
+
+/* centered expand link button */
+.expand.centered {
+  display: none;
+  margin-top: 1em;
+}
+
+/* small break-point */
+@media screen and (max-width: 36em) {
+  .expand.inline {
+    display: none;
+  }
+
+  .expand.centered {
+    display: block;
+  }
+}
+
 /* link details */
+.link-details {
+  margin-top: 2em;
+  display: none;
+}
+
+.link-details h3 {
+  font-size: 1em;
+}
+
+/* recommended posts */
+.recommended-posts {
+  display: flex;
+  gap: 1em;
+  overflow-x: auto;
+}
+
+.recommended-post {
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 18em;
+  padding: 1em;
+  border: 1px solid var(--header-accent-color-faded);
+  border-radius: 0.75em;
+  background-color: var(--toggle-background-color);
+  box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
+}
+
+.recommended-post .inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.recommended-post .username {
+  font-family: var(--serif-font);
+  line-height: 100%;
+}
+
+.recommended-post .handle {
+  font-size: 0.85em;
+  line-height: 100%;
+}
+
+.recommended-post .text {
+  margin-top: 0.5em;
+  font-size: 0.85em;
+}
+
+.recommended-post .view-more {
+  font-size: var(--font-size-small);
+  text-align: right;
+}

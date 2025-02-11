@@ -33,3 +33,18 @@ export function formatDate(iso: string): string {
     "MMM d, yyyy 'at' h:mma (zzz)"
   );
 }
+
+// Convert an AT URI & user handle to a URL
+export function urlFromPost(atUri: string, handle: string): string {
+  // Parse rkey from AT URI
+  // 'at://did:plc:y5xyloyy7s4a2bwfeimj7r3b/app.bsky.feed.post/3lhrms2lbc22c' -> '3lhrms2lbc22c'
+  const rkey = atUri.split("/").pop();
+
+  // Construct URL
+  return `https://bsky.app/profile/${handle}/post/${rkey}`;
+}
+
+// Remove any non-alphanumeric characters from a string
+export function strip(s: string): string {
+  return s.replace(/[^a-z0-9]/gi, "");
+}
