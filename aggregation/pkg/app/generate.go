@@ -226,12 +226,15 @@ func hydrateLink(ch Cache, stg Storage, bs Bluesky, agg Aggregation, index int, 
 	return link, nil
 }
 
+// Given the AT URIs of the top posts referencing a URL, return a list of recommended posts to display to the user.
 func recommendedPosts(bs Bluesky, uris []string) []Post {
 	posts := make([]Post, 0)
+	authors := mapset.NewSet[string]() // Track authors that already have a reocommended post
 
 	// For each AT URI, fetch the post from the Bluesky API.
 	// If the post has enough text/commentary, add it to the list of recommended posts.
 	for _, uri := range uris {
+		// Avoid fetching data after five posts have been selected
 		if len(posts) >= 5 {
 			break
 		}
@@ -242,17 +245,19 @@ func recommendedPosts(bs Bluesky, uris []string) []Post {
 			continue
 		}
 
-		// In order for the post to be recommended, it must:
-		//   - Be greater than 32 characters in length (to avoid posts that only contain the link)
-		//   - Be in English (until there's multi language/region support)
-		//   - Must have at least 50 likes (to avoid spam)
-		if len(postData.Record.Text) >= 32 && postData.IsEnglish() && postData.LikeCount > 50 {
+		// In order for the post to be recommended:
+		//   - Post must be >32 characters in length (to avoid posts that only contain the link)
+		//   - Post must be in English (until there's multi language/region support)
+		//   - Post must have at >=50 likes (to avoid spam)
+		//	 - Post cannot be from an author who already has a recommended post for this link
+		if len(postData.Record.Text) >= 32 && postData.IsEnglish() && postData.LikeCount > 50 && !authors.Contains(postData.Author.Handle) {
 			posts = append(posts, Post{
 				AtURI:    uri,
 				Username: postData.Author.DisplayName,
 				Handle:   postData.Author.Handle,
 				Text:     postData.Record.Text,
 			})
+			authors.Add(postData.Author.Handle)
 		}
 	}
 

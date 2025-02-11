@@ -351,8 +351,16 @@ func include(url string) bool {
 		return false
 	}
 
-	// Ignore known spam
+	// Ignore known sites used by bots / explicit content
 	if strings.HasPrefix(url, "https://beacons.ai") {
+		return false
+	}
+
+	// Prevent trend manipulation.
+	// Subpaths of this site are allowed, such as 'https://www.democracydocket.com/some-news-story'.
+	// However, the root domain is posted frequently without referring to a specific story.
+	// The intention of The Blue Report is to showcase specific stories/events.
+	if url == "https://www.democracydocket.com/" {
 		return false
 	}
 

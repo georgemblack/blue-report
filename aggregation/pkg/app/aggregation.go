@@ -71,9 +71,9 @@ func (a *URLAggregation) TopPosts() []string {
 	})
 
 	// Return the top ten
-	top := make([]string, 0, 10)
+	top := make([]string, 0, 20)
 	for i := range kvs {
-		if len(top) >= 10 {
+		if len(top) >= 20 {
 			break
 		}
 		top = append(top, kvs[i].Post)
