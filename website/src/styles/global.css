@@ -116,7 +116,7 @@ a:hover {
   border-top: 2px solid var(--line-separator-color);
 }
 
-.link-container .link:last-of-type {
+.link-container:last-of-type {
   border-bottom: 2px solid var(--line-separator-color);
 }
 
