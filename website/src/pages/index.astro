@@ -41,18 +41,44 @@ const snapshot = await fetchSnapshot();
                   {link.rank}. {link.title}
                 </a>
               </p>
-              <p class="metadata">
-                <span class="host">{formatHost(link.url)}</span>
-                <span class="bullet">•</span>
-                <span>
-                  {formatCount(link.post_count)} posts,{" "}
-                  {formatCount(link.repost_count)} reposts,{" "}
-                  {formatCount(link.like_count)} likes
-                </span>
-              </p>
+              <div class="subcontent">
+                <p class="metadata">
+                  <span class="host">{formatHost(link.url)}</span>
+                  <span class="bullet">•</span>
+                  <span>
+                    {formatCount(link.post_count)} posts,{" "}
+                    {formatCount(link.repost_count)} reposts,{" "}
+                    {formatCount(link.like_count)} likes
+                  </span>
+                </p>
+                <div class="expand inline">
+                  <button
+                    id={`${strip(link.url)}-button`}
+                    onclick={`toggleLinkDetails('${strip(link.url)}')`}
+                  >
+                    <div class="inner">
+                      <p class="label">Top posts</p>
+                      <div class="icon">
+                        <svg
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <>
+                            <path d="m0 0h24v24h-24z" fill="#fff" opacity="0" />
+                            <path
+                              d="m12 16a1 1 0 0 1 -.64-.23l-6-5a1 1 0 1 1 1.28-1.54l5.36 4.48 5.36-4.32a1 1 0 0 1 1.41.15 1 1 0 0 1 -.14 1.46l-6 4.83a1 1 0 0 1 -.63.17z"
+                              fill="#2b589f"
+                            />
+                          </>
+                        </svg>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="expand">
+          <div class="expand centered">
             <button
               id={`${strip(link.url)}-button`}
               onclick={`toggleLinkDetails('${strip(link.url)}')`}
@@ -77,18 +103,22 @@ const snapshot = await fetchSnapshot();
             <div class="recommended-posts">
               {link.recommended_posts.map((post) => (
                 <div class="recommended-post">
-                  <p class="username">{post.username}</p>
-                  <a
-                    class="handle"
-                    href={`https://bsky.app/profile/${post.handle}`}
-                  >
-                    {post.handle}
-                  </a>
-                  <p class="text">{post.text}</p>
-                  <div class="view">
-                    <a href={urlFromPost(post.at_uri, post.handle)}>
-                      View Post
-                    </a>
+                  <div class="inner">
+                    <div>
+                      <p class="username">{post.username}</p>
+                      <a
+                        class="handle"
+                        href={`https://bsky.app/profile/${post.handle}`}
+                      >
+                        {post.handle}
+                      </a>
+                      <p class="text">{post.text}</p>
+                    </div>
+                    <div class="view-more">
+                      <a href={urlFromPost(post.at_uri, post.handle)}>
+                        View Post
+                      </a>
+                    </div>
                   </div>
                 </div>
               ))}
