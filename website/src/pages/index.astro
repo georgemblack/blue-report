@@ -28,7 +28,7 @@ const snapshot = await fetchSnapshot();
                   src={`https://assets.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
                 />
               ) : (
-                <div class="placeholder">🔗</div>
+                <div class="placeholder">📄</div>
               )}
             </a>
             <div class="content">
@@ -53,7 +53,7 @@ const snapshot = await fetchSnapshot();
                 </p>
                 <div class="expand inline">
                   <button
-                    id={`${strip(link.url)}-button`}
+                    id={`${strip(link.url)}-inline`}
                     onclick={`toggleLinkDetails('${strip(link.url)}')`}
                   >
                     <div class="inner">
@@ -80,7 +80,7 @@ const snapshot = await fetchSnapshot();
           </div>
           <div class="expand centered">
             <button
-              id={`${strip(link.url)}-button`}
+              id={`${strip(link.url)}-centered`}
               onclick={`toggleLinkDetails('${strip(link.url)}')`}
             >
               <div class="inner">
@@ -132,19 +132,18 @@ const snapshot = await fetchSnapshot();
   <script is:inline>
     function toggleLinkDetails(id) {
       const content = document.getElementById(id);
-      const button = document.getElementById(id + "-button");
-      if (!content || !button) return;
-
-      button.classList.toggle("open");
+      const inlineButton = document.getElementById(`${id}-inline`);
+      const centeredButton = document.getElementById(`${id}-centered`);
+      if (!content || !inlineButton || !centeredButton) return;
 
       if (content.style.display === "none" || content.style.display === "") {
+        inlineButton.classList.add("open");
+        centeredButton.classList.add("open");
         content.style.display = "block";
-        // button.classList.add("open");
-        //button.textContent = "Show less";
       } else {
+        inlineButton.classList.remove("open");
+        centeredButton.classList.remove("open");
         content.style.display = "none";
-        // button.classList.remove("open");
-        //button.textContent = "Show more";
       }
     }
   </script>

@@ -155,7 +155,7 @@ a:hover {
   margin: 1em 0 0 0;
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
 }
 
 /* inline-block to prevent extra vertical space due to line-height */
@@ -213,6 +213,10 @@ a:hover {
   .last-updated {
     font-size: var(--font-size-small);
   }
+
+  .link .subcontent {
+    align-items: flex-end;
+  }
 }
 
 /* small break-point */
@@ -242,6 +246,7 @@ a:hover {
   line-height: 0;
   cursor: pointer;
   user-select: none;
+  touch-action: manipulation;
 }
 
 .expand .inner {
