@@ -41,13 +41,3 @@ type Post struct {
 	Handle   string `json:"handle"`
 	Text     string `json:"text"`
 }
-
-func newSiteSnapshot() SiteSnapshot {
-	return SiteSnapshot{
-		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
-	}
-}
-
-type SiteSnapshot struct {
-	GeneratedAt string `json:"generated_at"`
-}

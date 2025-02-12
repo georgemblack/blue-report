@@ -1,6 +1,6 @@
 locals {
   intake_version   = "1.20.3"
-  generate_version = "1.20.3"
+  generate_version = "1.21.1"
 }
 
 resource "aws_ecr_repository" "blue_report" {
@@ -105,6 +105,10 @@ resource "aws_ecs_task_definition" "blue_report_generate" {
         {
           name  = "S3_ASSETS_BUCKET_NAME"
           value = "blue-report-assets"
+        },
+        {
+          name  = "DYNAMO_URL_METADATA_TABLE"
+          value = "blue-report-url-metadata"
         }
       ]
       cpu    = 1024

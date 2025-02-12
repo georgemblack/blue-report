@@ -25,6 +25,8 @@ type Storage interface {
 	ListEventChunks(start, end time.Time) ([]string, error)
 	SaveThumbnail(id string, url string) error
 	ThumbnailExists(id string) (bool, error)
+	GetURLMetadata(url string) (storage.URLMetadata, error)
+	SaveURLMetadata(metadata storage.URLMetadata) error
 }
 
 type Secrets interface {

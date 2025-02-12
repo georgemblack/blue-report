@@ -179,6 +179,21 @@ func (mr *MockStorageMockRecorder) FlushEvents(start, events any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FlushEvents", reflect.TypeOf((*MockStorage)(nil).FlushEvents), start, events)
 }
 
+// GetURLMetadata mocks base method.
+func (m *MockStorage) GetURLMetadata(url string) (storage.URLMetadata, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetURLMetadata", url)
+	ret0, _ := ret[0].(storage.URLMetadata)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetURLMetadata indicates an expected call of GetURLMetadata.
+func (mr *MockStorageMockRecorder) GetURLMetadata(url any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURLMetadata", reflect.TypeOf((*MockStorage)(nil).GetURLMetadata), url)
+}
+
 // ListEventChunks mocks base method.
 func (m *MockStorage) ListEventChunks(start, end time.Time) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -235,6 +250,20 @@ func (m *MockStorage) SaveThumbnail(id, url string) error {
 func (mr *MockStorageMockRecorder) SaveThumbnail(id, url any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveThumbnail", reflect.TypeOf((*MockStorage)(nil).SaveThumbnail), id, url)
+}
+
+// SaveURLMetadata mocks base method.
+func (m *MockStorage) SaveURLMetadata(metadata storage.URLMetadata) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveURLMetadata", metadata)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveURLMetadata indicates an expected call of SaveURLMetadata.
+func (mr *MockStorageMockRecorder) SaveURLMetadata(metadata any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveURLMetadata", reflect.TypeOf((*MockStorage)(nil).SaveURLMetadata), metadata)
 }
 
 // ThumbnailExists mocks base method.

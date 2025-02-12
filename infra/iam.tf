@@ -35,6 +35,16 @@ resource "aws_iam_policy" "service" {
       {
         Effect = "Allow",
         Action = [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem"
+        ],
+        Resource = [aws_dynamodb_table.url_metadata.arn]
+      },
+      {
+        Effect = "Allow",
+        Action = [
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret"
         ],

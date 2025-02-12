@@ -15,28 +15,31 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	dynamoDBTypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/georgemblack/blue-report/pkg/app/util"
 )
 
-type S3 struct {
-	client *s3.Client
+type AWS struct {
+	s3       *s3.Client
+	dynamoDB *dynamodb.Client
 }
 
-func New() (S3, error) {
+func New() (AWS, error) {
 	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion("us-west-2"))
 	if err != nil {
-		return S3{}, util.WrapErr("failed to load aws config", err)
+		return AWS{}, util.WrapErr("failed to load aws config", err)
 	}
 
-	return S3{client: s3.NewFromConfig(cfg)}, nil
+	return AWS{s3: s3.NewFromConfig(cfg), dynamoDB: dynamodb.NewFromConfig(cfg)}, nil
 }
 
 // Publish the snapshot of the site's data to S3.
 // Store a 'latest' version, as well as a timestamped version.
-func (s S3) PublishSnapshot(snapshot []byte) error {
-	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
+func (a AWS) PublishSnapshot(snapshot []byte) error {
+	_, err := a.s3.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:               aws.String(siteBucketName()),
 		Key:                  aws.String("snapshot.json"),
 		Body:                 bytes.NewReader(snapshot),
@@ -52,7 +55,7 @@ func (s S3) PublishSnapshot(snapshot []byte) error {
 	// Use Eastern time, as the site is primarily for a US audience.
 	now := util.ToEastern(time.Now())
 	path := fmt.Sprintf("snapshots/%d/%d/%d/snapshot.json", now.Year(), now.Month(), now.Day())
-	_, err = s.client.PutObject(context.Background(), &s3.PutObjectInput{
+	_, err = a.s3.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:               aws.String(siteBucketName()),
 		Key:                  aws.String(path),
 		Body:                 bytes.NewReader(snapshot),
@@ -67,8 +70,8 @@ func (s S3) PublishSnapshot(snapshot []byte) error {
 	return nil
 }
 
-func (s S3) ReadEvents(key string) ([]EventRecord, error) {
-	resp, err := s.client.GetObject(context.Background(), &s3.GetObjectInput{
+func (a AWS) ReadEvents(key string) ([]EventRecord, error) {
+	resp, err := a.s3.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(readAssetsBucketName()),
 		Key:    aws.String(fmt.Sprintf("events/%s.json", key)),
 	})
@@ -94,7 +97,7 @@ func (s S3) ReadEvents(key string) ([]EventRecord, error) {
 	return events, nil
 }
 
-func (s S3) FlushEvents(start time.Time, events []EventRecord) error {
+func (a AWS) FlushEvents(start time.Time, events []EventRecord) error {
 	// Convert events to JSON lines
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -107,7 +110,7 @@ func (s S3) FlushEvents(start time.Time, events []EventRecord) error {
 
 	// Write to S3, with timestamp in key
 	key := fmt.Sprintf("events/%s.json", start.UTC().Format("2006-01-02-15-04-05"))
-	_, err := s.client.PutObject(context.Background(), &s3.PutObjectInput{
+	_, err := a.s3.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:               aws.String(writeAssetsBucketName()),
 		Key:                  aws.String(key),
 		Body:                 bytes.NewReader(buf.Bytes()),
@@ -123,7 +126,7 @@ func (s S3) FlushEvents(start time.Time, events []EventRecord) error {
 
 // ListEventChunks lists all S3 object keys containing events after a certain time.
 // Objects are named 'events/<timestamp>.json'.
-func (s S3) ListEventChunks(start, end time.Time) ([]string, error) {
+func (a AWS) ListEventChunks(start, end time.Time) ([]string, error) {
 	keys := make([]string, 0)
 
 	// List objects using a list of prefixes, one for each day between 'start' and 'end', inclusive.
@@ -138,7 +141,7 @@ func (s S3) ListEventChunks(start, end time.Time) ([]string, error) {
 	slog.Info(fmt.Sprintf("listing objects with prefixes: %v", prefixes))
 
 	for _, prefix := range prefixes {
-		paginator := s3.NewListObjectsV2Paginator(s.client, &s3.ListObjectsV2Input{
+		paginator := s3.NewListObjectsV2Paginator(a.s3, &s3.ListObjectsV2Input{
 			Bucket: aws.String(readAssetsBucketName()),
 			Prefix: aws.String(prefix),
 		})
@@ -177,7 +180,7 @@ func (s S3) ListEventChunks(start, end time.Time) ([]string, error) {
 
 // SaveThumbnail fetches an image at a given URL and stores it in S3.
 // The identifier for the image is returned.
-func (s S3) SaveThumbnail(id string, url string) error {
+func (a AWS) SaveThumbnail(id string, url string) error {
 	resp, err := http.Get(url)
 	if err != nil {
 		return util.WrapErr("failed to fetch image", err)
@@ -193,7 +196,7 @@ func (s S3) SaveThumbnail(id string, url string) error {
 	}
 
 	key := fmt.Sprintf("thumbnails/%s.jpg", id)
-	_, err = s.client.PutObject(context.Background(), &s3.PutObjectInput{
+	_, err = a.s3.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:               aws.String(siteBucketName()),
 		Key:                  aws.String(key),
 		Body:                 bytes.NewReader(image),
@@ -208,13 +211,13 @@ func (s S3) SaveThumbnail(id string, url string) error {
 	return nil
 }
 
-func (s S3) ThumbnailExists(id string) (bool, error) {
-	_, err := s.client.HeadObject(context.Background(), &s3.HeadObjectInput{
+func (a AWS) ThumbnailExists(id string) (bool, error) {
+	_, err := a.s3.HeadObject(context.Background(), &s3.HeadObjectInput{
 		Bucket: aws.String(siteBucketName()),
 		Key:    aws.String(fmt.Sprintf("thumbnails/%s.jpg", id)),
 	})
 	if err != nil {
-		var notFound *types.NotFound
+		var notFound *s3Types.NotFound
 		if errors.As(err, &notFound) {
 			return false, nil
 		}
@@ -224,34 +227,36 @@ func (s S3) ThumbnailExists(id string) (bool, error) {
 	return true, nil
 }
 
-func siteBucketName() string {
-	return util.GetEnvStr("S3_BUCKET_NAME", "blue-report-test")
+func (a AWS) GetURLMetadata(url string) (URLMetadata, error) {
+	resp, err := a.dynamoDB.GetItem(context.Background(), &dynamodb.GetItemInput{
+		TableName: aws.String("blue-report-url-metadata"),
+		Key:       map[string]dynamoDBTypes.AttributeValue{"urlHash": &dynamoDBTypes.AttributeValueMemberS{Value: util.Hash(url)}},
+	})
+	if err != nil {
+		return URLMetadata{}, util.WrapErr("failed to get url metadata from dynamodb", err)
+	}
+	if len(resp.Item) == 0 {
+		return URLMetadata{}, nil
+	}
+
+	return URLMetadata{
+		URL:   url,
+		Title: resp.Item["title"].(*dynamoDBTypes.AttributeValueMemberS).Value,
+	}, nil
 }
 
-func readAssetsBucketName() string {
-	return util.GetEnvStr("S3_ASSETS_BUCKET_NAME", "blue-report-assets")
-}
+func (a AWS) SaveURLMetadata(metadata URLMetadata) error {
+	_, err := a.dynamoDB.PutItem(context.Background(), &dynamodb.PutItemInput{
+		TableName: aws.String(urlMetadataTableName()),
+		Item: map[string]dynamoDBTypes.AttributeValue{
+			"urlHash": &dynamoDBTypes.AttributeValueMemberS{Value: util.Hash(metadata.URL)},
+			"url":     &dynamoDBTypes.AttributeValueMemberS{Value: metadata.URL},
+			"title":   &dynamoDBTypes.AttributeValueMemberS{Value: metadata.Title},
+		},
+	})
+	if err != nil {
+		return util.WrapErr("failed to put url metadata", err)
+	}
 
-func writeAssetsBucketName() string {
-	return util.GetEnvStr("S3_ASSETS_BUCKET_NAME", "blue-report-test")
-}
-
-type EventRecord struct {
-	Type      int       `json:"type"` // 0 = post, 1 = repost, 2 = like
-	URL       string    `json:"url"`
-	DID       string    `json:"did"`
-	Timestamp time.Time `json:"timestamp"`
-	Post      string    `json:"post"` // AT URI of the post that was created/liked/reposted
-}
-
-func (s EventRecord) IsPost() bool {
-	return s.Type == 0
-}
-
-func (s EventRecord) IsRepost() bool {
-	return s.Type == 1
-}
-
-func (s EventRecord) IsLike() bool {
-	return s.Type == 2
+	return nil
 }

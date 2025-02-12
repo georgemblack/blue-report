@@ -67,7 +67,6 @@ func AggregateLinks() (LinkSnapshot, error) {
 
 // Scan all events within the last 24 hours, and return a map of URLs and their associated counts.
 // Ignore duplicate URLs from the same user.
-// Example aggregate: { "https://example.com": { Posts: 1, Reposts: 0, Likes: 0 } }
 func aggregate(stg Storage) (Aggregation, error) {
 	count := make(Aggregation)              // Track each instance of a URL being shared
 	fingerprints := mapset.NewSet[string]() // Track unique DID, URL, and event type combinations
@@ -170,62 +169,6 @@ func fingerprint(record storage.EventRecord) string {
 	return util.Hash(fmt.Sprintf("%d%s%s", record.Type, record.DID, record.URL))
 }
 
-func hydrate(ch Cache, stg Storage, bs Bluesky, agg Aggregation, snapshot LinkSnapshot) (LinkSnapshot, error) {
-	for i := range snapshot.Links {
-		link, err := hydrateLink(ch, stg, bs, agg, i, snapshot.Links[i])
-		if err != nil {
-			return LinkSnapshot{}, util.WrapErr("failed to hydrate link", err)
-		}
-		snapshot.Links[i] = link
-	}
-
-	return snapshot, nil
-}
-
-func hydrateLink(ch Cache, stg Storage, bs Bluesky, agg Aggregation, index int, link Link) (Link, error) {
-	hashedURL := util.Hash(link.URL)
-	record, err := ch.ReadURL(hashedURL)
-	if err != nil {
-		return Link{}, util.WrapErr("failed to read url record", err)
-	}
-
-	// Fetch the thumbnail from the Bluesky CDN and store it in our S3 bucket.
-	// The thumbnail ID is the hash of the URL.
-	if record.ImageURL != "" {
-		err := stg.SaveThumbnail(hashedURL, record.ImageURL)
-		if err != nil {
-			slog.Warn(util.WrapErr("failed to save thumbnail", err).Error(), "url", link.URL)
-		}
-	}
-
-	// Set the thumbnail ID if it exists
-	exists, err := stg.ThumbnailExists(hashedURL)
-	if err != nil {
-		slog.Warn(util.WrapErr("failed to check for thumbnail", err).Error(), "url", link.URL)
-	} else if exists {
-		link.ThumbnailID = hashedURL
-	}
-
-	// Set display items, such as rank, title, host, and stats
-	link.Rank = index + 1
-	link.Title = record.Title
-	if link.Title == "" {
-		link.Title = "(No title)"
-	}
-	link.PostCount = record.Totals.Posts
-	link.RepostCount = record.Totals.Reposts
-	link.LikeCount = record.Totals.Likes
-	link.ClickCount = clicks(link.URL)
-
-	// Generate a list of the most popular 2-5 posts referencing the URL.
-	// Posts should contain commentary on the subject of the link.
-	aggregationItem := agg[link.URL]
-	link.RecommendedPosts = recommendedPosts(bs, aggregationItem.TopPosts())
-
-	slog.Debug("hydrated", "record", link)
-	return link, nil
-}
-
 // Given the AT URIs of the top posts referencing a URL, return a list of recommended posts to display to the user.
 func recommendedPosts(bs Bluesky, uris []string) []Post {
 	posts := make([]Post, 0)
@@ -289,8 +232,4 @@ func clicks(url string) int {
 	}
 
 	return result.Count
-}
-
-func AggregateSites() (SiteSnapshot, error) {
-	return newSiteSnapshot(), nil
 }
