@@ -9,10 +9,8 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/georgemblack/blue-report/pkg/app/util"
-	"github.com/georgemblack/blue-report/pkg/bluesky"
-	"github.com/georgemblack/blue-report/pkg/cache"
 	"github.com/georgemblack/blue-report/pkg/storage"
+	"github.com/georgemblack/blue-report/pkg/util"
 )
 
 const (
@@ -25,25 +23,15 @@ func AggregateLinks() (LinkSnapshot, error) {
 	slog.Info("starting report generation")
 	start := time.Now()
 
-	// Build the cache client
-	ch, err := cache.New()
+	app, err := NewApp()
 	if err != nil {
-		return LinkSnapshot{}, util.WrapErr("failed to create the cache client", err)
+		return LinkSnapshot{}, util.WrapErr("failed to create app", err)
 	}
-	defer ch.Close()
-
-	// Build storage client
-	stg, err := storage.New()
-	if err != nil {
-		return LinkSnapshot{}, util.WrapErr("failed to create storage client", err)
-	}
-
-	// Build Bluesky client
-	bs := bluesky.New()
+	defer app.Close()
 
 	// Run the aggregation process, collecting data on each URL.
 	// Collect data in a map of 'URL' -> 'URLAggregation'.
-	aggregation, err := aggregate(stg)
+	aggregation, err := aggregate(app.Storage)
 	if err != nil {
 		return LinkSnapshot{}, util.WrapErr("failed to generate count", err)
 	}
@@ -55,7 +43,7 @@ func AggregateLinks() (LinkSnapshot, error) {
 	snapshot := newLinkSnapshot(top)
 
 	// Hydrate each item in the snapshot with data from the cache & storage
-	snapshot, err = hydrate(ch, stg, bs, aggregation, snapshot)
+	snapshot, err = hydrate(app, aggregation, snapshot)
 	if err != nil {
 		return LinkSnapshot{}, util.WrapErr("failed to hydrate snapshot", err)
 	}

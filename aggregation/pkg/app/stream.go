@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 
-	"github.com/georgemblack/blue-report/pkg/app/util"
+	"github.com/georgemblack/blue-report/pkg/util"
 )
 
 // StreamEvent (and subtypes) represent a message from the Jetstream.

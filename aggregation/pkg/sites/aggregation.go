@@ -5,7 +5,7 @@ import (
 	"slices"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/georgemblack/blue-report/pkg/app/util"
+	"github.com/georgemblack/blue-report/pkg/util"
 )
 
 type Aggregation map[string]AggregationItem

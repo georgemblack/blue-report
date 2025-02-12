@@ -8,9 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/georgemblack/blue-report/pkg/app/util"
-	"github.com/georgemblack/blue-report/pkg/secrets"
-	"github.com/georgemblack/blue-report/pkg/storage"
+	"github.com/georgemblack/blue-report/pkg/util"
 )
 
 // Publish converts a report to HTML and JSON, and publishes to an S3 bucket where the site is hosted.
@@ -18,16 +16,9 @@ func Publish(snapshot LinkSnapshot) error {
 	slog.Info("starting report publish")
 	start := time.Now()
 
-	// Build storage client
-	stg, err := storage.New()
+	app, err := NewApp()
 	if err != nil {
-		return util.WrapErr("failed to create storage client", err)
-	}
-
-	// Build secrets client
-	sec, err := secrets.New()
-	if err != nil {
-		return util.WrapErr("failed to create secrets client", err)
+		return util.WrapErr("failed to create app", err)
 	}
 
 	// Save snapshot to storage as JSON
@@ -35,7 +26,7 @@ func Publish(snapshot LinkSnapshot) error {
 	if err != nil {
 		return util.WrapErr("failed to marshal snapshot", err)
 	}
-	err = stg.PublishSnapshot(data)
+	err = app.Storage.PublishSnapshot(data)
 	if err != nil {
 		return util.WrapErr("failed to publish snapshot", err)
 	}
@@ -45,7 +36,7 @@ func Publish(snapshot LinkSnapshot) error {
 	}
 
 	slog.Info("triggering deployment")
-	err = deploy(sec)
+	err = deploy(app.Config.DeployHookURL)
 	if err != nil {
 		return util.WrapErr("failed to deploy", err)
 	}
@@ -57,14 +48,8 @@ func Publish(snapshot LinkSnapshot) error {
 
 // Deploy the site on CloudFlare Pages by making an HTTP POST request to the deploy webhook.
 // The deploy hook URL is considered a secret.
-// TODO: Hoist secrets handling up to a global config thing.
-func deploy(sec Secrets) error {
-	deployHookURL, err := sec.GetDeployHook()
-	if err != nil {
-		return util.WrapErr("failed to get deploy hook URL", err)
-	}
-
-	resp, err := http.Post(deployHookURL, "application/json", nil)
+func deploy(hookURL string) error {
+	resp, err := http.Post(hookURL, "application/json", nil)
 	if err != nil {
 		return util.WrapErr("failed to trigger deploy", err)
 	}

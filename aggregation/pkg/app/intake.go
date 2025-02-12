@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/georgemblack/blue-report/pkg/app/util"
 	"github.com/georgemblack/blue-report/pkg/cache"
 	"github.com/georgemblack/blue-report/pkg/storage"
+	"github.com/georgemblack/blue-report/pkg/util"
 	"github.com/gorilla/websocket"
 )
 
@@ -47,17 +47,11 @@ func Intake() error {
 	slog.Info("starting intake")
 
 	// Build Cache client
-	ch, err := cache.New()
+	app, err := NewApp()
 	if err != nil {
-		return util.WrapErr("failed to create cache client", err)
+		return util.WrapErr("failed to create app", err)
 	}
-	defer ch.Close()
-
-	// Build storage client
-	st, err := storage.New()
-	if err != nil {
-		return util.WrapErr("failed to create storage client", err)
-	}
+	defer app.Close()
 
 	// Start worker threads
 	var wg sync.WaitGroup
@@ -65,7 +59,7 @@ func Intake() error {
 	stream := make(chan StreamEvent, StreamBufferSize)
 	shutdown := make(chan struct{})
 	for i := 0; i < WorkerPoolSize; i++ {
-		go worker(i+1, stream, shutdown, ch, st, &wg)
+		go worker(i+1, stream, shutdown, app, &wg)
 	}
 
 	// Connect to Jetstream
@@ -105,7 +99,7 @@ func Intake() error {
 // - Determining whether the event is valid (i.e. a post, like, or repost, and references a URL)
 // - Transforming the event into a storage record (and saving to S3)
 // - Updating metadata in the cache
-func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, st Storage, wg *sync.WaitGroup) {
+func worker(id int, stream chan StreamEvent, shutdown chan struct{}, app App, wg *sync.WaitGroup) {
 	slog.Info(fmt.Sprintf("starting worker %d", id))
 	defer wg.Done()
 
@@ -139,13 +133,13 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 		err := error(nil)
 
 		if event.IsPost() && !event.IsQuotePost() {
-			stRecord, urlRecord, skip, err = handlePost(ch, event)
+			stRecord, urlRecord, skip, err = handlePost(app.Cache, event)
 		}
 		if event.IsPost() && event.IsQuotePost() {
-			stRecord, urlRecord, skip, err = handleQuotePost(ch, event)
+			stRecord, urlRecord, skip, err = handleQuotePost(app.Cache, event)
 		}
 		if event.IsLike() || event.IsRepost() {
-			stRecord, urlRecord, skip, err = handleLikeOrRepost(ch, event)
+			stRecord, urlRecord, skip, err = handleLikeOrRepost(app.Cache, event)
 		}
 
 		if err != nil {
@@ -172,7 +166,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 		// Save or update the URL record to cache.
 		// This record contains metadata for the URL, as well as post/repost/like counts.
 		// This also has the side-effect of refreshing the TTL of the URL record.
-		err = ch.SaveURL(util.Hash(stRecord.URL), urlRecord)
+		err = app.Cache.SaveURL(util.Hash(stRecord.URL), urlRecord)
 		if err != nil {
 			slog.Error(util.WrapErr("failed to save url record", err).Error())
 			return
@@ -188,7 +182,7 @@ func worker(id int, stream chan StreamEvent, shutdown chan struct{}, ch Cache, s
 			queue := len(stream)
 
 			go func() {
-				err = st.FlushEvents(localStats.start, localBuffer)
+				err = app.Storage.FlushEvents(localStats.start, localBuffer)
 				if err != nil {
 					slog.Warn(util.WrapErr("failed to write events", err).Error())
 				} else {

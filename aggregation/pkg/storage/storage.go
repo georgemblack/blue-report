@@ -14,33 +14,44 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dynamoDBTypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	s3Types "github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/georgemblack/blue-report/pkg/app/util"
+	"github.com/georgemblack/blue-report/pkg/config"
+	"github.com/georgemblack/blue-report/pkg/util"
 )
 
 type AWS struct {
-	s3       *s3.Client
-	dynamoDB *dynamodb.Client
+	s3                    *s3.Client
+	dynamoDB              *dynamodb.Client
+	publicBucketName      string
+	readEventsBucketName  string
+	writeEventsBucketName string
+	urlMetadataTableName  string
 }
 
-func New() (AWS, error) {
-	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion("us-west-2"))
+func New(cfg config.Config) (AWS, error) {
+	config, err := awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithRegion("us-west-2"))
 	if err != nil {
 		return AWS{}, util.WrapErr("failed to load aws config", err)
 	}
 
-	return AWS{s3: s3.NewFromConfig(cfg), dynamoDB: dynamodb.NewFromConfig(cfg)}, nil
+	return AWS{
+		s3:                    s3.NewFromConfig(config),
+		dynamoDB:              dynamodb.NewFromConfig(config),
+		publicBucketName:      cfg.PublicBucketName,
+		readEventsBucketName:  cfg.ReadEventsBucketName,
+		writeEventsBucketName: cfg.WriteEventsBucketName,
+	}, nil
 }
 
 // Publish the snapshot of the site's data to S3.
 // Store a 'latest' version, as well as a timestamped version.
 func (a AWS) PublishSnapshot(snapshot []byte) error {
 	_, err := a.s3.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:               aws.String(siteBucketName()),
+		Bucket:               aws.String(a.publicBucketName),
 		Key:                  aws.String("snapshot.json"),
 		Body:                 bytes.NewReader(snapshot),
 		ServerSideEncryption: "AES256",
@@ -56,7 +67,7 @@ func (a AWS) PublishSnapshot(snapshot []byte) error {
 	now := util.ToEastern(time.Now())
 	path := fmt.Sprintf("snapshots/%d/%d/%d/snapshot.json", now.Year(), now.Month(), now.Day())
 	_, err = a.s3.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:               aws.String(siteBucketName()),
+		Bucket:               aws.String(a.publicBucketName),
 		Key:                  aws.String(path),
 		Body:                 bytes.NewReader(snapshot),
 		ServerSideEncryption: "AES256",
@@ -72,7 +83,7 @@ func (a AWS) PublishSnapshot(snapshot []byte) error {
 
 func (a AWS) ReadEvents(key string) ([]EventRecord, error) {
 	resp, err := a.s3.GetObject(context.Background(), &s3.GetObjectInput{
-		Bucket: aws.String(readAssetsBucketName()),
+		Bucket: aws.String(a.readEventsBucketName),
 		Key:    aws.String(fmt.Sprintf("events/%s.json", key)),
 	})
 	if err != nil {
@@ -111,7 +122,7 @@ func (a AWS) FlushEvents(start time.Time, events []EventRecord) error {
 	// Write to S3, with timestamp in key
 	key := fmt.Sprintf("events/%s.json", start.UTC().Format("2006-01-02-15-04-05"))
 	_, err := a.s3.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:               aws.String(writeAssetsBucketName()),
+		Bucket:               aws.String(a.writeEventsBucketName),
 		Key:                  aws.String(key),
 		Body:                 bytes.NewReader(buf.Bytes()),
 		ServerSideEncryption: "AES256",
@@ -142,7 +153,7 @@ func (a AWS) ListEventChunks(start, end time.Time) ([]string, error) {
 
 	for _, prefix := range prefixes {
 		paginator := s3.NewListObjectsV2Paginator(a.s3, &s3.ListObjectsV2Input{
-			Bucket: aws.String(readAssetsBucketName()),
+			Bucket: aws.String(a.readEventsBucketName),
 			Prefix: aws.String(prefix),
 		})
 		for paginator.HasMorePages() {
@@ -197,7 +208,7 @@ func (a AWS) SaveThumbnail(id string, url string) error {
 
 	key := fmt.Sprintf("thumbnails/%s.jpg", id)
 	_, err = a.s3.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:               aws.String(siteBucketName()),
+		Bucket:               aws.String(a.publicBucketName),
 		Key:                  aws.String(key),
 		Body:                 bytes.NewReader(image),
 		ServerSideEncryption: "AES256",
@@ -213,7 +224,7 @@ func (a AWS) SaveThumbnail(id string, url string) error {
 
 func (a AWS) ThumbnailExists(id string) (bool, error) {
 	_, err := a.s3.HeadObject(context.Background(), &s3.HeadObjectInput{
-		Bucket: aws.String(siteBucketName()),
+		Bucket: aws.String(a.publicBucketName),
 		Key:    aws.String(fmt.Sprintf("thumbnails/%s.jpg", id)),
 	})
 	if err != nil {
@@ -247,7 +258,7 @@ func (a AWS) GetURLMetadata(url string) (URLMetadata, error) {
 
 func (a AWS) SaveURLMetadata(metadata URLMetadata) error {
 	_, err := a.dynamoDB.PutItem(context.Background(), &dynamodb.PutItemInput{
-		TableName: aws.String(urlMetadataTableName()),
+		TableName: aws.String(a.urlMetadataTableName),
 		Item: map[string]dynamoDBTypes.AttributeValue{
 			"urlHash": &dynamoDBTypes.AttributeValueMemberS{Value: util.Hash(metadata.URL)},
 			"url":     &dynamoDBTypes.AttributeValueMemberS{Value: metadata.URL},

@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/georgemblack/blue-report/pkg/app/util"
+	"github.com/georgemblack/blue-report/pkg/config"
+	"github.com/georgemblack/blue-report/pkg/util"
 	"github.com/valkey-io/valkey-go"
 	"github.com/vmihailenco/msgpack/v5"
 )
@@ -20,19 +21,16 @@ type Valkey struct {
 }
 
 // New creates a new Valkey client.
-func New() (Valkey, error) {
-	address := util.GetEnvStr("VALKEY_ADDRESS", "127.0.0.1:6379")
-	tlsEnabled := util.GetEnvBool("VALKEY_TLS_ENABLED", false)
-
+func New(cfg config.Config) (Valkey, error) {
 	var tlsConfig *tls.Config // nil by default
-	if tlsEnabled {
+	if cfg.ValkeyTLSEnabled {
 		tlsConfig = &tls.Config{
 			InsecureSkipVerify: false, // Validate the server's certificate
 		}
 	}
 
 	client, err := valkey.NewClient(valkey.ClientOption{
-		InitAddress: []string{address},
+		InitAddress: []string{cfg.ValkeyAddress},
 		TLSConfig:   tlsConfig,
 	})
 	if err != nil {

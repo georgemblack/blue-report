@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-)
 
-const publicEndpoint = "https://public.api.bsky.app"
+	"github.com/georgemblack/blue-report/pkg/config"
+)
 
 type Bluesky struct {
 	endpoint string
 }
 
-func New() Bluesky {
-	return Bluesky{endpoint: publicEndpoint}
+func New(cfg config.Config) Bluesky {
+	return Bluesky{endpoint: cfg.BlueskyAPIEndpoint}
 }
 
 func (b Bluesky) GetPost(atURI string) (Post, error) {

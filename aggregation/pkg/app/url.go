@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/georgemblack/blue-report/pkg/app/util"
+	"github.com/georgemblack/blue-report/pkg/util"
 )
 
 // QueryParamAllowList contains domains that use query params to identify content.

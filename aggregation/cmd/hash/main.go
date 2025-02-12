@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/georgemblack/blue-report/pkg/app/util"
+	"github.com/georgemblack/blue-report/pkg/util"
 )
 
 func main() {

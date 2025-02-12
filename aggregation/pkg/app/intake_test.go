@@ -5,10 +5,10 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/georgemblack/blue-report/pkg/app/util"
 	"github.com/georgemblack/blue-report/pkg/cache"
 	"github.com/georgemblack/blue-report/pkg/storage"
 	"github.com/georgemblack/blue-report/pkg/testutil"
+	"github.com/georgemblack/blue-report/pkg/util"
 	"go.uber.org/mock/gomock"
 )
 
@@ -218,8 +218,13 @@ func TestWorkerWithInvalidEvent(t *testing.T) {
 	mockCache.EXPECT().SaveURL(gomock.Any(), gomock.Any()).Times(0)
 	mockStorage.EXPECT().FlushEvents(gomock.Any(), gomock.Any()).Times(0)
 
+	app := App{
+		Cache:   mockCache,
+		Storage: mockStorage,
+	}
+
 	wg.Add(1)
-	go worker(1, stream, shutdown, mockCache, mockStorage, &wg)
+	go worker(1, stream, shutdown, app, &wg)
 
 	// Send the event to the worker
 	stream <- event
@@ -247,8 +252,13 @@ func TestWorkerWithFlush(t *testing.T) {
 	mockStorage := testutil.NewMockStorage(gomock.NewController(t))
 	mockStorage.EXPECT().FlushEvents(gomock.Any(), gomock.Any()).Times(1)
 
+	app := App{
+		Cache:   mockCache,
+		Storage: mockStorage,
+	}
+
 	wg.Add(1)
-	go worker(1, stream, shutdown, mockCache, mockStorage, &wg)
+	go worker(1, stream, shutdown, app, &wg)
 
 	// Send the event to the worker
 	for i := 0; i < EventBufferSize; i++ {

@@ -3,19 +3,18 @@ package app
 import (
 	"time"
 
-	"github.com/georgemblack/blue-report/pkg/app/util"
 	"github.com/georgemblack/blue-report/pkg/sites"
-	"github.com/georgemblack/blue-report/pkg/storage"
+	"github.com/georgemblack/blue-report/pkg/util"
 )
 
 // AggregateLinks fetches all events from storage, aggregates top sites, and generates a snapshot.
 // For each site, we aggregate the top URLs shared, total user interactions, and more.
 func AggregateSites() (sites.Snapshot, error) {
-	// Build storage client
-	stg, err := storage.New()
+	app, err := NewApp()
 	if err != nil {
-		return sites.Snapshot{}, util.WrapErr("failed to create storage client", err)
+		return sites.Snapshot{}, util.WrapErr("failed to create app", err)
 	}
+	defer app.Close()
 
 	processed := 0
 	aggregation := sites.Aggregation{}
@@ -23,13 +22,13 @@ func AggregateSites() (sites.Snapshot, error) {
 	start := end.Add(-30 * 60 * time.Hour)
 
 	// Scan all events within the last 30 days, and return a map of sites and their associated data.
-	chunks, err := stg.ListEventChunks(start, end)
+	chunks, err := app.Storage.ListEventChunks(start, end)
 	if err != nil {
 		return sites.Snapshot{}, util.WrapErr("failed to list event chunks", err)
 	}
 
 	for _, chunk := range chunks {
-		records, err := stg.ReadEvents(chunk)
+		records, err := app.Storage.ReadEvents(chunk)
 		if err != nil {
 			return sites.Snapshot{}, util.WrapErr("failed to read events", err)
 		}
