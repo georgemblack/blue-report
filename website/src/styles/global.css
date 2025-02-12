@@ -116,7 +116,7 @@ a:hover {
 }
 
 .link-container {
-  padding: 1.5em 0em;
+  padding: 2em 0em;
   border-top: 2px solid var(--line-separator-color);
 }
 
@@ -225,7 +225,6 @@ a:hover {
 /* small break-point */
 @media screen and (max-width: 36em) {
   .link-container {
-    padding: 2em 0;
     min-height: 12em;
   }
 
