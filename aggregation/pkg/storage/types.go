@@ -26,7 +26,3 @@ type URLMetadata struct {
 	URL   string
 	Title string
 }
-
-func (s URLMetadata) IsEmpty() bool {
-	return s.URL == "" && s.Title == ""
-}
