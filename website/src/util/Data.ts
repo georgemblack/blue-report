@@ -26,5 +26,11 @@ export interface Post {
 
 export async function fetchSnapshot(): Promise<Snapshot> {
   const response = await fetch(API_URL);
-  return await response.json();
+  const body: Snapshot = await response.json();
+  // Keep only the first three of each link's recommended posts
+  body.links.forEach((link) => {
+    link.recommended_posts = link.recommended_posts.slice(0, 3);
+  });
+
+  return body;
 }
