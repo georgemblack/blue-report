@@ -266,6 +266,7 @@ a:hover {
   padding: 0.35em 2em;
   border-radius: 1em;
   background-color: rgba(85, 170, 255, 0.1);
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
 .expand-centered svg {
