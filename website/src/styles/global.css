@@ -331,7 +331,7 @@ a:hover {
 /* medium break-point */
 @media screen and (max-width: 56em) {
   .link-details {
-    margin-top: 1;
+    margin-top: 1em;
   }
 }
 
