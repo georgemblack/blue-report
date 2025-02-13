@@ -165,8 +165,8 @@ func recommendedPosts(bs Bluesky, uris []string) []Post {
 	// For each AT URI, fetch the post from the Bluesky API.
 	// If the post has enough text/commentary, add it to the list of recommended posts.
 	for _, uri := range uris {
-		// Avoid fetching data after five posts have been selected
-		if len(posts) >= 5 {
+		// Avoid fetching data after three posts have been selected
+		if len(posts) >= 3 {
 			break
 		}
 
