@@ -324,13 +324,22 @@ a:hover {
 
 /* link details */
 .link-details {
+  visibility: hidden;
+  height: 0;
+  opacity: 0;
+  transition: opacity 0.1s ease-in;
+}
+
+.link-details.open {
+  visibility: visible;
+  height: auto;
+  opacity: 1;
   margin-top: 2em;
-  display: none;
 }
 
 /* medium break-point */
 @media screen and (max-width: 56em) {
-  .link-details {
+  .link-details.open {
     margin-top: 1em;
   }
 }

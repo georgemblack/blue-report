@@ -95,14 +95,14 @@ const snapshot = await fetchSnapshot();
       const centeredButton = document.getElementById(`${id}-centered`);
       if (!content || !inlineButton || !centeredButton) return;
 
-      if (content.style.display === "none" || content.style.display === "") {
-        inlineButton.classList.add("open");
-        centeredButton.classList.add("open");
-        content.style.display = "block";
-      } else {
+      if (content.classList.contains("open")) {
         inlineButton.classList.remove("open");
         centeredButton.classList.remove("open");
-        content.style.display = "none";
+        content.classList.remove("open");
+      } else {
+        inlineButton.classList.add("open");
+        centeredButton.classList.add("open");
+        content.classList.add("open");
       }
     }
   </script>
