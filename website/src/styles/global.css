@@ -360,7 +360,7 @@ a:hover {
 @media screen and (max-width: 56em) {
   .recommended-posts {
     display: flex;
-    overflow-x: scroll;
+    overflow-x: auto;
   }
 }
 
