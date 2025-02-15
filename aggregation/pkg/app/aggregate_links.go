@@ -20,8 +20,8 @@ const (
 // AggregateLinks fetches all events from storage, aggregates trending URLs, and generates a snapshot.
 // Metadata for each URL is hydrated from the cache, and thumbnails for each URL are stored in S3.
 func AggregateLinks() (LinkSnapshot, error) {
-	slog.Info("starting report generation")
-	start := time.Now()
+	slog.Info("starting snapshot generation")
+	jobStart := time.Now()
 
 	app, err := NewApp()
 	if err != nil {
@@ -48,8 +48,8 @@ func AggregateLinks() (LinkSnapshot, error) {
 		return LinkSnapshot{}, util.WrapErr("failed to hydrate snapshot", err)
 	}
 
-	duration := time.Since(start)
-	slog.Info("aggregation complete", "seconds", duration.Seconds())
+	jobDuration := time.Since(jobStart)
+	slog.Info("aggregation complete", "seconds", jobDuration.Seconds())
 	return snapshot, nil
 }
 

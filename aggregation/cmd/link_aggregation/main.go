@@ -14,9 +14,11 @@ func main() {
 	snapshot, err := app.AggregateLinks()
 	if err != nil {
 		slog.Error(err.Error())
+		os.Exit(1)
 	}
-	err = app.Publish(snapshot)
+	err = app.PublishLinkSnapshot(snapshot)
 	if err != nil {
 		slog.Error(err.Error())
+		os.Exit(1)
 	}
 }

@@ -28,7 +28,7 @@ func New() (Config, error) {
 	}
 
 	return Config{
-		BlueskyAPIEndpoint:    util.GetEnvStr("BLUESKY_API_ENDPOINT", "https://bluesky-web.org"),
+		BlueskyAPIEndpoint:    util.GetEnvStr("BLUESKY_API_ENDPOINT", "https://public.api.bsky.app"),
 		PublicBucketName:      util.GetEnvStr("S3_BUCKET_NAME", "blue-report-test"),
 		ReadEventsBucketName:  util.GetEnvStr("S3_ASSETS_BUCKET_NAME", "blue-report-assets"),
 		WriteEventsBucketName: util.GetEnvStr("S3_ASSETS_BUCKET_NAME", "blue-report-test"),

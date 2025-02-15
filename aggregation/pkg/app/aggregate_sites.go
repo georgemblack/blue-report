@@ -1,6 +1,7 @@
 package app
 
 import (
+	"log/slog"
 	"time"
 
 	"github.com/georgemblack/blue-report/pkg/sites"
@@ -10,6 +11,9 @@ import (
 // AggregateLinks fetches all events from storage, aggregates top sites, and generates a snapshot.
 // For each site, we aggregate the top URLs shared, total user interactions, and more.
 func AggregateSites() (sites.Snapshot, error) {
+	slog.Info("starting snapshot generation")
+	jobStart := time.Now()
+
 	app, err := NewApp()
 	if err != nil {
 		return sites.Snapshot{}, util.WrapErr("failed to create app", err)
@@ -19,7 +23,7 @@ func AggregateSites() (sites.Snapshot, error) {
 	processed := 0
 	aggregation := sites.Aggregation{}
 	end := time.Now().UTC()
-	start := end.Add(-30 * 60 * time.Hour)
+	start := end.Add(-30 * 24 * time.Hour) // 30 days
 
 	// Scan all events within the last 30 days, and return a map of sites and their associated data.
 	chunks, err := app.Storage.ListEventChunks(start, end)
@@ -28,6 +32,8 @@ func AggregateSites() (sites.Snapshot, error) {
 	}
 
 	for _, chunk := range chunks {
+		slog.Debug("processing chunk", "chunk", chunk)
+
 		records, err := app.Storage.ReadEvents(chunk)
 		if err != nil {
 			return sites.Snapshot{}, util.WrapErr("failed to read events", err)
@@ -47,6 +53,8 @@ func AggregateSites() (sites.Snapshot, error) {
 		records = nil // Help the garbage collector
 	}
 
+	slog.Debug("processed events", "events", processed, "skipped", aggregation.Skipped())
+
 	// Sort the sites by the total number of interactions.
 	top := aggregation.TopSites(10)
 
@@ -56,5 +64,13 @@ func AggregateSites() (sites.Snapshot, error) {
 		snapshot.AddSite(site, aggregation[site])
 	}
 
+	// Hydrate the snapshot with additional data from storage
+	snapshot, err = hydrateSites(app.Storage, snapshot)
+	if err != nil {
+		return sites.Snapshot{}, util.WrapErr("failed to hydrate sites", err)
+	}
+
+	jobDuration := time.Since(jobStart)
+	slog.Info("aggregation complete", "seconds", jobDuration.Seconds())
 	return snapshot, nil
 }

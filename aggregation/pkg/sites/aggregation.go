@@ -2,7 +2,10 @@ package sites
 
 import (
 	"fmt"
+	"log/slog"
+	"net/url"
 	"slices"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/georgemblack/blue-report/pkg/util"
@@ -14,6 +17,7 @@ type AggregationItem struct {
 	links        map[string]Counts  // Track each URL and the associated posts/resposts/likes
 	counts       Counts             // Track total posts/resposts/likes for site
 	fingerprints mapset.Set[string] // Track unique DID, URL, and event type combinations
+	skipped      int                // Track the number of skipped events based on fingerprint
 }
 
 type Counts struct {
@@ -26,18 +30,38 @@ func (c Counts) Total() int {
 	return c.Posts + c.Reposts + c.Likes
 }
 
-func (a *Aggregation) CountEvent(eventType int, url string, did string) {
+// Count an event for a given URL.
+// URLs should be filtered and normalized before being a part of the aggregation.
+func (a *Aggregation) CountEvent(eventType int, linkURL string, did string) {
+	// Create the map if it doesn't exist
 	if *a == nil {
 		*a = make(Aggregation)
 	}
 
-	if _, ok := (*a)[url]; !ok {
-		(*a)[url] = AggregationItem{}
+	// Fetch the domain from the URL
+	url, err := url.Parse(linkURL)
+	if err != nil {
+		slog.Warn("failed to parse url when counting event", "url", linkURL)
+		return
+	}
+	host := url.Hostname()
+
+	// Trim 'www.' prefix if it exists
+	host = strings.TrimPrefix(host, "www.")
+
+	if host == "" {
+		slog.Warn("empty host when parsing url", "url", linkURL)
+		return
 	}
 
-	item := (*a)[url]
-	item.CountEvent(eventType, url, did)
-	(*a)[url] = item
+	// Create aggregation item for host if it doesn't eixst
+	if _, ok := (*a)[host]; !ok {
+		(*a)[host] = AggregationItem{}
+	}
+
+	item := (*a)[host]
+	item.CountEvent(eventType, linkURL, did)
+	(*a)[host] = item
 }
 
 func (a *Aggregation) TopSites(n int) []string {
@@ -78,20 +102,32 @@ func (a *Aggregation) TopSites(n int) []string {
 	return sites
 }
 
-func (a *AggregationItem) CountEvent(eventType int, url string, did string) {
+func (a *Aggregation) Skipped() int {
+	total := 0
+
+	// For each item in map
+	for _, item := range *a {
+		total += item.Skipped()
+	}
+
+	return total
+}
+
+func (a *AggregationItem) CountEvent(eventType int, linkURL string, did string) {
 	if a.fingerprints == nil {
 		a.fingerprints = mapset.NewSet[string]()
 	}
 	if a.links == nil {
 		a.links = make(map[string]Counts)
 	}
-	if _, ok := a.links[url]; !ok {
-		a.links[url] = Counts{}
+	if _, ok := a.links[linkURL]; !ok {
+		a.links[linkURL] = Counts{}
 	}
 
 	// Avoid duplicate post/repost/like from same user/url combo
-	fingerprint := fmt.Sprintf("%d%s%s", eventType, util.Hash(url), did)
+	fingerprint := fmt.Sprintf("%d%s%s", eventType, util.Hash(linkURL), did)
 	if a.fingerprints.Contains(fingerprint) {
+		a.skipped++
 		return
 	}
 	a.fingerprints.Add(fingerprint)
@@ -99,7 +135,7 @@ func (a *AggregationItem) CountEvent(eventType int, url string, did string) {
 	// Increment:
 	//	- The count for the given URL
 	// 	- The count for the site as a whole
-	item := a.links[url]
+	item := a.links[linkURL]
 	if eventType == 0 {
 		item.Posts++
 		a.counts.Posts++
@@ -112,11 +148,7 @@ func (a *AggregationItem) CountEvent(eventType int, url string, did string) {
 		item.Likes++
 		a.counts.Likes++
 	}
-	a.links[url] = item
-}
-
-func (a *AggregationItem) Interactions() int {
-	return a.counts.Total()
+	a.links[linkURL] = item
 }
 
 func (a *AggregationItem) TopLinks(n int) []string {
@@ -155,4 +187,12 @@ func (a *AggregationItem) TopLinks(n int) []string {
 	}
 
 	return links
+}
+
+func (a *AggregationItem) Interactions() int {
+	return a.counts.Total()
+}
+
+func (a *AggregationItem) Skipped() int {
+	return a.skipped
 }

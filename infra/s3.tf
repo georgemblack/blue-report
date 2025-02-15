@@ -82,14 +82,14 @@ resource "aws_s3_bucket_lifecycle_configuration" "assets" {
   }
 
   rule {
-    id = "Temporary"
+    id = "IntelligentTieringDefault"
 
     filter {
       prefix = "events/"
     }
 
     transition {
-      days          = 1
+      days          = 0
       storage_class = "INTELLIGENT_TIERING"
     }
 

@@ -27,3 +27,10 @@ Or the generate job:
 ```
 DEBUG=true go run cmd/generate/main.go
 ```
+
+## Finding a OOM-Killed Container on ECS
+
+```
+aws ecs list-tasks --cluster blue-report --desired-status STOPPED --output json > ecs_tasks.json
+aws ecs describe-tasks --cluster blue-report --tasks $(jq -j '.taskArns[] | (.|" ",.)' ./ecs_tasks.json) --output yaml > ecs_tasks_describe.log
+```

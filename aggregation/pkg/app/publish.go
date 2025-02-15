@@ -8,12 +8,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/georgemblack/blue-report/pkg/sites"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
-// Publish converts a report to HTML and JSON, and publishes to an S3 bucket where the site is hosted.
-func Publish(snapshot LinkSnapshot) error {
-	slog.Info("starting report publish")
+func PublishLinkSnapshot(snapshot LinkSnapshot) error {
+	slog.Info("publishing snapshot")
 	start := time.Now()
 
 	app, err := NewApp()
@@ -26,13 +26,47 @@ func Publish(snapshot LinkSnapshot) error {
 	if err != nil {
 		return util.WrapErr("failed to marshal snapshot", err)
 	}
-	err = app.Storage.PublishSnapshot(data)
+	err = app.Storage.PublishLinkSnapshot(data)
 	if err != nil {
 		return util.WrapErr("failed to publish snapshot", err)
 	}
 
 	if os.Getenv("DEBUG") == "true" {
 		os.WriteFile("dist/snapshot.json", data, 0644)
+	}
+
+	slog.Info("triggering deployment")
+	err = deploy(app.Config.DeployHookURL)
+	if err != nil {
+		return util.WrapErr("failed to deploy", err)
+	}
+
+	duration := time.Since(start)
+	slog.Info("publish complete", "seconds", duration.Seconds())
+	return nil
+}
+
+func PublishSiteSnapshot(snapshot sites.Snapshot) error {
+	slog.Info("publishing snapshot")
+	start := time.Now()
+
+	app, err := NewApp()
+	if err != nil {
+		return util.WrapErr("failed to create app", err)
+	}
+
+	// Save snapshot to storage as JSON
+	data, err := json.Marshal(snapshot)
+	if err != nil {
+		return util.WrapErr("failed to marshal snapshot", err)
+	}
+	err = app.Storage.PublishSiteSnapshot(data)
+	if err != nil {
+		return util.WrapErr("failed to publish snapshot", err)
+	}
+
+	if os.Getenv("DEBUG") == "true" {
+		os.WriteFile("dist/sites.json", data, 0644)
 	}
 
 	slog.Info("triggering deployment")

@@ -44,12 +44,13 @@ func New(cfg config.Config) (AWS, error) {
 		publicBucketName:      cfg.PublicBucketName,
 		readEventsBucketName:  cfg.ReadEventsBucketName,
 		writeEventsBucketName: cfg.WriteEventsBucketName,
+		urlMetadataTableName:  cfg.URLMetadataTableName,
 	}, nil
 }
 
-// Publish the snapshot of the site's data to S3.
+// PublishLinkSnapshot publishes the snapshot of the site's data to S3.
 // Store a 'latest' version, as well as a timestamped version.
-func (a AWS) PublishSnapshot(snapshot []byte) error {
+func (a AWS) PublishLinkSnapshot(snapshot []byte) error {
 	_, err := a.s3.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:               aws.String(a.publicBucketName),
 		Key:                  aws.String("snapshot.json"),
@@ -73,6 +74,23 @@ func (a AWS) PublishSnapshot(snapshot []byte) error {
 		ServerSideEncryption: "AES256",
 		ContentType:          aws.String("application/json"),
 		CacheControl:         aws.String("max-age=3600"), // 1 hour
+	})
+	if err != nil {
+		return util.WrapErr("failed to put object", err)
+	}
+
+	return nil
+}
+
+// PublishSiteSnapshot publishes the snapshot of the site's data to S3.
+func (a AWS) PublishSiteSnapshot(snapshot []byte) error {
+	_, err := a.s3.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:               aws.String(a.publicBucketName),
+		Key:                  aws.String("sites.json"),
+		Body:                 bytes.NewReader(snapshot),
+		ServerSideEncryption: "AES256",
+		ContentType:          aws.String("application/json"),
+		CacheControl:         aws.String("max-age=600"), // 10 minutes
 	})
 	if err != nil {
 		return util.WrapErr("failed to put object", err)

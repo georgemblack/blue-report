@@ -7,6 +7,7 @@ import (
 	"github.com/georgemblack/blue-report/pkg/storage"
 )
 
+// App creates a new instance of the application, initializing the cache, storage, and Bluesky API client.
 type App struct {
 	Config  config.Config
 	Cache   Cache
