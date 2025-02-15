@@ -48,7 +48,13 @@ func AggregateSites() (sites.Snapshot, error) {
 	}
 
 	// Sort the sites by the total number of interactions.
-	_ = aggregation.TopSites(10)
+	top := aggregation.TopSites(10)
 
-	return sites.Snapshot{}, nil
+	// Format the data into a snapshot
+	snapshot := sites.NewSnapshot()
+	for _, site := range top {
+		snapshot.AddSite(site, aggregation[site])
+	}
+
+	return snapshot, nil
 }

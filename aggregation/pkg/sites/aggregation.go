@@ -22,6 +22,10 @@ type Counts struct {
 	Likes   int
 }
 
+func (c Counts) Total() int {
+	return c.Posts + c.Reposts + c.Likes
+}
+
 func (a *Aggregation) CountEvent(eventType int, url string, did string) {
 	if *a == nil {
 		*a = make(Aggregation)
@@ -111,7 +115,11 @@ func (a *AggregationItem) CountEvent(eventType int, url string, did string) {
 	a.links[url] = item
 }
 
-func (a *AggregationItem) TopURLs(n int) []string {
+func (a *AggregationItem) Interactions() int {
+	return a.counts.Total()
+}
+
+func (a *AggregationItem) TopLinks(n int) []string {
 	// Convert map to slice
 	type kv struct {
 		URL    string
@@ -123,10 +131,10 @@ func (a *AggregationItem) TopURLs(n int) []string {
 		kvs = append(kvs, kv{URL: k, Counts: v})
 	}
 
-	// Sort by score
+	// Sort by interactions
 	slices.SortFunc(kvs, func(a, b kv) int {
-		scoreA := a.Counts.Posts + a.Counts.Reposts + a.Counts.Likes
-		scoreB := b.Counts.Posts + b.Counts.Reposts + b.Counts.Likes
+		scoreA := a.Counts.Total()
+		scoreB := b.Counts.Total()
 
 		if scoreA > scoreB {
 			return -1
@@ -138,17 +146,13 @@ func (a *AggregationItem) TopURLs(n int) []string {
 	})
 
 	// Find top n items
-	urls := make([]string, 0, n)
+	links := make([]string, 0, n)
 	for i := range kvs {
-		if len(urls) >= n {
+		if len(links) >= n {
 			break
 		}
-		urls = append(urls, kvs[i].URL)
+		links = append(links, kvs[i].URL)
 	}
 
-	return urls
-}
-
-func (a *AggregationItem) Interactions() int {
-	return a.counts.Posts + a.counts.Reposts + a.counts.Likes
+	return links
 }
