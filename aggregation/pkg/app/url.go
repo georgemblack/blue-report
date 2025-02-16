@@ -59,29 +59,34 @@ func normalize(input string) string {
 
 // Determine whether to include a given URL.
 // Ignore known image hosts, bad websites, and gifs/images.
-func include(url string) bool {
-	if url == "" {
+func include(linkURL string) bool {
+	if linkURL == "" {
+		return false
+	}
+
+	_, err := url.Parse(linkURL)
+	if err != nil {
 		return false
 	}
 
 	// Ignore insecure URLs
-	if !strings.HasPrefix(url, "https://") {
+	if !strings.HasPrefix(linkURL, "https://") {
 		return false
 	}
 
 	// Ignore image hosts
-	if strings.HasPrefix(url, "https://media.tenor.com") {
+	if strings.HasPrefix(linkURL, "https://media.tenor.com") {
 		return false
 	}
 
 	// Ignore known bots
 	// https://mesonet.agron.iastate.edu/projects/iembot/
-	if strings.HasPrefix(url, "https://mesonet.agron.iastate.edu") {
+	if strings.HasPrefix(linkURL, "https://mesonet.agron.iastate.edu") {
 		return false
 	}
 
 	// Ignore known sites used by bots / explicit content
-	if strings.HasPrefix(url, "https://beacons.ai") {
+	if strings.HasPrefix(linkURL, "https://beacons.ai") {
 		return false
 	}
 
@@ -89,26 +94,26 @@ func include(url string) bool {
 	// Subpaths of this site are allowed, such as 'https://www.democracydocket.com/some-news-story'.
 	// However, the root domain is posted frequently without referring to a specific story.
 	// The intention of The Blue Report is to showcase specific stories/events.
-	if url == "https://www.democracydocket.com" || url == "https://www.democracydocket.com/" {
+	if linkURL == "https://www.democracydocket.com" || linkURL == "https://www.democracydocket.com/" {
 		return false
 	}
 
 	// Ignore links to the app itself. The purpose of this project is to track external links.
-	if strings.HasPrefix(url, "https://bsky.app") || strings.HasPrefix(url, "https://go.bsky.app") {
+	if strings.HasPrefix(linkURL, "https://bsky.app") || strings.HasPrefix(linkURL, "https://go.bsky.app") {
 		return false
 	}
 
 	// Ignore gifs/images
-	if strings.HasSuffix(url, ".gif") {
+	if strings.HasSuffix(linkURL, ".gif") {
 		return false
 	}
-	if strings.HasSuffix(url, ".jpg") {
+	if strings.HasSuffix(linkURL, ".jpg") {
 		return false
 	}
-	if strings.HasSuffix(url, ".jpeg") {
+	if strings.HasSuffix(linkURL, ".jpeg") {
 		return false
 	}
-	if strings.HasSuffix(url, ".png") {
+	if strings.HasSuffix(linkURL, ".png") {
 		return false
 	}
 
