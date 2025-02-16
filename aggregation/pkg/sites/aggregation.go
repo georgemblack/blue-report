@@ -45,7 +45,7 @@ func (a *Aggregation) CountEvent(eventType int, linkURL string, did string) {
 	// Fetch the domain from the URL
 	url, err := url.Parse(linkURL)
 	if err != nil {
-		slog.Warn("failed to parse url when counting event", "url", linkURL)
+		slog.Debug("failed to parse url when counting event", "url", linkURL)
 		return
 	}
 	host := url.Hostname()

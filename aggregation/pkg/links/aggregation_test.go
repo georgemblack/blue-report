@@ -1,95 +1,55 @@
 package links
 
-// func TestAggregationCounting(t *testing.T) {
-// 	agg := URLAggregation{}
-// 	for i := 0; i < 5; i++ {
-// 		agg.IncrementPostCount()
-// 	}
-// 	for i := 0; i < 3; i++ {
-// 		agg.IncrementRepostCount()
-// 	}
-// 	for i := 0; i < 7; i++ {
-// 		agg.IncrementLikeCount()
-// 	}
+import "testing"
 
-// 	if agg.Counts.Posts != 5 {
-// 		t.Errorf("unexpected post count: %d", agg.Counts.Posts)
-// 	}
-// 	if agg.Counts.Reposts != 3 {
-// 		t.Errorf("unexpected repost count: %d", agg.Counts.Reposts)
-// 	}
-// 	if agg.Counts.Likes != 7 {
-// 		t.Errorf("unexpected like count: %d", agg.Counts.Likes)
-// 	}
-// }
+func TestAggregationBasics(t *testing.T) {
+	aggregation := NewAggregation()
 
-// func TestAggregationTopPosts(t *testing.T) {
-// 	agg := URLAggregation{}
-// 	for i := 0; i < 5; i++ {
-// 		agg.CountPost("456")
-// 	}
-// 	for i := 0; i < 10; i++ {
-// 		agg.CountPost("123")
-// 	}
-// 	for i := 0; i < 20; i++ {
-// 		agg.CountPost("yz")
-// 	}
-// 	for i := 0; i < 30; i++ {
-// 		agg.CountPost("vwx")
-// 	}
-// 	for i := 0; i < 40; i++ {
-// 		agg.CountPost("stu")
-// 	}
-// 	for i := 0; i < 50; i++ {
-// 		agg.CountPost("pqr")
-// 	}
-// 	for i := 0; i < 60; i++ {
-// 		agg.CountPost("mno")
-// 	}
-// 	for i := 0; i < 70; i++ {
-// 		agg.CountPost("jkl")
-// 	}
-// 	for i := 0; i < 80; i++ {
-// 		agg.CountPost("ghi")
-// 	}
-// 	for i := 0; i < 90; i++ {
-// 		agg.CountPost("def")
-// 	}
-// 	for i := 0; i < 100; i++ {
-// 		agg.CountPost("abc")
-// 	}
+	aggregation.CountEvent(0, "https://www.example.com/some-page", "abc", "did1")
+	item := aggregation.Get("https://www.example.com/some-page")
 
-// 	expected := []string{"abc", "def", "ghi", "jkl", "mno", "pqr", "stu", "vwx", "yz", "123"}
-// 	result := agg.TopPosts()
+	if item.Counts.Posts != 1 {
+		t.Errorf("expected 1 post, got %d", item.Counts.Posts)
+	}
+	if aggregation.Total() != 1 {
+		t.Errorf("expected 1 total, got %d", aggregation.Total())
+	}
+	if aggregation.Skipped() != 0 {
+		t.Errorf("expected 0 skipped, got %d", aggregation.Skipped())
+	}
 
-// 	for i, post := range result {
-// 		if post != expected[i] {
-// 			t.Errorf("unexpected post at index %d: %s", i, post)
-// 		}
-// 	}
-// }
+	top := aggregation.TopLinks(1)
+	if len(top) != 1 {
+		t.Errorf("expected 1 top link, got %d", len(top))
+	}
+	if top[0] != "https://www.example.com/some-page" {
+		t.Errorf("expected top link to be https://www.example.com/some-page, got %s", top[0])
+	}
+}
 
-// func TestAggregationTopPostsLessThanTen(t *testing.T) {
-// 	agg := URLAggregation{}
-// 	for i := 0; i < 5; i++ {
-// 		agg.CountPost("456")
-// 	}
-// 	for i := 0; i < 10; i++ {
-// 		agg.CountPost("123")
-// 	}
-// 	for i := 0; i < 20; i++ {
-// 		agg.CountPost("yz")
-// 	}
+func TestAggregationDuplicateHandling(t *testing.T) {
+	aggregation := NewAggregation()
 
-// 	expected := []string{"yz", "123", "456"}
-// 	result := agg.TopPosts()
+	aggregation.CountEvent(0, "https://www.example.com/some-page", "abc", "did1")
+	aggregation.CountEvent(0, "https://www.example.com/some-page", "abc", "did1")
+	aggregation.CountEvent(0, "https://www.example2.com/some-page", "xyz", "did2")
+	aggregation.CountEvent(0, "https://www.example2.com/some-page", "123", "did3")
 
-// 	if len(result) != 3 {
-// 		t.Errorf("unexpected post count: %d", len(result))
-// 	}
-// 	for i, post := range result {
-// 		if post != expected[i] {
-// 			t.Errorf("unexpected post at index %d: %s", i, post)
-// 		}
-// 	}
-// }
+	if aggregation.Total() != 3 {
+		t.Errorf("expected 2 total, got %d", aggregation.Total())
+	}
+	if aggregation.Skipped() != 1 {
+		t.Errorf("expected 1 skipped, got %d", aggregation.Skipped())
+	}
+
+	top := aggregation.TopLinks(2)
+	if len(top) != 2 {
+		t.Errorf("expected 2 top links, got %d", len(top))
+	}
+	if top[0] != "https://www.example2.com/some-page" {
+		t.Errorf("expected top link to be https://www.example2.com/some-page, got %s", top[0])
+	}
+	if top[1] != "https://www.example.com/some-page" {
+		t.Errorf("expected second top link to be https://www.example.com/some-page, got %s", top[1])
+	}
+}
