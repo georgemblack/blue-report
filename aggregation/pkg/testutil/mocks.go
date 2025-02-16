@@ -238,18 +238,18 @@ func (mr *MockStorageMockRecorder) PublishSiteSnapshot(snapshot any) *gomock.Cal
 }
 
 // ReadEvents mocks base method.
-func (m *MockStorage) ReadEvents(key string) ([]storage.EventRecord, error) {
+func (m *MockStorage) ReadEvents(key string, eventBufferSize int) ([]storage.EventRecord, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReadEvents", key)
+	ret := m.ctrl.Call(m, "ReadEvents", key, eventBufferSize)
 	ret0, _ := ret[0].([]storage.EventRecord)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ReadEvents indicates an expected call of ReadEvents.
-func (mr *MockStorageMockRecorder) ReadEvents(key any) *gomock.Call {
+func (mr *MockStorageMockRecorder) ReadEvents(key, eventBufferSize any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadEvents", reflect.TypeOf((*MockStorage)(nil).ReadEvents), key)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadEvents", reflect.TypeOf((*MockStorage)(nil).ReadEvents), key, eventBufferSize)
 }
 
 // SaveThumbnail mocks base method.

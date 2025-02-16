@@ -1,24 +1,14 @@
-package app
+package links
 
 import "time"
 
-// Create an empty snapshot populated with the 'GeneratedAt' timestamp, as well as a list of links w/URLs
-func newLinkSnapshot(urls []string) LinkSnapshot {
-	links := make([]Link, 0, len(urls))
-
-	for _, url := range urls {
-		links = append(links, Link{
-			URL: url,
-		})
-	}
-
-	return LinkSnapshot{
+func NewSnapshot() Snapshot {
+	return Snapshot{
 		GeneratedAt: time.Now().UTC().Format(time.RFC3339),
-		Links:       links,
 	}
 }
 
-type LinkSnapshot struct {
+type Snapshot struct {
 	GeneratedAt string `json:"generated_at"`
 	Links       []Link `json:"links"`
 }

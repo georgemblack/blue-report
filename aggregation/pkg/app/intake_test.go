@@ -224,7 +224,7 @@ func TestWorkerWithInvalidEvent(t *testing.T) {
 	}
 
 	wg.Add(1)
-	go worker(1, stream, shutdown, app, &wg)
+	go intakeWorker(1, stream, shutdown, app, &wg)
 
 	// Send the event to the worker
 	stream <- event
@@ -258,7 +258,7 @@ func TestWorkerWithFlush(t *testing.T) {
 	}
 
 	wg.Add(1)
-	go worker(1, stream, shutdown, app, &wg)
+	go intakeWorker(1, stream, shutdown, app, &wg)
 
 	// Send the event to the worker
 	for i := 0; i < EventBufferSize; i++ {

@@ -47,7 +47,7 @@ func (s *Snapshot) AddSite(domain string, agg AggregationItem) {
 		Rank:         len(s.Sites) + 1,
 		Name:         domain,
 		Domain:       domain,
-		Interactions: agg.Interactions(),
+		Interactions: agg.counts.Total(),
 		Links:        links,
 	}
 

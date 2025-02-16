@@ -8,11 +8,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/georgemblack/blue-report/pkg/links"
 	"github.com/georgemblack/blue-report/pkg/sites"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
-func PublishLinkSnapshot(snapshot LinkSnapshot) error {
+func PublishLinkSnapshot(snapshot links.Snapshot) error {
 	slog.Info("publishing snapshot")
 	start := time.Now()
 

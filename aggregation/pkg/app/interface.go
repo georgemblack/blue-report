@@ -21,7 +21,7 @@ type Cache interface {
 type Storage interface {
 	PublishLinkSnapshot(snapshot []byte) error
 	PublishSiteSnapshot(snapshot []byte) error
-	ReadEvents(key string) ([]storage.EventRecord, error)
+	ReadEvents(key string, eventBufferSize int) ([]storage.EventRecord, error)
 	FlushEvents(start time.Time, events []storage.EventRecord) error
 	ListEventChunks(start, end time.Time) ([]string, error)
 	SaveThumbnail(id string, url string) error

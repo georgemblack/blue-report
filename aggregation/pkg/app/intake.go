@@ -3,7 +3,6 @@ package app
 import (
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
@@ -46,7 +45,6 @@ func newStats() Stats {
 func Intake() error {
 	slog.Info("starting intake")
 
-	// Build Cache client
 	app, err := NewApp()
 	if err != nil {
 		return util.WrapErr("failed to create app", err)
@@ -59,7 +57,7 @@ func Intake() error {
 	stream := make(chan StreamEvent, StreamBufferSize)
 	shutdown := make(chan struct{})
 	for i := 0; i < WorkerPoolSize; i++ {
-		go worker(i+1, stream, shutdown, app, &wg)
+		go intakeWorker(i+1, stream, shutdown, app, &wg)
 	}
 
 	// Connect to Jetstream
@@ -95,11 +93,11 @@ func Intake() error {
 	return nil
 }
 
-// The intake worker is responsible for processing events from the stream. This includes:
+// The intakeWorker is responsible for processing events from the stream. This includes:
 // - Determining whether the event is valid (i.e. a post, like, or repost, and references a URL)
 // - Transforming the event into a storage record (and saving to S3)
 // - Updating metadata in the cache
-func worker(id int, stream chan StreamEvent, shutdown chan struct{}, app App, wg *sync.WaitGroup) {
+func intakeWorker(id int, stream chan StreamEvent, shutdown chan struct{}, app App, wg *sync.WaitGroup) {
 	slog.Info(fmt.Sprintf("starting worker %d", id))
 	defer wg.Done()
 
@@ -320,64 +318,6 @@ func handleLikeOrRepost(ch Cache, event StreamEvent) (storage.EventRecord, cache
 		Post:      event.Commit.Record.Subject.URI, // AT URI of the liked/reposted post
 	}
 	return stgRecord, urlRecord, false, nil
-}
-
-// Determine whether to include a given URL.
-// Ignore known image hosts, bad websites, and gifs/images.
-func include(url string) bool {
-	if url == "" {
-		return false
-	}
-
-	// Ignore insecure URLs
-	if !strings.HasPrefix(url, "https://") {
-		return false
-	}
-
-	// Ignore image hosts
-	if strings.HasPrefix(url, "https://media.tenor.com") {
-		return false
-	}
-
-	// Ignore known bots
-	// https://mesonet.agron.iastate.edu/projects/iembot/
-	if strings.HasPrefix(url, "https://mesonet.agron.iastate.edu") {
-		return false
-	}
-
-	// Ignore known sites used by bots / explicit content
-	if strings.HasPrefix(url, "https://beacons.ai") {
-		return false
-	}
-
-	// Prevent trend manipulation.
-	// Subpaths of this site are allowed, such as 'https://www.democracydocket.com/some-news-story'.
-	// However, the root domain is posted frequently without referring to a specific story.
-	// The intention of The Blue Report is to showcase specific stories/events.
-	if url == "https://www.democracydocket.com/" {
-		return false
-	}
-
-	// Ignore links to the app itself. The purpose of this project is to track external links.
-	if strings.HasPrefix(url, "https://bsky.app") || strings.HasPrefix(url, "https://go.bsky.app") {
-		return false
-	}
-
-	// Ignore gifs/images
-	if strings.HasSuffix(url, ".gif") {
-		return false
-	}
-	if strings.HasSuffix(url, ".jpg") {
-		return false
-	}
-	if strings.HasSuffix(url, ".jpeg") {
-		return false
-	}
-	if strings.HasSuffix(url, ".png") {
-		return false
-	}
-
-	return true
 }
 
 // Merge two URL records, returning the updated record.

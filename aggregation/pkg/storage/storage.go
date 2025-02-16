@@ -99,7 +99,7 @@ func (a AWS) PublishSiteSnapshot(snapshot []byte) error {
 	return nil
 }
 
-func (a AWS) ReadEvents(key string) ([]EventRecord, error) {
+func (a AWS) ReadEvents(key string, eventBufferSize int) ([]EventRecord, error) {
 	resp, err := a.s3.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(a.readEventsBucketName),
 		Key:    aws.String(fmt.Sprintf("events/%s.json", key)),
@@ -111,7 +111,7 @@ func (a AWS) ReadEvents(key string) ([]EventRecord, error) {
 
 	// Decode JSON lines
 	dec := json.NewDecoder(resp.Body)
-	events := make([]EventRecord, 0)
+	events := make([]EventRecord, 0, eventBufferSize)
 	for {
 		event := EventRecord{}
 		if err := dec.Decode(&event); err != nil {

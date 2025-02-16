@@ -57,11 +57,60 @@ func normalize(input string) string {
 	return result
 }
 
-func hostname(fullURL string) string {
-	parsed, err := url.Parse(fullURL)
-	if err != nil {
-		return ""
+// Determine whether to include a given URL.
+// Ignore known image hosts, bad websites, and gifs/images.
+func include(url string) bool {
+	if url == "" {
+		return false
 	}
 
-	return parsed.Hostname()
+	// Ignore insecure URLs
+	if !strings.HasPrefix(url, "https://") {
+		return false
+	}
+
+	// Ignore image hosts
+	if strings.HasPrefix(url, "https://media.tenor.com") {
+		return false
+	}
+
+	// Ignore known bots
+	// https://mesonet.agron.iastate.edu/projects/iembot/
+	if strings.HasPrefix(url, "https://mesonet.agron.iastate.edu") {
+		return false
+	}
+
+	// Ignore known sites used by bots / explicit content
+	if strings.HasPrefix(url, "https://beacons.ai") {
+		return false
+	}
+
+	// Prevent trend manipulation.
+	// Subpaths of this site are allowed, such as 'https://www.democracydocket.com/some-news-story'.
+	// However, the root domain is posted frequently without referring to a specific story.
+	// The intention of The Blue Report is to showcase specific stories/events.
+	if url == "https://www.democracydocket.com" || url == "https://www.democracydocket.com/" {
+		return false
+	}
+
+	// Ignore links to the app itself. The purpose of this project is to track external links.
+	if strings.HasPrefix(url, "https://bsky.app") || strings.HasPrefix(url, "https://go.bsky.app") {
+		return false
+	}
+
+	// Ignore gifs/images
+	if strings.HasSuffix(url, ".gif") {
+		return false
+	}
+	if strings.HasSuffix(url, ".jpg") {
+		return false
+	}
+	if strings.HasSuffix(url, ".jpeg") {
+		return false
+	}
+	if strings.HasSuffix(url, ".png") {
+		return false
+	}
+
+	return true
 }
