@@ -64,7 +64,7 @@ func AggregateLinks() (links.Snapshot, error) {
 		}
 	}
 
-	slog.Info("processed events", "count", aggregation.Total(), "skipped", aggregation.Skipped(), "bloom_filter_correct", aggregation.BloomFilterCorrect(), "bloom_filter_incorrect", aggregation.BloomFilterIncorrect())
+	slog.Info("processed events", "count", aggregation.Total(), "skipped", aggregation.Skipped())
 
 	// Sort links based on score
 	top := aggregation.TopLinks(ListSize)

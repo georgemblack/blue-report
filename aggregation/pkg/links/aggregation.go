@@ -17,19 +17,14 @@ type Aggregation struct {
 	fingerprints mapset.Set[string]
 	total        int // Number of events processed
 	skipped      int // Number of events skipped due to suspected duplicate
-	correct      int // Track accuracy of the bloom filter
-	incorrect    int // Track accuracy of the bloom filter
 }
 
 func NewAggregation() Aggregation {
 	return Aggregation{
-		items:        make(map[string]AggregationItem),
-		filter:       bloom.NewWithEstimates(EstimatedTotalEvents, DuplicatePrecision),
-		fingerprints: mapset.NewSet[string](),
-		total:        0,
-		correct:      0,
-		incorrect:    0,
-		skipped:      0,
+		items:   make(map[string]AggregationItem),
+		filter:  bloom.NewWithEstimates(EstimatedTotalEvents, DuplicatePrecision),
+		total:   0,
+		skipped: 0,
 	}
 }
 
@@ -45,33 +40,9 @@ func (a *Aggregation) Skipped() int {
 	return a.skipped
 }
 
-func (a *Aggregation) BloomFilterCorrect() int {
-	return a.correct
-}
-
-func (a *Aggregation) BloomFilterIncorrect() int {
-	return a.incorrect
-}
-
 func (a *Aggregation) CountEvent(eventType int, linkURL string, post string, did string) {
-	// Add event fingerprint to set to prevent duplicates.
-	// Compare results from set-based de-duplication to bloom filter-based de-duplication.
-	setDuplicate := false
-	bloomDuplicate := false
 	fingerprint := fmt.Sprintf("%s%d%s", linkURL, eventType, did)
-	if a.fingerprints.Contains(fingerprint) {
-		setDuplicate = true
-	}
 	if a.filter.TestAndAddString(fingerprint) {
-		bloomDuplicate = true
-	}
-	// If there's a mismatch between the set and bloom filter, record it.
-	if setDuplicate == bloomDuplicate {
-		a.correct++
-	} else {
-		a.incorrect++
-	}
-	if setDuplicate {
 		a.skipped++
 		return
 	}
