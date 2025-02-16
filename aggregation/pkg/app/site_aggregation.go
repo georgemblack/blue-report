@@ -64,7 +64,7 @@ func AggregateSites() (sites.Snapshot, error) {
 	slog.Info("processed events", "count", aggregation.Total(), "skipped", aggregation.Skipped())
 
 	// Sort sites based on number of interactions
-	top := aggregation.TopSites(10)
+	top := aggregation.TopSites(ListSize)
 
 	// Format data into a snapshot
 	snapshot := sites.NewSnapshot()

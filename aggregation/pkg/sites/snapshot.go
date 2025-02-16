@@ -34,7 +34,7 @@ type Link struct {
 }
 
 func (s *Snapshot) AddSite(domain string, agg AggregationItem) {
-	urls := agg.TopLinks(10)
+	urls := agg.TopLinks(6)
 
 	links := make([]Link, 0, len(urls))
 	for _, url := range urls {

@@ -54,7 +54,7 @@ func (a *Aggregation) CountEvent(eventType int, linkURL string, did string) {
 	host = strings.TrimPrefix(host, "www.")
 
 	if host == "" {
-		slog.Warn("empty host when parsing url", "url", linkURL)
+		slog.Debug("empty host when parsing url", "url", linkURL)
 		return
 	}
 
