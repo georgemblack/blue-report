@@ -11,7 +11,7 @@ import (
 
 const (
 	ListSize                   = 15
-	LinkAggregationWorkerCount = 2
+	LinkAggregationWorkerCount = 4
 )
 
 // AggregateLinks fetches all events from storage, aggregates trending URLs, and generates a snapshot.
@@ -39,7 +39,6 @@ func AggregateLinks() (links.Snapshot, error) {
 	// Start worker threads to divide the work.
 	// This way, when one is blocked via network, the other can continue processing.
 	var wg sync.WaitGroup
-	var mt sync.Mutex
 	wg.Add(LinkAggregationWorkerCount)
 	errs := make(chan error, LinkAggregationWorkerCount)
 
@@ -51,7 +50,7 @@ func AggregateLinks() (links.Snapshot, error) {
 		if i == LinkAggregationWorkerCount-1 {
 			end = length
 		}
-		go aggregateLinksWorker(i, app.Storage, chunks[start:end], &aggregation, &mt, &wg, errs)
+		go aggregateLinksWorker(i, app.Storage, chunks[start:end], &aggregation, &wg, errs)
 	}
 
 	wg.Wait()
@@ -90,7 +89,7 @@ func AggregateLinks() (links.Snapshot, error) {
 	return snapshot, nil
 }
 
-func aggregateLinksWorker(id int, st Storage, chunks []string, agg *links.Aggregation, mt *sync.Mutex, wg *sync.WaitGroup, errs chan error) {
+func aggregateLinksWorker(id int, st Storage, chunks []string, agg *links.Aggregation, wg *sync.WaitGroup, errs chan error) {
 	defer wg.Done()
 
 	for _, chunk := range chunks {
@@ -111,11 +110,8 @@ func aggregateLinksWorker(id int, st Storage, chunks []string, agg *links.Aggreg
 			}
 			normalizedURL := normalize(record.URL)
 
-			// Count the event.
-			// Use a lock to ensure only one worker is updating the aggregation at a time.
-			mt.Lock()
+			// Count the event. This is thread safe.
 			agg.CountEvent(record.Type, normalizedURL, record.Post, record.DID)
-			mt.Unlock()
 		}
 
 		records = nil // Help the garbage collector

@@ -2,54 +2,85 @@ package links
 
 import (
 	"fmt"
+	"hash/fnv"
 	"slices"
+	"sync"
+	"sync/atomic"
 
 	"github.com/bits-and-blooms/bloom/v3"
 )
 
 const EstimatedTotalEvents = 3000000 // 3 million. Estimate is used to create bloom filter used for duplicate detection.]
 const DuplicatePrecision = 0.001     // 0.1% precision for duplicate detection
+const NumShards = 256                // Number of shards to use for parallel processing
 
 type Aggregation struct {
-	items   map[string]AggregationItem
-	filter  *bloom.BloomFilter
-	total   int // Number of events processed
-	skipped int // Number of events skipped due to suspected duplicate
+	shards           []Shard
+	fingerprints     *bloom.BloomFilter
+	fingerprintsLock sync.Mutex
+	total            int64 // Number of events processed
+	skipped          int64 // Number of events skipped due to suspected duplicate
+}
+
+type Shard struct {
+	lock  sync.Mutex
+	items map[string]AggregationItem
 }
 
 func NewAggregation() Aggregation {
+	shards := make([]Shard, NumShards)
+	for i := range shards {
+		shards[i] = Shard{
+			lock:  sync.Mutex{},
+			items: make(map[string]AggregationItem),
+		}
+	}
+
 	return Aggregation{
-		items:   make(map[string]AggregationItem),
-		filter:  bloom.NewWithEstimates(EstimatedTotalEvents, DuplicatePrecision),
-		total:   0,
-		skipped: 0,
+		shards:           shards,
+		fingerprints:     bloom.NewWithEstimates(EstimatedTotalEvents, DuplicatePrecision),
+		fingerprintsLock: sync.Mutex{},
+		total:            0,
+		skipped:          0,
 	}
 }
 
 func (a *Aggregation) Get(url string) AggregationItem {
-	return a.items[url]
+	shard := a.getShard(url)
+	return shard.items[url]
 }
 
-func (a *Aggregation) Total() int {
+func (a *Aggregation) Total() int64 {
 	return a.total
 }
 
-func (a *Aggregation) Skipped() int {
+func (a *Aggregation) Skipped() int64 {
 	return a.skipped
 }
 
 func (a *Aggregation) CountEvent(eventType int, linkURL string, post string, did string) {
+	// Check for a duplicate url/event/did combination to prevent spam.
+	// i.e. at most, a single user can like, post, and repost a link once.
+	// Ensure only one worker is able to update 'fingerprints' at a given moment.
+	a.fingerprintsLock.Lock()
 	fingerprint := fmt.Sprintf("%s%d%s", linkURL, eventType, did)
-	if a.filter.TestAndAddString(fingerprint) {
+	if a.fingerprints.TestAndAddString(fingerprint) {
 		a.skipped++
+		a.fingerprintsLock.Unlock()
 		return
 	}
+	a.fingerprintsLock.Unlock()
 
-	item := a.items[linkURL]
+	// Find the shard associated with the given URL.
+	shard := a.getShard(linkURL)
+
+	shard.lock.Lock()
+	item := shard.items[linkURL]
 	item.CountEvent(eventType, post)
-	a.items[linkURL] = item
+	shard.items[linkURL] = item
+	shard.lock.Unlock()
 
-	a.total++
+	atomic.AddInt64(&a.total, 1)
 }
 
 func (a *Aggregation) TopLinks(n int) []string {
@@ -59,8 +90,11 @@ func (a *Aggregation) TopLinks(n int) []string {
 		AggregationItem AggregationItem
 	}
 	var kvs []kv
-	for k, v := range a.items {
-		kvs = append(kvs, kv{URL: k, AggregationItem: v})
+	for i := range a.shards {
+		shard := &a.shards[i]
+		for k, v := range shard.items {
+			kvs = append(kvs, kv{URL: k, AggregationItem: v})
+		}
 	}
 
 	// Sort by score
@@ -87,4 +121,10 @@ func (a *Aggregation) TopLinks(n int) []string {
 	}
 
 	return urls
+}
+
+func (a *Aggregation) getShard(url string) *Shard {
+	hash := fnv.New32a()
+	hash.Write([]byte(url))
+	return &a.shards[hash.Sum32()%NumShards]
 }
