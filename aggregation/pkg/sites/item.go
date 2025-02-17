@@ -21,9 +21,6 @@ func (a *AggregationItem) CountEvent(eventType int, linkURL string, did string) 
 	if a.links == nil {
 		a.links = make(map[string]Counts)
 	}
-	if _, ok := a.links[linkURL]; !ok {
-		a.links[linkURL] = Counts{}
-	}
 
 	// Increment:
 	//	- The count for the given URL

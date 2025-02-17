@@ -12,7 +12,7 @@ import (
 
 const EstimatedTotalEvents = 3000000 // 3 million. Estimate is used to create bloom filter used for duplicate detection.]
 const DuplicatePrecision = 0.001     // 0.1% precision for duplicate detection
-const NumShards = 256                // Number of shards to use for parallel processing
+const NumShards = 128                // Number of shards to use for parallel processing
 
 type Aggregation struct {
 	shards           []Shard
@@ -71,7 +71,7 @@ func (a *Aggregation) CountEvent(eventType int, linkURL string, post string, did
 	}
 	a.fingerprintsLock.Unlock()
 
-	// Find the shard associated with the given URL.
+	// Find the shard associated with the given URL
 	shard := a.getShard(linkURL)
 
 	shard.lock.Lock()

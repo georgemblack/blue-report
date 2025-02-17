@@ -9,7 +9,7 @@ import (
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
-const SiteAggregationWorkerCount = 4
+const SiteAggregationWorkerCount = 6
 
 // AggregateSites fetches all events from storage, aggregates top sites, and generates a snapshot.
 // For each site, we aggregate the top URLs shared, total user interactions, and more.
@@ -36,7 +36,6 @@ func AggregateSites() (sites.Snapshot, error) {
 	// Start worker threads to divide the work.
 	// This way, when one is blocked via network, the other can continue processing.
 	var wg sync.WaitGroup
-	var mt sync.Mutex
 	wg.Add(SiteAggregationWorkerCount)
 	errs := make(chan error, SiteAggregationWorkerCount)
 
@@ -48,7 +47,7 @@ func AggregateSites() (sites.Snapshot, error) {
 		if i == SiteAggregationWorkerCount-1 {
 			end = length
 		}
-		go aggregateSitesWorker(i, app.Storage, chunks[start:end], &aggregation, &mt, &wg, errs)
+		go aggregateSitesWorker(i, app.Storage, chunks[start:end], &aggregation, &wg, errs)
 	}
 
 	wg.Wait()
@@ -83,7 +82,7 @@ func AggregateSites() (sites.Snapshot, error) {
 	return snapshot, nil
 }
 
-func aggregateSitesWorker(id int, st Storage, chunks []string, agg *sites.Aggregation, mt *sync.Mutex, wg *sync.WaitGroup, errs chan error) {
+func aggregateSitesWorker(id int, st Storage, chunks []string, agg *sites.Aggregation, wg *sync.WaitGroup, errs chan error) {
 	defer wg.Done()
 
 	for _, chunk := range chunks {
@@ -104,11 +103,8 @@ func aggregateSitesWorker(id int, st Storage, chunks []string, agg *sites.Aggreg
 			}
 			normalizedURL := normalize(record.URL)
 
-			// Count the event.
-			// Use a lock to ensure only one worker is updating the aggregation at a time.
-			mt.Lock()
+			// Count the event. This is thread safe.
 			agg.CountEvent(record.Type, normalizedURL, record.DID)
-			mt.Unlock()
 		}
 
 		records = nil // Help the garbage collector
