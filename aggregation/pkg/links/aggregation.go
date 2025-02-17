@@ -5,18 +5,16 @@ import (
 	"slices"
 
 	"github.com/bits-and-blooms/bloom/v3"
-	mapset "github.com/deckarep/golang-set/v2"
 )
 
 const EstimatedTotalEvents = 3000000 // 3 million. Estimate is used to create bloom filter used for duplicate detection.]
 const DuplicatePrecision = 0.001     // 0.1% precision for duplicate detection
 
 type Aggregation struct {
-	items        map[string]AggregationItem
-	filter       *bloom.BloomFilter
-	fingerprints mapset.Set[string]
-	total        int // Number of events processed
-	skipped      int // Number of events skipped due to suspected duplicate
+	items   map[string]AggregationItem
+	filter  *bloom.BloomFilter
+	total   int // Number of events processed
+	skipped int // Number of events skipped due to suspected duplicate
 }
 
 func NewAggregation() Aggregation {
@@ -51,7 +49,6 @@ func (a *Aggregation) CountEvent(eventType int, linkURL string, post string, did
 	item.CountEvent(eventType, post)
 	a.items[linkURL] = item
 
-	a.fingerprints.Add(fingerprint)
 	a.total++
 }
 
