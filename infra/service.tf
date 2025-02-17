@@ -1,6 +1,6 @@
 locals {
   intake_version      = "1.20.3"
-  aggregation_version = "1.2.1"
+  aggregation_version = "1.3.0"
 }
 
 resource "aws_ecr_repository" "blue_report" {
@@ -134,7 +134,7 @@ resource "aws_ecs_task_definition" "blue_report_site_aggregation" {
   family                   = "blue-report-site-aggregation"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = 1024
+  cpu                      = 2048
   memory                   = 4096
   task_role_arn            = aws_iam_role.service.arn
   execution_role_arn       = aws_iam_role.execution.arn
@@ -167,7 +167,7 @@ resource "aws_ecs_task_definition" "blue_report_site_aggregation" {
           value = "blue-report-url-metadata"
         }
       ]
-      cpu    = 1024
+      cpu    = 2048
       memory = 4096
       logConfiguration = {
         logDriver = "awslogs"
