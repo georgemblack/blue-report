@@ -42,7 +42,7 @@ func Ignore(input string) bool {
 	// However, the root domain is posted frequently without referring to a specific story.
 	// The intention of The Blue Report is to showcase specific stories/events.
 	if input == "https://www.democracydocket.com" || input == "https://www.democracydocket.com/" {
-		return false
+		return true
 	}
 
 	// Ignore links to the app itself. The purpose of this project is to track external links.
@@ -52,16 +52,16 @@ func Ignore(input string) bool {
 
 	// Ignore gifs/images
 	if strings.HasSuffix(input, ".gif") {
-		return false
+		return true
 	}
 	if strings.HasSuffix(input, ".jpg") {
-		return false
+		return true
 	}
 	if strings.HasSuffix(input, ".jpeg") {
-		return false
+		return true
 	}
 	if strings.HasSuffix(input, ".png") {
-		return false
+		return true
 	}
 
 	return false
