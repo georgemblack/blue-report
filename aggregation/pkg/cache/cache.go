@@ -155,15 +155,20 @@ func (v Valkey) Close() {
 }
 
 type URLRecord struct {
-	Title    string `msgpack:"t"`
-	ImageURL string `msgpack:"p"` // Bluesky CDN URL of the thumbnail
-	Totals   Totals `msgpack:"m"`
+	Title      string `msgpack:"t"`
+	ImageURL   string `msgpack:"p"` // Bluesky CDN URL of the thumbnail
+	Totals     Totals `msgpack:"m"`
+	Normalized bool   `msgpack:"n"`
 }
 
 type Totals struct {
 	Posts   int `msgpack:"p"`
 	Reposts int `msgpack:"r"`
 	Likes   int `msgpack:"l"`
+}
+
+func (r URLRecord) TotalInteractions() int {
+	return r.Totals.Posts + r.Totals.Reposts + r.Totals.Likes
 }
 
 func (r URLRecord) MissingFields() bool {

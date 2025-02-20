@@ -8,7 +8,7 @@ import (
 
 var KnownShorteners = mapset.NewSet[string]("bit.ly", "buff.ly", "ow.ly", "t.co", "shorturl.at", "goo.gl", "wapo.st", "youtu.be", "tinyurl.com")
 
-func IsShortenedURL(input string) bool {
+func IsShortened(input string) bool {
 	parsed, err := url.Parse(input)
 	if err != nil {
 		return false

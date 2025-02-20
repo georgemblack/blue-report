@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/georgemblack/blue-report/pkg/queue"
 	"github.com/georgemblack/blue-report/pkg/storage"
+	"github.com/georgemblack/blue-report/pkg/urltools"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
@@ -109,41 +108,22 @@ func normalizeWorker(id int, stream chan queue.Message, st Storage, cache mapset
 		slog.Debug("normalizing url", "worker", id, "url", msg.URL)
 
 		// Normalize the URL by checking for redirects
-		redirect := findRedirect(msg.URL)
+		redirect := urltools.FindRedirect(msg.URL)
 		if redirect == "" {
 			slog.Debug("no redirect found for url", "url", msg.URL)
 			continue
 		}
 
+		// Clean the redirect URL (i.e. junk like query params may have been added)
+		cleaned := urltools.Clean(redirect)
+
 		// Write the translation to storage
 		err := st.SaveURLTranslation(storage.URLTranslation{
 			Source:      msg.URL,
-			Destination: redirect,
+			Destination: cleaned,
 		})
 		if err != nil {
 			slog.Error("failed to save url translation", "url", msg.URL, "error", err)
 		}
 	}
-}
-
-func findRedirect(url string) string {
-	client := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Instead of following redirects, return the last response
-			return http.ErrUseLastResponse
-		},
-		Timeout: 1 * time.Second,
-	}
-
-	resp, err := client.Get(url)
-	if err != nil {
-		return ""
-	}
-
-	statusCodes := []int{http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect}
-	if util.ContainsInt(statusCodes, resp.StatusCode) {
-		return resp.Header.Get("Location")
-	}
-
-	return ""
 }
