@@ -2,6 +2,8 @@ package urltools
 
 import (
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/georgemblack/blue-report/pkg/util"
@@ -9,7 +11,7 @@ import (
 
 var redirectStatusCodes = []int{http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect}
 
-func FindRedirect(url string) string {
+func FindRedirect(input string) string {
 	var redirect string
 
 	client := &http.Client{
@@ -19,7 +21,7 @@ func FindRedirect(url string) string {
 		Timeout: 1 * time.Second,
 	}
 
-	resp, err := client.Get(url)
+	resp, err := client.Get(input)
 	if err != nil {
 		return ""
 	}
@@ -29,6 +31,18 @@ func FindRedirect(url string) string {
 	if redirect == "" {
 		return ""
 	}
+
+	// Trim the port number if it is included in the redirect URL.
+	// Patreon's redirect does this, i.e. 'https://patreon.com/george' -> 'https://www.patreon.com:443/george'
+	parsed, err := url.Parse(redirect)
+	if err != nil {
+		return ""
+	}
+	parsed.Host = strings.TrimSuffix(parsed.Host, ":443")
+	redirect = parsed.String()
+
+	// Trim the fragment identifier (everything after the '#').
+	redirect = strings.Split(redirect, "#")[0]
 
 	// Check the new URL for a second redirect.
 	// If a second redirect exists, return nothing – it is likely a scummy link! Bastards.
