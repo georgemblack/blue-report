@@ -15,6 +15,7 @@ import (
 
 	bluesky "github.com/georgemblack/blue-report/pkg/bluesky"
 	cache "github.com/georgemblack/blue-report/pkg/cache"
+	queue "github.com/georgemblack/blue-report/pkg/queue"
 	storage "github.com/georgemblack/blue-report/pkg/storage"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -280,6 +281,20 @@ func (mr *MockStorageMockRecorder) SaveURLMetadata(metadata any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveURLMetadata", reflect.TypeOf((*MockStorage)(nil).SaveURLMetadata), metadata)
 }
 
+// SaveURLTranslation mocks base method.
+func (m *MockStorage) SaveURLTranslation(translation storage.URLTranslation) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveURLTranslation", translation)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SaveURLTranslation indicates an expected call of SaveURLTranslation.
+func (mr *MockStorageMockRecorder) SaveURLTranslation(translation any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveURLTranslation", reflect.TypeOf((*MockStorage)(nil).SaveURLTranslation), translation)
+}
+
 // ThumbnailExists mocks base method.
 func (m *MockStorage) ThumbnailExists(id string) (bool, error) {
 	m.ctrl.T.Helper()
@@ -293,6 +308,45 @@ func (m *MockStorage) ThumbnailExists(id string) (bool, error) {
 func (mr *MockStorageMockRecorder) ThumbnailExists(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ThumbnailExists", reflect.TypeOf((*MockStorage)(nil).ThumbnailExists), id)
+}
+
+// MockQueue is a mock of Queue interface.
+type MockQueue struct {
+	ctrl     *gomock.Controller
+	recorder *MockQueueMockRecorder
+	isgomock struct{}
+}
+
+// MockQueueMockRecorder is the mock recorder for MockQueue.
+type MockQueueMockRecorder struct {
+	mock *MockQueue
+}
+
+// NewMockQueue creates a new mock instance.
+func NewMockQueue(ctrl *gomock.Controller) *MockQueue {
+	mock := &MockQueue{ctrl: ctrl}
+	mock.recorder = &MockQueueMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockQueue) EXPECT() *MockQueueMockRecorder {
+	return m.recorder
+}
+
+// Receive mocks base method.
+func (m *MockQueue) Receive() ([]queue.Message, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Receive")
+	ret0, _ := ret[0].([]queue.Message)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Receive indicates an expected call of Receive.
+func (mr *MockQueueMockRecorder) Receive() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Receive", reflect.TypeOf((*MockQueue)(nil).Receive))
 }
 
 // MockSecrets is a mock of Secrets interface.

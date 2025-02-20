@@ -6,12 +6,13 @@ import (
 	"time"
 
 	"github.com/georgemblack/blue-report/pkg/links"
+	"github.com/georgemblack/blue-report/pkg/urltools"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
 const (
 	ListSize                   = 15
-	LinkAggregationWorkerCount = 2
+	LinkAggregationWorkerCount = 4
 )
 
 // AggregateLinks fetches all events from storage, aggregates trending URLs, and generates a snapshot.
@@ -105,13 +106,13 @@ func aggregateLinksWorker(id int, st Storage, chunks []string, agg *links.Aggreg
 			// URLs stored in events should already be filtered and normalized.
 			// However, as rules change, past events may need to be re-processed.
 			// This ensures the most up-to-date rules are applied.
-			if !include(record.URL) {
+			if urltools.Ignore(record.URL) {
 				continue
 			}
-			normalizedURL := normalize(record.URL)
+			cleanedURL := urltools.Clean(record.URL)
 
 			// Count the event. This is thread safe.
-			agg.CountEvent(record.Type, normalizedURL, record.Post, record.DID)
+			agg.CountEvent(record.Type, cleanedURL, record.Post, record.DID)
 		}
 
 		records = nil // Help the garbage collector

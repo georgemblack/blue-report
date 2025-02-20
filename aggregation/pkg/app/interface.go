@@ -5,6 +5,7 @@ import (
 
 	"github.com/georgemblack/blue-report/pkg/bluesky"
 	"github.com/georgemblack/blue-report/pkg/cache"
+	"github.com/georgemblack/blue-report/pkg/queue"
 	"github.com/georgemblack/blue-report/pkg/storage"
 )
 
@@ -28,6 +29,12 @@ type Storage interface {
 	ThumbnailExists(id string) (bool, error)
 	GetURLMetadata(url string) (storage.URLMetadata, error)
 	SaveURLMetadata(metadata storage.URLMetadata) error
+	SaveURLTranslation(translation storage.URLTranslation) error
+}
+
+type Queue interface {
+	Send(message queue.Message) error
+	Receive() ([]queue.Message, error)
 }
 
 type Secrets interface {

@@ -24,12 +24,13 @@ import (
 )
 
 type AWS struct {
-	s3                    *s3.Client
-	dynamoDB              *dynamodb.Client
-	publicBucketName      string
-	readEventsBucketName  string
-	writeEventsBucketName string
-	urlMetadataTableName  string
+	s3                       *s3.Client
+	dynamoDB                 *dynamodb.Client
+	publicBucketName         string
+	readEventsBucketName     string
+	writeEventsBucketName    string
+	urlMetadataTableName     string
+	urlTranslationsTableName string
 }
 
 func New(cfg config.Config) (AWS, error) {
@@ -39,12 +40,13 @@ func New(cfg config.Config) (AWS, error) {
 	}
 
 	return AWS{
-		s3:                    s3.NewFromConfig(config),
-		dynamoDB:              dynamodb.NewFromConfig(config),
-		publicBucketName:      cfg.PublicBucketName,
-		readEventsBucketName:  cfg.ReadEventsBucketName,
-		writeEventsBucketName: cfg.WriteEventsBucketName,
-		urlMetadataTableName:  cfg.URLMetadataTableName,
+		s3:                       s3.NewFromConfig(config),
+		dynamoDB:                 dynamodb.NewFromConfig(config),
+		publicBucketName:         cfg.PublicBucketName,
+		readEventsBucketName:     cfg.ReadEventsBucketName,
+		writeEventsBucketName:    cfg.WriteEventsBucketName,
+		urlMetadataTableName:     cfg.URLMetadataTableName,
+		urlTranslationsTableName: cfg.URLTranslationsTableName,
 	}, nil
 }
 

@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/georgemblack/blue-report/pkg/cache"
+	"github.com/georgemblack/blue-report/pkg/queue"
 	"github.com/georgemblack/blue-report/pkg/storage"
+	"github.com/georgemblack/blue-report/pkg/urltools"
 	"github.com/georgemblack/blue-report/pkg/util"
 	"github.com/gorilla/websocket"
 )
@@ -170,6 +172,15 @@ func intakeWorker(id int, stream chan StreamEvent, shutdown chan struct{}, app A
 			return
 		}
 
+		// If event is a post, and the URL appears to be shortened, send the URL to the normalization queue.
+		if event.IsPost() && urltools.IsShortenedURL(stRecord.URL) {
+			err = app.Queue.Send(queue.Message{URL: stRecord.URL})
+			if err != nil {
+				slog.Error(util.WrapErr("failed to send message to queue", err).Error())
+				return
+			}
+		}
+
 		// Save event to the buffer.
 		// Once the buffer is full, write to storage asynchronously.
 		buffer = append(buffer, stRecord)
@@ -199,16 +210,16 @@ func handlePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLReco
 	url, title, image := event.ParsePost()
 
 	// Filter out unwanted URLs (or posts with no URL)
-	if !include(url) {
+	if urltools.Ignore(url) {
 		return storage.EventRecord{}, cache.URLRecord{}, true, nil
 	}
 
-	normalizedURL := normalize(url)
-	hashedURL := util.Hash(normalizedURL)
+	cleanedURL := urltools.Clean(url)
+	hashedURL := util.Hash(cleanedURL)
 
 	// Add the post to the cache, so it can be quickly referenced by reposts and likes.
 	post := cache.PostRecord{
-		URL: normalizedURL,
+		URL: cleanedURL,
 	}
 	ch.SavePost(util.Hash(event.Commit.CID), post)
 
@@ -230,7 +241,7 @@ func handlePost(ch Cache, event StreamEvent) (storage.EventRecord, cache.URLReco
 	// Create and return storage event
 	stgRecord := storage.EventRecord{
 		Type:      event.TypeOf(),
-		URL:       normalizedURL,
+		URL:       cleanedURL,
 		DID:       event.DID,
 		Timestamp: time.Now(),
 		Post:      fmt.Sprintf("at://%s/app.bsky.feed.post/%s", event.DID, event.Commit.RKey), // AT URI of the current post

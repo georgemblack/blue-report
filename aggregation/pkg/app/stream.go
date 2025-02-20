@@ -110,7 +110,7 @@ func (s *StreamEvent) IsLike() bool {
 }
 
 func (s *StreamEvent) IsEnglish() bool {
-	return util.Contains(s.Commit.Record.Languages, "en")
+	return util.ContainsStr(s.Commit.Record.Languages, "en")
 }
 
 // Parse a post to extract the URL, title, and image.

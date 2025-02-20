@@ -4,6 +4,7 @@ import (
 	"github.com/georgemblack/blue-report/pkg/bluesky"
 	"github.com/georgemblack/blue-report/pkg/cache"
 	"github.com/georgemblack/blue-report/pkg/config"
+	"github.com/georgemblack/blue-report/pkg/queue"
 	"github.com/georgemblack/blue-report/pkg/storage"
 )
 
@@ -12,6 +13,7 @@ type App struct {
 	Config  config.Config
 	Cache   Cache
 	Storage Storage
+	Queue   Queue
 	Bluesky Bluesky
 }
 
@@ -31,12 +33,18 @@ func NewApp() (App, error) {
 		return App{}, err
 	}
 
+	queue, err := queue.New(config)
+	if err != nil {
+		return App{}, err
+	}
+
 	bluesky := bluesky.New(config)
 
 	return App{
 		Config:  config,
 		Cache:   cache,
 		Storage: storage,
+		Queue:   queue,
 		Bluesky: bluesky,
 	}, nil
 }

@@ -26,3 +26,8 @@ type URLMetadata struct {
 	URL   string
 	Title string
 }
+
+type URLTranslation struct {
+	Source      string
+	Destination string
+}

@@ -40,7 +40,19 @@ resource "aws_iam_policy" "service" {
           "dynamodb:UpdateItem",
           "dynamodb:DeleteItem"
         ],
-        Resource = [aws_dynamodb_table.url_metadata.arn]
+        Resource = [aws_dynamodb_table.url_metadata.arn, aws_dynamodb_table.url_translations.arn]
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "sqs:GetQueueUrl",
+          "sqs:SendMessage",
+          "sqs:SendMessageBatch",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:DeleteMessageBatch"
+        ],
+        Resource = [aws_sqs_queue.blue_report.arn]
       },
       {
         Effect = "Allow",

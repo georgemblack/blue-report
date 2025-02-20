@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/georgemblack/blue-report/pkg/sites"
+	"github.com/georgemblack/blue-report/pkg/urltools"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
@@ -98,13 +99,13 @@ func aggregateSitesWorker(id int, st Storage, chunks []string, agg *sites.Aggreg
 			// URLs stored in events should already be filtered and normalized.
 			// However, as rules change, past events may need to be re-processed.
 			// This ensures the most up-to-date rules are applied.
-			if !include(record.URL) {
+			if urltools.Ignore(record.URL) {
 				continue
 			}
-			normalizedURL := normalize(record.URL)
+			cleanedURL := urltools.Clean(record.URL)
 
 			// Count the event. This is thread safe.
-			agg.CountEvent(record.Type, normalizedURL, record.DID)
+			agg.CountEvent(record.Type, cleanedURL, record.DID)
 		}
 
 		records = nil // Help the garbage collector
