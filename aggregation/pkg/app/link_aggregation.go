@@ -27,17 +27,26 @@ func AggregateLinks() (links.Snapshot, error) {
 	}
 	defer app.Close()
 
-	aggregation := links.NewAggregation()
-	end := time.Now().UTC()
-	start := end.Add(-24 * time.Hour) // 24 hours
+	// Create the time boundaries for the 'previous day' and 'previous week' reports.
+	now := time.Now().UTC()
+	bounds := links.TimeBounds{
+		DayStart:  now.Add(-24 * time.Hour),
+		WeekStart: now.Add(-24 * 7 * time.Hour),
+	}
 
+	// Create the aggregation.
+	// This will be used to generate all the data required to render the report.
+	aggregation := links.NewAggregation(bounds)
+
+	// Fetch all known translations (i.e. URL redirects).
+	// Apply them as we process events.
 	translations, err := app.Storage.GetURLTranslations()
 	if err != nil {
 		return links.Snapshot{}, util.WrapErr("failed to get url translations", err)
 	}
-	slog.Info("loaded translations", "count", len(translations))
+	slog.Info("loaded url translations", "count", len(translations))
 
-	chunks, err := app.Storage.ListEventChunks(start, end)
+	chunks, err := app.Storage.ListEventChunks(bounds.WeekStart, now)
 	if err != nil {
 		return links.Snapshot{}, util.WrapErr("failed to list event chunks", err)
 	}
@@ -73,20 +82,30 @@ func AggregateLinks() (links.Snapshot, error) {
 	slog.Info("processed events", "count", aggregation.Total(), "skipped", aggregation.Skipped())
 
 	// Sort links based on score
-	top := aggregation.TopLinks(ListSize)
+	topDay := aggregation.TopDayLinks(ListSize)
+	topWeek := aggregation.TopWeekLinks(ListSize)
 
 	// Format the data into a snapshot
 	snapshot := links.NewSnapshot()
-	arr := make([]links.Link, 0, len(top))
-	for _, url := range top {
-		arr = append(arr, links.Link{
+
+	day := make([]links.Link, 0, len(topDay))
+	for _, url := range topDay {
+		day = append(day, links.Link{
 			URL: url,
 		})
 	}
-	snapshot.Links = arr
+	week := make([]links.Link, 0, len(topWeek))
+	for _, url := range topWeek {
+		week = append(week, links.Link{
+			URL: url,
+		})
+	}
+
+	snapshot.TopDay = day
+	snapshot.TopWeek = week
 
 	// Hydrate the snapshot with metadata from storage, as well as the cache
-	snapshot, err = hydrateLinks(app, aggregation, snapshot)
+	snapshot, err = hydrateLinks(app, &aggregation, snapshot)
 	if err != nil {
 		return links.Snapshot{}, util.WrapErr("failed to hydrate links", err)
 	}
@@ -124,7 +143,7 @@ func aggregateLinksWorker(id int, st Storage, chunks []string, agg *links.Aggreg
 			}
 
 			// Count the event. This is thread safe.
-			agg.CountEvent(record.Type, cleanedURL, record.Post, record.DID)
+			agg.CountEvent(record.Type, cleanedURL, record.Post, record.DID, record.Timestamp)
 		}
 
 		records = nil // Help the garbage collector

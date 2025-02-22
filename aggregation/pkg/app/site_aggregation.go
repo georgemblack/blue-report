@@ -24,15 +24,19 @@ func AggregateSites() (sites.Snapshot, error) {
 	}
 	defer app.Close()
 
+	// Create the aggregation.
+	// This will be used to generate all the data required to render the report.
 	aggregation := sites.NewAggregation()
 	end := time.Now().UTC()
 	start := end.Add(-30 * 24 * time.Hour) // 30 days
 
+	// Fetch all known translations (i.e. URL redirects).
+	// Apply them as we process events.
 	translations, err := app.Storage.GetURLTranslations()
 	if err != nil {
 		return sites.Snapshot{}, util.WrapErr("failed to get url translations", err)
 	}
-	slog.Info("loaded translations", "count", len(translations))
+	slog.Info("loaded url translations", "count", len(translations))
 
 	chunks, err := app.Storage.ListEventChunks(start, end)
 	if err != nil {

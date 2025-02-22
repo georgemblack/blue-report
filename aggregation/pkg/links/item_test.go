@@ -1,18 +1,27 @@
 package links
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func TestAggregationItem(t *testing.T) {
+	now := time.Now().UTC()
+	bounds := TimeBounds{
+		DayStart:  now.Add(-24 * time.Hour),
+		WeekStart: now.Add(-24 * 7 * time.Hour),
+	}
 	item := AggregationItem{}
 
-	item.CountEvent(0, "abc")
-	item.CountEvent(1, "abc")
-	item.CountEvent(1, "abc")
-	item.CountEvent(2, "xyz")
-	item.CountEvent(2, "xyz")
+	ts := now.Add(-1 * time.Minute)
+	item.CountEvent(0, "abc", ts, bounds)
+	item.CountEvent(1, "abc", ts, bounds)
+	item.CountEvent(1, "abc", ts, bounds)
+	item.CountEvent(2, "xyz", ts, bounds)
+	item.CountEvent(2, "xyz", ts, bounds)
 
-	if item.Score() != 32 {
-		t.Errorf("unexpected score: %d", item.Score())
+	if item.DayScore() != 32 {
+		t.Errorf("unexpected score: %d", item.DayScore())
 	}
 
 	top := item.TopPosts()

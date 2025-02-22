@@ -1,10 +1,15 @@
 package links
 
-import "slices"
+import (
+	"slices"
+	"time"
+)
 
+// Keep track of two separate counts, for the 'previous day' and 'previous week' report.
 type AggregationItem struct {
-	Counts Counts
-	Posts  map[string]int
+	WeekCount Counts
+	DayCount  Counts
+	Posts     map[string]int
 }
 
 type Counts struct {
@@ -13,22 +18,42 @@ type Counts struct {
 	Likes   int
 }
 
-// Score determins a URL's rank on the final report.
+// DayScore determins a URL's rank on the final report.
 // A post is worth 10 points, a repost 10 points, and a like 1 point.
-func (a *AggregationItem) Score() int {
-	return (a.Counts.Posts * 10) + (a.Counts.Reposts * 10) + a.Counts.Likes
+func (a *AggregationItem) DayScore() int {
+	return (a.DayCount.Posts * 10) + (a.DayCount.Reposts * 10) + a.DayCount.Likes
 }
 
-func (a *AggregationItem) CountEvent(eventType int, post string) {
-	// Increment counts based on event type
+// DayScore determins a URL's rank on the final report.
+// A post is worth 10 points, a repost 10 points, and a like 1 point.
+func (a *AggregationItem) WeekScore() int {
+	return (a.WeekCount.Posts * 10) + (a.WeekCount.Reposts * 10) + a.WeekCount.Likes
+}
+
+func (a *AggregationItem) CountEvent(eventType int, post string, ts time.Time, bnds TimeBounds) {
+	// Check if the event should be counted in the 'previous day' report.
+	if ts.After(bnds.DayStart) {
+		if eventType == 0 {
+			a.DayCount.Posts++
+		}
+		if eventType == 1 {
+			a.DayCount.Reposts++
+		}
+		if eventType == 2 {
+			a.DayCount.Likes++
+		}
+	}
+
+	// Assume all events are within the 'previous week' report.
+	// (This is checked in the caller.)
 	if eventType == 0 {
-		a.Counts.Posts++
+		a.WeekCount.Posts++
 	}
 	if eventType == 1 {
-		a.Counts.Reposts++
+		a.WeekCount.Reposts++
 	}
 	if eventType == 2 {
-		a.Counts.Likes++
+		a.WeekCount.Likes++
 	}
 
 	// Add AT URI of post to map, and increment number of interactions

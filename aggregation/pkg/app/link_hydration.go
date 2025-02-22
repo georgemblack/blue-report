@@ -14,19 +14,31 @@ import (
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
-func hydrateLinks(app App, agg links.Aggregation, snapshot links.Snapshot) (links.Snapshot, error) {
-	for i := range snapshot.Links {
-		link, err := hydrateLink(app, agg, i, snapshot.Links[i])
+func hydrateLinks(app App, agg *links.Aggregation, snapshot links.Snapshot) (links.Snapshot, error) {
+	for i := range snapshot.TopDay {
+		link, err := hydrateLink(app, agg, i, snapshot.TopDay[i])
 		if err != nil {
 			return links.Snapshot{}, util.WrapErr("failed to hydrate link", err)
 		}
-		snapshot.Links[i] = link
+		snapshot.TopDay[i] = link
 	}
+
+	for i := range snapshot.TopWeek {
+		link, err := hydrateLink(app, agg, i, snapshot.TopWeek[i])
+		if err != nil {
+			return links.Snapshot{}, util.WrapErr("failed to hydrate link", err)
+		}
+		snapshot.TopWeek[i] = link
+	}
+
+	// Backwards compatibility: copy the top links from the day to the general 'Links' field.
+	// https://bsky.app/profile/brianell.in/post/3lhw7kyaqgc2l
+	snapshot.Links = snapshot.TopDay
 
 	return snapshot, nil
 }
 
-func hydrateLink(app App, agg links.Aggregation, index int, link links.Link) (links.Link, error) {
+func hydrateLink(app App, agg *links.Aggregation, index int, link links.Link) (links.Link, error) {
 	hashedURL := util.Hash(link.URL)
 	record, err := app.Cache.ReadURL(hashedURL)
 	if err != nil {
