@@ -83,7 +83,7 @@ header .subtitle {
 }
 
 main {
-  margin-top: 1em;
+  margin-top: 2em;
 }
 
 footer {
@@ -100,6 +100,12 @@ footer {
   }
 }
 
+h1,
+h2,
+h3 {
+  font-family: var(--serif-font);
+}
+
 a {
   text-decoration: none;
   color: var(--link-color);
@@ -110,20 +116,17 @@ a:hover {
   text-decoration: underline;
 }
 
-/* links */
-.link-group {
-  margin-top: 2em;
-}
-
-.link-container {
+/* containers for list items */
+.container {
   padding: 2em 0em;
   border-top: 2px solid var(--line-separator-color);
 }
 
-.link-container:last-of-type {
+.container:last-of-type {
   border-bottom: 2px solid var(--line-separator-color);
 }
 
+/* links */
 .link {
   display: flex;
   gap: 2em;
@@ -161,7 +164,6 @@ a:hover {
   justify-content: space-between;
 }
 
-/* inline-block to prevent extra vertical space due to line-height */
 .link .title {
   font-size: 1.25em;
   font-family: var(--serif-font);

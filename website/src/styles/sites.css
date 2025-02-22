@@ -1,0 +1,22 @@
+.interactions {
+  margin-top: 0.25em;
+}
+
+h3 {
+  margin-top: 1em;
+}
+
+.top-links {
+  margin-top: 0.5em;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1em;
+}
+
+.top-link {
+  padding: 1em;
+  border: 1px solid var(--header-accent-color-faded);
+  border-radius: 0.75em;
+  background-color: var(--toggle-background-color);
+  box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
+}

@@ -1,0 +1,37 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { fetchTopSites } from "../util/Data";
+import { formatCount, formatDate } from "../util/Format";
+
+import "../styles/sites.css";
+
+const snapshot = await fetchTopSites();
+---
+
+<Layout>
+  <div>
+    {
+      snapshot.sites.map((site) => (
+        <div class="container">
+          <div class="site">
+            <h2>{site.name}</h2>
+            <p class="interactions">
+              {formatCount(site.interactions)} interactions (over 30 days)
+            </p>
+            <h3>Top Links</h3>
+            <div class="top-links">
+              {site.links.map((link) => (
+                <div class="top-link">
+                  <p>
+                    <a href={link.url}>{link.title}</a>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))
+    }
+  </div>
+  <p class="last-updated">Last updated {formatDate(snapshot.generated_at)}</p>
+</Layout>

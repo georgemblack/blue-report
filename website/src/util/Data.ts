@@ -1,6 +1,6 @@
 const API_URL = "https://assets.theblue.report/snapshot.json";
 
-export interface Snapshot {
+export interface TopLinks {
   generated_at: string;
   links: Link[];
 }
@@ -24,7 +24,28 @@ export interface Post {
   text: string;
 }
 
-export async function fetchSnapshot(): Promise<Snapshot> {
+export async function fetchTopLinks(): Promise<TopLinks> {
   const response = await fetch(API_URL);
+  return await response.json();
+}
+
+export interface TopSites {
+  generated_at: string;
+  sites: Site[];
+}
+
+export interface Site {
+  rank: number;
+  name: string;
+  domain: string;
+  interactions: number;
+  links: {
+    url: string;
+    title: string;
+  }[];
+}
+
+export async function fetchTopSites(): Promise<TopSites> {
+  const response = await fetch("https://assets.theblue.report/sites.json");
   return await response.json();
 }

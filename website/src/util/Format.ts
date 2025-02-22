@@ -22,7 +22,14 @@ export function formatCount(count: number): string {
   //  - 10,000 -> 10k
   //	- 15,000 -> 15k
   //	- 99,999 -> 99k
-  return Math.floor(count / 1000) + "k";
+  if (count < 1000000) return Math.floor(count / 1000) + "k";
+
+  // If the number is greater than 1,000,000, format as millions with one decimal place.
+  // Examples:
+  //  - 1,000,000 -> 1M
+  //	- 1,500,000 -> 1.5M
+  //	- 9,999,999 -> 9.9M
+  return (Math.floor(count / 100000) / 10).toFixed(1) + "M";
 }
 
 // Convert a date '2025-02-09T04:13:31Z' to 'Feb 8, 2025 at 11:03pm (EST)'

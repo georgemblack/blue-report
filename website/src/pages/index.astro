@@ -2,7 +2,7 @@
 import CenteredExpandButton from "../components/CenteredExpandButton.astro";
 import InlineExpandButton from "../components/InlineExpandButton.astro";
 import Layout from "../layouts/Layout.astro";
-import { fetchSnapshot } from "../util/Data";
+import { fetchTopLinks } from "../util/Data";
 import {
   strip,
   formatHost,
@@ -11,14 +11,14 @@ import {
   urlFromPost,
 } from "../util/Format";
 
-const snapshot = await fetchSnapshot();
+const snapshot = await fetchTopLinks();
 ---
 
 <Layout>
-  <div class="link-group">
+  <div>
     {
       snapshot.links.map((link) => (
-        <div class="link-container">
+        <div class="container">
           <div class="link">
             <a
               href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
