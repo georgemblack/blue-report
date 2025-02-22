@@ -38,7 +38,8 @@ resource "aws_iam_policy" "service" {
           "dynamodb:PutItem",
           "dynamodb:GetItem",
           "dynamodb:UpdateItem",
-          "dynamodb:DeleteItem"
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
         ],
         Resource = [aws_dynamodb_table.url_metadata.arn, aws_dynamodb_table.url_translations.arn]
       },
