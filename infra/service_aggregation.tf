@@ -36,7 +36,11 @@ resource "aws_ecs_task_definition" "blue_report_link_aggregation" {
         },
         {
           name  = "DYNAMO_URL_METADATA_TABLE"
-          value = "blue-report-url-metadata"
+          value = aws_dynamodb_table.url_metadata.name
+        },
+        {
+          name  = "DYNAMO_URL_TRANSLATIONS_TABLE"
+          value = aws_dynamodb_table.url_translations.name
         },
         {
           name  = "SQS_NORMALIZATION_QUEUE_NAME"
@@ -96,7 +100,11 @@ resource "aws_ecs_task_definition" "blue_report_site_aggregation" {
         },
         {
           name  = "DYNAMO_URL_METADATA_TABLE"
-          value = "blue-report-url-metadata"
+          value = aws_dynamodb_table.url_metadata.name
+        },
+        {
+          name  = "DYNAMO_URL_TRANSLATIONS_TABLE"
+          value = aws_dynamodb_table.url_translations.name
         },
         {
           name  = "SQS_NORMALIZATION_QUEUE_NAME"
