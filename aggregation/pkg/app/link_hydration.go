@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/sso/types"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -136,16 +138,17 @@ func recommendedPosts(bs Bluesky, uris []string) []links.Post {
 		}
 
 		// In order for the post to be recommended:
-		//   - Post must be >32 characters in length (to avoid posts that only contain the link)
+		//   - It must not be empty (after formatted & removing URLs, etc)
 		//   - Post must be in English (until there's multi language/region support)
-		//   - Post must have at >=50 likes (to avoid spam)
+		//   - Post must have at >=50 likes (to avoid junk)
 		//	 - Post cannot be from an author who already has a recommended post for this link
-		if len(postData.Record.Text) >= 32 && postData.IsEnglish() && postData.LikeCount > 50 && !authors.Contains(postData.Author.Handle) {
+		formatted := formatPost(postData.Record.Text)
+		if formatted != "" && postData.IsEnglish() && postData.LikeCount > 50 && !authors.Contains(postData.Author.Handle) {
 			posts = append(posts, links.Post{
 				AtURI:    uri,
 				Username: postData.Author.DisplayName,
 				Handle:   postData.Author.Handle,
-				Text:     postData.Record.Text,
+				Text:     formatted,
 			})
 			authors.Add(postData.Author.Handle)
 		}
@@ -179,4 +182,37 @@ func clicks(url string) int {
 	}
 
 	return result.Count
+}
+
+func formatPost(text string) string {
+	urlPattern := `(www\.)?[\w.-]+\.[a-z]{2,}(/[^\s]*)?\w*\.{3}`
+	re := regexp.MustCompile(urlPattern)
+
+	// Clean up any newlines or extra whitespace
+	text = strings.ReplaceAll(text, "\n", " ")
+	text = strings.ReplaceAll(text, "\r", " ")
+	text = strings.ReplaceAll(text, "\t", " ")
+
+	// Remove any siren emojis, they are annoying
+	text = strings.ReplaceAll(text, "🚨", "")
+
+	// Remove any sensationalist prefixes
+	text = strings.TrimPrefix(text, "BREAKING: ")
+	text = strings.TrimPrefix(text, "BREAKING NEWS: ")
+	text = strings.TrimPrefix(text, "NEW: ")
+	text = strings.TrimPrefix(text, "🔴")
+
+	// Collapse all whitespace into a single space
+	text = strings.Join(strings.Fields(text), " ")
+
+	// Remove URLs from the post text, as it is redundant.
+	// The Bluesky post editor frequently truncates URL, so they appear as the following:
+	//  - 'www.comicsands.com/crockett-bro...'
+	// 	- 'apnews.com/article/trum...
+	// 	- 'www.democracydocket.com/opinion/my-o...'
+	// Use regex to find URLs that match this pattern and remove them.
+	cleaned := re.ReplaceAllString(text, "")
+	trimmed := strings.TrimSpace(cleaned)
+
+	return trimmed
 }

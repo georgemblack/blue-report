@@ -1,5 +1,5 @@
 locals {
-  aggregation_version = "1.6.0"
+  aggregation_version = "1.6.2"
 }
 
 resource "aws_ecs_task_definition" "blue_report_link_aggregation" {
@@ -183,12 +183,16 @@ resource "aws_scheduler_schedule" "blue_report_site_aggregation" {
 
     ecs_parameters {
       task_definition_arn = aws_ecs_task_definition.blue_report_site_aggregation.arn
-      launch_type         = "FARGATE"
 
       network_configuration {
         subnets          = [aws_subnet.blue_report_subnet_2a.id, aws_subnet.blue_report_subnet_2b.id, aws_subnet.blue_report_subnet_2c.id]
         assign_public_ip = true
         security_groups  = [aws_security_group.blue_report.id]
+      }
+
+      capacity_provider_strategy {
+        capacity_provider = "FARGATE_SPOT"
+        weight            = 1
       }
     }
   }
