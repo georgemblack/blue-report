@@ -1,5 +1,5 @@
 locals {
-  intake_version = "1.5.7"
+  intake_version = "1.5.9"
 }
 
 resource "aws_ecs_task_definition" "blue_report_intake" {

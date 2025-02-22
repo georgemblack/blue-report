@@ -31,6 +31,12 @@ func AggregateLinks() (links.Snapshot, error) {
 	end := time.Now().UTC()
 	start := end.Add(-24 * time.Hour) // 24 hours
 
+	translations, err := app.Storage.GetURLTranslations()
+	if err != nil {
+		return links.Snapshot{}, util.WrapErr("failed to get url translations", err)
+	}
+	slog.Info("loaded translations", "count", len(translations))
+
 	chunks, err := app.Storage.ListEventChunks(start, end)
 	if err != nil {
 		return links.Snapshot{}, util.WrapErr("failed to list event chunks", err)
@@ -51,7 +57,7 @@ func AggregateLinks() (links.Snapshot, error) {
 		if i == LinkAggregationWorkerCount-1 {
 			end = length
 		}
-		go aggregateLinksWorker(i, app.Storage, chunks[start:end], &aggregation, &wg, errs)
+		go aggregateLinksWorker(i, app.Storage, chunks[start:end], &aggregation, translations, &wg, errs)
 	}
 
 	wg.Wait()
@@ -90,7 +96,7 @@ func AggregateLinks() (links.Snapshot, error) {
 	return snapshot, nil
 }
 
-func aggregateLinksWorker(id int, st Storage, chunks []string, agg *links.Aggregation, wg *sync.WaitGroup, errs chan error) {
+func aggregateLinksWorker(id int, st Storage, chunks []string, agg *links.Aggregation, trans map[string]string, wg *sync.WaitGroup, errs chan error) {
 	defer wg.Done()
 
 	for _, chunk := range chunks {
@@ -110,6 +116,12 @@ func aggregateLinksWorker(id int, st Storage, chunks []string, agg *links.Aggreg
 				continue
 			}
 			cleanedURL := urltools.Clean(record.URL)
+
+			// Determine if there is a known translation (i.e. redirect) for this URL.
+			// If so, use the translated URL instead.
+			if translated, ok := trans[cleanedURL]; ok {
+				cleanedURL = translated
+			}
 
 			// Count the event. This is thread safe.
 			agg.CountEvent(record.Type, cleanedURL, record.Post, record.DID)

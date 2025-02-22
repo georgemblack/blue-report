@@ -17,4 +17,9 @@ func TestIgnore(t *testing.T) {
 	if ignore {
 		t.Errorf("expected false, got true")
 	}
+
+	ignore = Ignore("https://tombogert.bsky.social")
+	if !ignore {
+		t.Errorf("expected true, got false")
+	}
 }

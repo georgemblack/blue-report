@@ -30,6 +30,7 @@ type Storage interface {
 	GetURLMetadata(url string) (storage.URLMetadata, error)
 	SaveURLMetadata(metadata storage.URLMetadata) error
 	SaveURLTranslation(translation storage.URLTranslation) error
+	GetURLTranslations() (map[string]string, error)
 }
 
 type Queue interface {

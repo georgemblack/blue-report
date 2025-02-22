@@ -195,6 +195,21 @@ func (mr *MockStorageMockRecorder) GetURLMetadata(url any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURLMetadata", reflect.TypeOf((*MockStorage)(nil).GetURLMetadata), url)
 }
 
+// GetURLTranslations mocks base method.
+func (m *MockStorage) GetURLTranslations() (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetURLTranslations")
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetURLTranslations indicates an expected call of GetURLTranslations.
+func (mr *MockStorageMockRecorder) GetURLTranslations() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetURLTranslations", reflect.TypeOf((*MockStorage)(nil).GetURLTranslations))
+}
+
 // ListEventChunks mocks base method.
 func (m *MockStorage) ListEventChunks(start, end time.Time) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -347,6 +362,20 @@ func (m *MockQueue) Receive() ([]queue.Message, error) {
 func (mr *MockQueueMockRecorder) Receive() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Receive", reflect.TypeOf((*MockQueue)(nil).Receive))
+}
+
+// Send mocks base method.
+func (m *MockQueue) Send(message queue.Message) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Send", message)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Send indicates an expected call of Send.
+func (mr *MockQueueMockRecorder) Send(message any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockQueue)(nil).Send), message)
 }
 
 // MockSecrets is a mock of Secrets interface.

@@ -9,7 +9,6 @@ import (
 	"sync"
 	"syscall"
 
-	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/georgemblack/blue-report/pkg/queue"
 	"github.com/georgemblack/blue-report/pkg/storage"
 	"github.com/georgemblack/blue-report/pkg/urltools"
@@ -45,17 +44,12 @@ func NormalizeLinks() error {
 	}
 	defer app.Close()
 
-	// An in-memory cache is used to visited URLs to prevent duplicate requests.
-	// A lock is used to manage concurrect access to the cache.
-	lock := sync.Mutex{}
-	cache := mapset.NewSet[string]()
-
 	// Start workers
 	var wg sync.WaitGroup
 	wg.Add(NormalizeWorkerPoolSize)
 	stream := make(chan queue.Message, NormalizeBufferSize)
 	for i := 0; i < NormalizeWorkerPoolSize; i++ {
-		go normalizeWorker(i+1, stream, app.Storage, cache, &lock, &wg)
+		go normalizeWorker(i+1, stream, app.Storage, &wg)
 	}
 
 	// Poll for messages from SQS and add to the stream for workers to process.
@@ -80,7 +74,7 @@ func NormalizeLinks() error {
 	}
 }
 
-func normalizeWorker(id int, stream chan queue.Message, st Storage, cache mapset.Set[string], lock *sync.Mutex, wg *sync.WaitGroup) {
+func normalizeWorker(id int, stream chan queue.Message, st Storage, wg *sync.WaitGroup) {
 	slog.Info(fmt.Sprintf("starting worker %d", id))
 	defer wg.Done()
 
@@ -90,20 +84,6 @@ func normalizeWorker(id int, stream chan queue.Message, st Storage, cache mapset
 			slog.Info("worker received shutdown signal", "worker", id)
 			return
 		}
-
-		// Check if the URL has already been visited
-		hash := util.Hash(msg.URL)
-		lock.Lock()
-		if cache.Contains(hash) {
-			lock.Unlock()
-			slog.Debug("skipping url, already visited", "worker", id, "url", msg.URL)
-			continue
-		}
-		if cache.Cardinality() > NormalizeCacheSize {
-			cache.Pop()
-		}
-		cache.Add(hash)
-		lock.Unlock()
 
 		slog.Debug("normalizing url", "worker", id, "url", msg.URL)
 

@@ -163,6 +163,17 @@ func intakeWorker(id int, stream chan StreamEvent, shutdown chan struct{}, app A
 			stats.reposts++
 		}
 
+		// If the total number of interactions reaches a threshold, send URL to the normalization queue.
+		// Prevent sending the same URL to the queue multiple times
+		if urlRecord.TotalInteractions() > 1000 && !urlRecord.Normalized {
+			err = app.Queue.Send(queue.Message{URL: stRecord.URL})
+			if err != nil {
+				slog.Error(util.WrapErr("failed to send message to queue", err).Error())
+				return
+			}
+			urlRecord.Normalized = true
+		}
+
 		// Save or update the URL record to cache.
 		// This record contains metadata for the URL, as well as post/repost/like counts.
 		// This also has the side-effect of refreshing the TTL of the URL record.
@@ -170,15 +181,6 @@ func intakeWorker(id int, stream chan StreamEvent, shutdown chan struct{}, app A
 		if err != nil {
 			slog.Error(util.WrapErr("failed to save url record", err).Error())
 			return
-		}
-
-		// If event is a post, and the URL appears to be shortened, send the URL to the normalization queue.
-		if event.IsPost() && urltools.IsShortenedURL(stRecord.URL) {
-			err = app.Queue.Send(queue.Message{URL: stRecord.URL})
-			if err != nil {
-				slog.Error(util.WrapErr("failed to send message to queue", err).Error())
-				return
-			}
 		}
 
 		// Save event to the buffer.
