@@ -1,0 +1,10 @@
+---
+const { toggle } = Astro.props;
+const dayClasses = toggle === "day" ? "day active" : "day";
+const weekClasses = toggle === "week" ? "week active" : "week";
+---
+
+<div class="toggle">
+  <a href="/" class={dayClasses}><p>⏰ Past 24 Hours</p></a>
+  <a href="/week" class={weekClasses}><p>🗓️ Past Week</p></a>
+</div>

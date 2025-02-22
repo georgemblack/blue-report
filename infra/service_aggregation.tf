@@ -6,8 +6,8 @@ resource "aws_ecs_task_definition" "blue_report_link_aggregation" {
   family                   = "blue-report-link-aggregation"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = 1024
-  memory                   = 2048
+  cpu                      = 2048
+  memory                   = 4096
   task_role_arn            = aws_iam_role.service.arn
   execution_role_arn       = aws_iam_role.execution.arn
 
@@ -47,8 +47,8 @@ resource "aws_ecs_task_definition" "blue_report_link_aggregation" {
           value = aws_sqs_queue.blue_report.name
         }
       ]
-      cpu    = 1024
-      memory = 2048
+      cpu    = 2048
+      memory = 4096
       logConfiguration = {
         logDriver = "awslogs"
         options = {

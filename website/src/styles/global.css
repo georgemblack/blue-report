@@ -58,20 +58,12 @@ header .accent {
 
 header .subtitle {
   margin-top: 0.5em;
-  display: flex;
-  justify-content: center;
-  gap: 0.25em;
 }
 
 /* small break-point */
 @media screen and (max-width: 36em) {
   body {
     padding: 0 0.85em;
-  }
-
-  header .subtitle {
-    flex-direction: column;
-    gap: 0;
   }
 }
 
@@ -83,7 +75,7 @@ header .subtitle {
 }
 
 main {
-  margin-top: 2em;
+  margin-top: 1.5em;
 }
 
 footer {
@@ -116,6 +108,11 @@ a:hover {
   text-decoration: underline;
 }
 
+/* container group */
+.container-group {
+  margin-top: 1.5em;
+}
+
 /* containers for list items */
 .container {
   padding: 2em 0em;
@@ -124,6 +121,51 @@ a:hover {
 
 .container:last-of-type {
   border-bottom: 2px solid var(--line-separator-color);
+}
+
+/* view toggle */
+.toggle {
+  margin: 0 auto;
+  max-width: 28em;
+  display: flex;
+  padding: 0.25em;
+  font-family: var(--serif-font);
+  line-height: 100%;
+  border-radius: 2em;
+  background-color: var(--toggle-background-color);
+  box-shadow: 5px 6px 23px -10px rgba(0, 0, 0, 0.25);
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+.toggle a {
+  text-decoration: none;
+}
+
+.toggle .day,
+.toggle .week {
+  flex-grow: 1;
+  flex-basis: 0;
+  padding: 0.5em 1em;
+  border-radius: 2em;
+  cursor: pointer;
+  text-align: center;
+}
+
+.toggle .active {
+  background-color: var(--toggle-selected-color);
+}
+
+.toggle .active p {
+  color: var(--header-accent-color);
+}
+
+/* small break-point */
+@media screen and (max-width: 36em) {
+
+  .toggle .day,
+  .toggle .week {
+    font-size: var(--font-size-small);
+  }
 }
 
 /* links */

@@ -16,10 +16,10 @@ const snapshot = await fetchTopLinks();
 ---
 
 <Layout>
-  <DayWeekToggle toggle="day" />
+  <DayWeekToggle toggle="week" />
   <div class="container-group">
     {
-      snapshot.top_day.map((link) => (
+      snapshot.top_week.map((link) => (
         <div class="container">
           <div class="link">
             <a
