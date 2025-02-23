@@ -166,9 +166,8 @@ a:hover {
 
 /* small break-point */
 @media screen and (max-width: 36em) {
-
-  .toggle .day,
-  .toggle .week {
+  .toggle {
+    max-width: 26em;
     font-size: var(--font-size-small);
   }
 }
@@ -280,8 +279,9 @@ a:hover {
   .link .preview img,
   .link .preview .placeholder {
     margin-top: 0.25rem;
-    width: 5rem;
-    height: 5rem;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 0.75rem;
   }
 }
 
