@@ -18,7 +18,7 @@
   /* text colors */
   --header-accent-color: #4286f4;
   --header-accent-color-secondary: #78acff;
-  --header-accent-color-faded: rgba(66, 134, 244, 0.25);
+  --header-accent-color-faded: rgba(66, 134, 244, 0.2);
   --link-color: #2b589f;
   --link-hover-color: #1f4a8f;
   --body-text-color: #2d2d2d;
@@ -315,6 +315,7 @@ a:hover {
   padding: 0.35em 2em;
   border-radius: 1em;
   background-color: rgba(85, 170, 255, 0.1);
+  background: linear-gradient(rgba(85, 170, 255, 0.05), rgba(85, 170, 255, 0.1));
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
@@ -411,13 +412,18 @@ a:hover {
     display: flex;
     overflow-x: auto;
   }
+
+  .recommended-posts::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .recommended-post {
   padding: 1em;
   border: 1px solid var(--header-accent-color-faded);
-  border-radius: 0.75em;
+  border-radius: 1em;
   background-color: var(--toggle-background-color);
+  background: linear-gradient(135deg, transparent, rgba(85, 170, 255, 0.05));
   box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
   /* ensure long text (like links) doesn't cause container to expand in width */
   overflow-wrap: anywhere;
