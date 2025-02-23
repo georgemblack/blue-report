@@ -17,6 +17,7 @@
 
   /* text colors */
   --header-accent-color: #4286f4;
+  --header-accent-color-secondary: #78acff;
   --header-accent-color-faded: rgba(66, 134, 244, 0.25);
   --link-color: #2b589f;
   --link-hover-color: #1f4a8f;
@@ -54,6 +55,9 @@ header {
 
 header .accent {
   color: var(--header-accent-color);
+  background: linear-gradient(135deg, var(--header-accent-color), var(--header-accent-color-secondary));
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 header .subtitle {
@@ -139,6 +143,7 @@ a:hover {
 
 .toggle a {
   text-decoration: none;
+  color: var(--body-text-color);
 }
 
 .toggle .day,
