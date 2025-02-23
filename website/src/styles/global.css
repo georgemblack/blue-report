@@ -283,6 +283,10 @@ a:hover {
     height: 4rem;
     border-radius: 0.75rem;
   }
+
+  .last-updated {
+    text-align: center;
+  }
 }
 
 /* expand button (inline) */
