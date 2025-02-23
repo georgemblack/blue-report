@@ -42,6 +42,11 @@ func hydrateLinks(app App, agg *links.Aggregation, snapshot links.Snapshot) (lin
 
 func hydrateLink(app App, agg *links.Aggregation, index int, link links.Link) (links.Link, error) {
 	hashedURL := util.Hash(link.URL)
+
+	// Get the stats for this link from the aggregation.
+	stats := agg.Get(link.URL)
+
+	// Fetch the URL record from the cache, which contains the title and image URL.
 	record, err := app.Cache.ReadURL(hashedURL)
 	if err != nil {
 		return links.Link{}, util.WrapErr("failed to read url record", err)
@@ -80,13 +85,12 @@ func hydrateLink(app App, agg *links.Aggregation, index int, link links.Link) (l
 		link.Title = "(No Title)"
 	}
 	link.Rank = index + 1
-	link.PostCount = record.Totals.Posts
-	link.RepostCount = record.Totals.Reposts
-	link.LikeCount = record.Totals.Likes
+	link.PostCount = stats.WeekCount.Posts
+	link.RepostCount = stats.WeekCount.Reposts
+	link.LikeCount = stats.WeekCount.Likes
 	link.ClickCount = clicks(link.URL)
 
-	// Generate a list of the most popular 2-5 posts referencing the URL.
-	// Posts should contain commentary on the subject of the link.
+	// Generate a list of the most popular 1-3 posts referencing the URL.
 	aggregationItem := agg.Get(link.URL)
 	link.RecommendedPosts = recommendedPosts(app.Bluesky, aggregationItem.TopPosts())
 
@@ -201,6 +205,7 @@ func formatPost(text string) string {
 	text = strings.TrimPrefix(text, "BREAKING NEWS: ")
 	text = strings.TrimPrefix(text, "NEW: ")
 	text = strings.TrimPrefix(text, "🔴")
+	text = strings.TrimPrefix(text, "💥")
 
 	// Collapse all whitespace into a single space
 	text = strings.Join(strings.Fields(text), " ")
