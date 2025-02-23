@@ -116,14 +116,6 @@ h2 {
   }
 }
 
-/* small break-point */
-@media screen and (max-width: 36em) {
-  h2 {
-    font-size: 1em;
-  }
-}
-
-
 a {
   text-decoration: none;
   color: var(--link-color);
