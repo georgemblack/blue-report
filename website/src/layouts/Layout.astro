@@ -60,58 +60,6 @@ import "../styles/global.css";
       <h1>The<span class="accent">Blue</span>Report</h1>
       <p class="subtitle">The top links on Bluesky, updated hourly</p>
     </header>
-    <main>
-      <slot />
-    </main>
-    <footer>
-      <p>
-        Created by <a href="https://bsky.app/profile/george.black"
-          >George Black</a
-        >, inspired by <a href="https://sill.social">Sill</a>.
-      </p>
-      <p>
-        The source code, as well as information on how links are ranked is <a
-          href="https://github.com/georgemblack/blue-report/blob/master/RANKING.md"
-          >available here</a
-        >.
-      </p>
-      <div style="margin-top: 2em;">
-        <a href="https://www.buymeacoffee.com/georgeblack" target="_blank"
-          ><img
-            src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png"
-            alt="Buy Me A Coffee"
-            style="height: 60px !important;width: 217px !important;"
-          /></a
-        >
-      </div>
-      <!-- Script for handling clipboard events, to prevent users from copying redirect URLs -->
-      <script>
-        document.querySelectorAll("a.redirect-link").forEach((link) => {
-          function setOriginalHref() {
-            link.dataset.tempHref = link.href; // Save original redirect link
-            link.href = link.dataset.originalUrl; // Set to original URL for copying
-          }
-
-          function restoreHref() {
-            if (link.dataset.tempHref) {
-              link.href = link.dataset.tempHref; // Restore the original redirect link
-              delete link.dataset.tempHref;
-            }
-          }
-
-          // For desktop (right-click "Copy Link Address")
-          link.addEventListener("contextmenu", setOriginalHref);
-          link.addEventListener("mouseleave", restoreHref);
-
-          // For mobile (long-press "Copy Link")
-          link.addEventListener("touchstart", setOriginalHref);
-          link.addEventListener("touchend", restoreHref);
-          link.addEventListener("touchcancel", restoreHref);
-        });
-      </script>
-      <!-- 100% privacy-first analytics -->
-      <script async src="https://scripts.simpleanalyticscdn.com/latest.js"
-      ></script>
-    </footer>
+    <slot />
   </body>
 </html>

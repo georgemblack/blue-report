@@ -3,6 +3,7 @@ import CenteredExpandButton from "../components/CenteredExpandButton.astro";
 import DayWeekToggle from "../components/DayWeekToggle.astro";
 import InlineExpandButton from "../components/InlineExpandButton.astro";
 import Layout from "../layouts/Layout.astro";
+import Footer from "../components/Footer.astro";
 import { fetchTopLinks } from "../util/Data";
 import {
   strip,
@@ -16,96 +17,99 @@ const snapshot = await fetchTopLinks();
 ---
 
 <Layout>
-  <DayWeekToggle toggle="week" />
-  <div class="container-group">
-    {
-      snapshot.top_week.map((link) => (
-        <div class="container">
-          <div class="link">
-            <a
-              href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
-              class="preview redirect-link"
-              data-original-url={link.url}
-            >
-              {link.thumbnail_id ? (
-                <img
-                  src={`https://assets.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
-                />
-              ) : (
-                <div class="placeholder">📄</div>
-              )}
-            </a>
-            <div class="content">
-              <p class="title">
-                <a
-                  href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
-                  class="redirect-link"
-                  data-original-url={link.url}
-                >
-                  {link.rank}. {link.title}
-                </a>
-              </p>
-              <div class="subcontent">
-                <p class="metadata">
-                  <span class="host">{formatHost(link.url)}</span>
-                  <span class="bullet">•</span>
-                  <span>
-                    {formatCount(link.post_count)} posts,{" "}
-                    {formatCount(link.repost_count)} reposts,{" "}
-                    {formatCount(link.like_count)} likes
-                  </span>
+  <main>
+    <DayWeekToggle toggle="week" />
+    <div class="container-group">
+      {
+        snapshot.top_week.map((link) => (
+          <div class="container">
+            <div class="link">
+              <a
+                href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
+                class="preview redirect-link"
+                data-original-url={link.url}
+              >
+                {link.thumbnail_id ? (
+                  <img
+                    src={`https://assets.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
+                  />
+                ) : (
+                  <div class="placeholder">📄</div>
+                )}
+              </a>
+              <div class="content">
+                <p class="title">
+                  <a
+                    href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
+                    class="redirect-link"
+                    data-original-url={link.url}
+                  >
+                    {link.rank}. {link.title}
+                  </a>
                 </p>
-                <InlineExpandButton id={strip(link.url)} />
+                <div class="subcontent">
+                  <p class="metadata">
+                    <span class="host">{formatHost(link.url)}</span>
+                    <span class="bullet">•</span>
+                    <span>
+                      {formatCount(link.post_count)} posts,{" "}
+                      {formatCount(link.repost_count)} reposts,{" "}
+                      {formatCount(link.like_count)} likes
+                    </span>
+                  </p>
+                  <InlineExpandButton id={strip(link.url)} />
+                </div>
               </div>
             </div>
-          </div>
-          <div class="link-details" id={strip(link.url)}>
-            <div class="recommended-posts">
-              {link.recommended_posts.map((post) => (
-                <div class="recommended-post">
-                  <div class="inner">
-                    <div>
-                      <p class="username">{post.username}</p>
-                      <a
-                        class="handle"
-                        href={`https://bsky.app/profile/${post.handle}`}
-                      >
-                        {post.handle}
-                      </a>
-                      <p class="text">{post.text}</p>
-                    </div>
-                    <div class="view-more">
-                      <a href={urlFromPost(post.at_uri, post.handle)}>
-                        View Post
-                      </a>
+            <div class="link-details" id={strip(link.url)}>
+              <div class="recommended-posts">
+                {link.recommended_posts.map((post) => (
+                  <div class="recommended-post">
+                    <div class="inner">
+                      <div>
+                        <p class="username">{post.username}</p>
+                        <a
+                          class="handle"
+                          href={`https://bsky.app/profile/${post.handle}`}
+                        >
+                          {post.handle}
+                        </a>
+                        <p class="text">{post.text}</p>
+                      </div>
+                      <div class="view-more">
+                        <a href={urlFromPost(post.at_uri, post.handle)}>
+                          View Post
+                        </a>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+            <CenteredExpandButton id={strip(link.url)} />
           </div>
-          <CenteredExpandButton id={strip(link.url)} />
-        </div>
-      ))
-    }
-  </div>
-  <p class="last-updated">Last updated {formatDate(snapshot.generated_at)}</p>
-  <script is:inline>
-    function toggleLinkDetails(id) {
-      const content = document.getElementById(id);
-      const inlineButton = document.getElementById(`${id}-inline`);
-      const centeredButton = document.getElementById(`${id}-centered`);
-      if (!content || !inlineButton || !centeredButton) return;
-
-      if (content.classList.contains("open")) {
-        inlineButton.classList.remove("open");
-        centeredButton.classList.remove("open");
-        content.classList.remove("open");
-      } else {
-        inlineButton.classList.add("open");
-        centeredButton.classList.add("open");
-        content.classList.add("open");
+        ))
       }
-    }
-  </script>
+    </div>
+    <p class="last-updated">Last updated {formatDate(snapshot.generated_at)}</p>
+    <script is:inline>
+      function toggleLinkDetails(id) {
+        const content = document.getElementById(id);
+        const inlineButton = document.getElementById(`${id}-inline`);
+        const centeredButton = document.getElementById(`${id}-centered`);
+        if (!content || !inlineButton || !centeredButton) return;
+
+        if (content.classList.contains("open")) {
+          inlineButton.classList.remove("open");
+          centeredButton.classList.remove("open");
+          content.classList.remove("open");
+        } else {
+          inlineButton.classList.add("open");
+          centeredButton.classList.add("open");
+          content.classList.add("open");
+        }
+      }
+    </script>
+  </main>
+  <Footer />
 </Layout>
