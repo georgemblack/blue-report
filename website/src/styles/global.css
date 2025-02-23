@@ -55,7 +55,7 @@ header {
 
 header .accent {
   color: var(--header-accent-color);
-  background: linear-gradient(135deg, var(--header-accent-color), var(--header-accent-color-secondary));
+  background: linear-gradient(315deg, var(--header-accent-color), var(--header-accent-color-secondary));
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -99,8 +99,30 @@ footer {
 h1,
 h2,
 h3 {
+  margin: 0;
   font-family: var(--serif-font);
 }
+
+h2 {
+  font-size: 1.25em;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+/* medium break-point */
+@media screen and (max-width: 56em) {
+  h2 {
+    font-size: 1.15em;
+  }
+}
+
+/* small break-point */
+@media screen and (max-width: 36em) {
+  h2 {
+    font-size: 1em;
+  }
+}
+
 
 a {
   text-decoration: none;
@@ -213,12 +235,6 @@ a:hover {
   justify-content: space-between;
 }
 
-.link .title {
-  font-size: 1.25em;
-  font-family: var(--serif-font);
-  overflow-wrap: anywhere;
-}
-
 .link .metadata {
   color: var(--faded-text-color);
   display: flex;
@@ -238,10 +254,6 @@ a:hover {
 @media screen and (max-width: 56em) {
   .link {
     gap: 1em;
-  }
-
-  .link .title {
-    font-size: 1.15em;
   }
 
   .link .preview img,
@@ -321,9 +333,18 @@ a:hover {
   margin: 0 auto;
   padding: 0.35em 2em;
   border-radius: 1em;
+  /* backup in case linear-gradient is not supported */
   background-color: rgba(85, 170, 255, 0.1);
+  /* primary background */
   background: linear-gradient(rgba(85, 170, 255, 0.05), rgba(85, 170, 255, 0.1));
+  /* ensure gray shadow does not appear on tap */
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  /* prevent delay on touch devices */
+  touch-action: manipulation;
+}
+
+.expand-centered button:active {
+  background: linear-gradient(rgba(85, 170, 255, 0.1), rgba(85, 170, 255, 0.2));
 }
 
 .expand-centered svg {
@@ -400,10 +421,6 @@ a:hover {
   .link-details.open {
     margin-top: 1em;
   }
-}
-
-.link-details h3 {
-  font-size: 1em;
 }
 
 /* recommended posts */
