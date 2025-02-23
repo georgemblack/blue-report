@@ -167,7 +167,10 @@ a:hover {
 /* small break-point */
 @media screen and (max-width: 36em) {
   .toggle {
-    max-width: 26em;
+    max-width: 22em;
+  }
+
+  .toggle a {
     font-size: var(--font-size-small);
   }
 }
