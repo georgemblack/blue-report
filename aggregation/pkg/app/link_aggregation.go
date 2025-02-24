@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	ListSize                   = 15
+	ListSize                   = 10
 	LinkAggregationWorkerCount = 4
 )
 
