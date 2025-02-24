@@ -17,7 +17,7 @@ Where:
 The following rules also apply:
 
 * Only English language posts are counted
-* Only posts/reposts/likes that have occurred within the last 24 hours are counted in the score
+* Only posts/reposts/likes that have occurred within the time window are counted in the score
 * Only one post/repost/like is counted per user, per link
   * Example: if a user likes five separate posts containing the same link, this is counted as one like
 * Removal of posts/reposts/likes is not counted
@@ -25,13 +25,7 @@ The following rules also apply:
 
 ## Displayed Information
 
-The 'posts/reposts/likes' displayed under each link represents the **overall** number of each for the given link, with the following caveats:
-
-* Duplicate events per user are not checked
-  * Example: if a user likes five posts containing the same link, this is counted as five likes
-  * Example: if a user likes and un-likes the same post five times, this is counted as five likes
-
-The 'clicks' displayed under each link represents how many times users have clicked the given link from The Blue Report's website.
+The 'posts/reposts/likes' displayed under each link represents the number of each that have occurred in the past week, with the same caveats as above.
 
 ## Disclaimers
 
