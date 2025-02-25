@@ -60,9 +60,6 @@ func (a *AggregationItem) CountEvent(eventType int, post string, ts time.Time, b
 	if a.Posts == nil {
 		a.Posts = make(map[string]int)
 	}
-	if _, ok := a.Posts[post]; !ok {
-		a.Posts[post] = 0
-	}
 	a.Posts[post]++
 }
 

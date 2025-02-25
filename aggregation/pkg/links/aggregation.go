@@ -11,9 +11,9 @@ import (
 	"github.com/bits-and-blooms/bloom/v3"
 )
 
-const EstimatedTotalEvents = 21000000 // 21 million. Estimate is used to create bloom filter used for duplicate detection.]
+const EstimatedTotalEvents = 25000000 // 25 million. Estimate is used to create bloom filter used for duplicate detection.
 const DuplicatePrecision = 0.001      // 0.1% precision for duplicate detection
-const NumShards = 512                 // Number of shards to use for parallel processing
+const NumShards = 1024                // Number of shards to use for parallel processing
 
 type Aggregation struct {
 	shards           []Shard
@@ -26,7 +26,7 @@ type Aggregation struct {
 
 type Shard struct {
 	lock  sync.Mutex
-	items map[string]AggregationItem
+	items map[string]*AggregationItem
 }
 
 type TimeBounds struct {
@@ -39,7 +39,7 @@ func NewAggregation(bounds TimeBounds) Aggregation {
 	for i := range shards {
 		shards[i] = Shard{
 			lock:  sync.Mutex{},
-			items: make(map[string]AggregationItem),
+			items: make(map[string]*AggregationItem),
 		}
 	}
 
@@ -55,7 +55,11 @@ func NewAggregation(bounds TimeBounds) Aggregation {
 
 func (a *Aggregation) Get(url string) AggregationItem {
 	shard := a.getShard(url)
-	return shard.items[url]
+	result := shard.items[url]
+	if result == nil {
+		return AggregationItem{}
+	}
+	return *result
 }
 
 func (a *Aggregation) Total() int64 {
@@ -88,9 +92,10 @@ func (a *Aggregation) CountEvent(eventType int, linkURL string, post string, did
 	shard := a.getShard(linkURL)
 
 	shard.lock.Lock()
-	item := shard.items[linkURL]
-	item.CountEvent(eventType, post, ts, a.bounds)
-	shard.items[linkURL] = item
+	if shard.items[linkURL] == nil {
+		shard.items[linkURL] = &AggregationItem{}
+	}
+	shard.items[linkURL].CountEvent(eventType, post, ts, a.bounds)
 	shard.lock.Unlock()
 
 	atomic.AddInt64(&a.total, 1)
@@ -100,7 +105,7 @@ func (a *Aggregation) TopDayLinks(n int) []string {
 	// Convert map to slice
 	type kv struct {
 		URL             string
-		AggregationItem AggregationItem
+		AggregationItem *AggregationItem
 	}
 	var kvs []kv
 	for i := range a.shards {
@@ -140,7 +145,7 @@ func (a *Aggregation) TopWeekLinks(n int) []string {
 	// Convert map to slice
 	type kv struct {
 		URL             string
-		AggregationItem AggregationItem
+		AggregationItem *AggregationItem
 	}
 	var kvs []kv
 	for i := range a.shards {

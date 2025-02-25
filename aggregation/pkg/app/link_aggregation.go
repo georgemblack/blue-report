@@ -12,7 +12,7 @@ import (
 
 const (
 	ListSize                   = 10
-	LinkAggregationWorkerCount = 4
+	LinkAggregationWorkerCount = 6
 )
 
 // AggregateLinks fetches all events from storage, aggregates trending URLs, and generates a snapshot.
