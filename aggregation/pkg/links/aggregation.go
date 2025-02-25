@@ -5,28 +5,26 @@ import (
 	"hash/fnv"
 	"slices"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/bits-and-blooms/bloom/v3"
 )
 
 const EstimatedTotalEvents = 25000000 // 25 million. Estimate is used to create bloom filter used for duplicate detection.
-const DuplicatePrecision = 0.001      // 0.1% precision for duplicate detection
+const DuplicatePrecision = 0.0001     // 0.01% precision for duplicate detection
 const NumShards = 1024                // Number of shards to use for parallel processing
 
 type Aggregation struct {
-	shards           []Shard
-	fingerprints     *bloom.BloomFilter
-	fingerprintsLock sync.Mutex
-	bounds           TimeBounds
-	total            int64 // Number of events processed
-	skipped          int64 // Number of events skipped due to suspected duplicate
+	shards []Shard
+	bounds TimeBounds
 }
 
 type Shard struct {
-	lock  sync.Mutex
-	items map[string]*AggregationItem
+	lock         sync.Mutex
+	items        map[string]*AggregationItem
+	fingerprints *bloom.BloomFilter
+	total        int // Number of events processed
+	skipped      int // Number of events skipped due to suspected duplicate
 }
 
 type TimeBounds struct {
@@ -40,16 +38,18 @@ func NewAggregation(bounds TimeBounds) Aggregation {
 		shards[i] = Shard{
 			lock:  sync.Mutex{},
 			items: make(map[string]*AggregationItem),
+			fingerprints: bloom.NewWithEstimates(
+				EstimatedTotalEvents/NumShards,
+				DuplicatePrecision,
+			),
+			total:   0,
+			skipped: 0,
 		}
 	}
 
 	return Aggregation{
-		shards:           shards,
-		fingerprints:     bloom.NewWithEstimates(EstimatedTotalEvents, DuplicatePrecision),
-		fingerprintsLock: sync.Mutex{},
-		bounds:           bounds,
-		total:            0,
-		skipped:          0,
+		shards: shards,
+		bounds: bounds,
 	}
 }
 
@@ -62,12 +62,28 @@ func (a *Aggregation) Get(url string) AggregationItem {
 	return *result
 }
 
-func (a *Aggregation) Total() int64 {
-	return a.total
+func (a *Aggregation) Total() int {
+	total := 0
+
+	for i := range a.shards {
+		shard := &a.shards[i]
+		fmt.Println("shard total", shard.total)
+		total += shard.total
+	}
+
+	return total
 }
 
-func (a *Aggregation) Skipped() int64 {
-	return a.skipped
+func (a *Aggregation) Skipped() int {
+	skipped := 0
+
+	for i := range a.shards {
+		shard := &a.shards[i]
+		fmt.Println("shard skipped", shard.skipped)
+		skipped += shard.skipped
+	}
+
+	return skipped
 }
 
 func (a *Aggregation) CountEvent(eventType int, linkURL string, post string, did string, ts time.Time) {
@@ -76,44 +92,27 @@ func (a *Aggregation) CountEvent(eventType int, linkURL string, post string, did
 		return
 	}
 
-	// Check for a duplicate url/event/did combination to prevent spam.
-	// i.e. at most, a single user can like, post, and repost a link once.
-	// Ensure only one worker is able to update 'fingerprints' at a given moment.
-	a.fingerprintsLock.Lock()
-	fingerprint := fmt.Sprintf("%s%d%s", linkURL, eventType, did)
-	if a.fingerprints.TestAndAddString(fingerprint) {
-		a.skipped++
-		a.fingerprintsLock.Unlock()
-		return
-	}
-	a.fingerprintsLock.Unlock()
-
 	// Find the shard associated with the given URL
 	shard := a.getShard(linkURL)
-
 	shard.lock.Lock()
+
+	fingerprint := fmt.Sprintf("%s%d%s", linkURL, eventType, did)
+	if shard.fingerprints.TestAndAddString(fingerprint) {
+		shard.skipped++
+		shard.lock.Unlock()
+		return
+	}
+
 	if shard.items[linkURL] == nil {
 		shard.items[linkURL] = &AggregationItem{}
 	}
 	shard.items[linkURL].CountEvent(eventType, post, ts, a.bounds)
+	shard.total++
 	shard.lock.Unlock()
-
-	atomic.AddInt64(&a.total, 1)
 }
 
 func (a *Aggregation) TopDayLinks(n int) []string {
-	// Convert map to slice
-	type kv struct {
-		URL             string
-		AggregationItem *AggregationItem
-	}
-	var kvs []kv
-	for i := range a.shards {
-		shard := &a.shards[i]
-		for k, v := range shard.items {
-			kvs = append(kvs, kv{URL: k, AggregationItem: v})
-		}
-	}
+	kvs := a.toKV()
 
 	// Sort by score
 	slices.SortFunc(kvs, func(a, b kv) int {
@@ -142,18 +141,7 @@ func (a *Aggregation) TopDayLinks(n int) []string {
 }
 
 func (a *Aggregation) TopWeekLinks(n int) []string {
-	// Convert map to slice
-	type kv struct {
-		URL             string
-		AggregationItem *AggregationItem
-	}
-	var kvs []kv
-	for i := range a.shards {
-		shard := &a.shards[i]
-		for k, v := range shard.items {
-			kvs = append(kvs, kv{URL: k, AggregationItem: v})
-		}
-	}
+	kvs := a.toKV()
 
 	// Sort by score
 	slices.SortFunc(kvs, func(a, b kv) int {
@@ -179,6 +167,24 @@ func (a *Aggregation) TopWeekLinks(n int) []string {
 	}
 
 	return urls
+}
+
+type kv struct {
+	URL             string
+	AggregationItem *AggregationItem
+}
+
+func (a *Aggregation) toKV() []kv {
+	var kvs []kv
+
+	for i := range a.shards {
+		shard := &a.shards[i]
+		for k, v := range shard.items {
+			kvs = append(kvs, kv{URL: k, AggregationItem: v})
+		}
+	}
+
+	return kvs
 }
 
 func (a *Aggregation) getShard(url string) *Shard {
