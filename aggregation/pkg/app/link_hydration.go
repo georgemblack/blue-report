@@ -70,10 +70,10 @@ func hydrateLink(app App, agg *links.Aggregation, index int, link links.Link) (l
 	}
 
 	// Fetch the title from storage.
-	// If we don't have a title, use the title in the cache .
+	// If we don't have a title, use the title in the cache.
 	link.Title = getTitle(app.Storage, link.URL)
 	if link.Title == "" {
-		link.Title = record.Title
+		link.Title = formatTitle(record.Title)
 	}
 
 	// Update storage with the latest title.
@@ -161,31 +161,18 @@ func recommendedPosts(bs Bluesky, uris []string) []links.Post {
 	return posts
 }
 
-// Get the number of clicks for a given URL.
-func clicks(url string) int {
-	resp, err := http.Get(fmt.Sprintf("https://api.theblue.report?url=%s", url))
-	if err != nil {
-		err = util.WrapErr("failed to get clicks", err)
-		slog.Error(err.Error(), "url", url)
-		return 0
-	}
-	defer resp.Body.Close()
+func formatTitle(title string) string {
+	// Remove any siren emojis, they are annoying
+	title = strings.ReplaceAll(title, "🚨", "")
 
-	if resp.StatusCode != http.StatusOK {
-		slog.Error("failed to get clicks", "url", url, "status", resp.StatusCode)
-		return 0
-	}
+	// Remove any sensationalist prefixes
+	title = strings.TrimPrefix(title, "BREAKING: ")
+	title = strings.TrimPrefix(title, "BREAKING NEWS: ")
+	title = strings.TrimPrefix(title, "NEW: ")
+	title = strings.TrimPrefix(title, "🔴")
+	title = strings.TrimPrefix(title, "💥")
 
-	var result struct {
-		Count int `json:"count"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		err = util.WrapErr("failed to decode clicks response", err)
-		slog.Error(err.Error(), "url", url)
-		return 0
-	}
-
-	return result.Count
+	return title
 }
 
 func formatPost(text string) string {
@@ -220,4 +207,31 @@ func formatPost(text string) string {
 	trimmed := strings.TrimSpace(cleaned)
 
 	return trimmed
+}
+
+// Get the number of clicks for a given URL.
+func clicks(url string) int {
+	resp, err := http.Get(fmt.Sprintf("https://api.theblue.report?url=%s", url))
+	if err != nil {
+		err = util.WrapErr("failed to get clicks", err)
+		slog.Error(err.Error(), "url", url)
+		return 0
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		slog.Error("failed to get clicks", "url", url, "status", resp.StatusCode)
+		return 0
+	}
+
+	var result struct {
+		Count int `json:"count"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		err = util.WrapErr("failed to decode clicks response", err)
+		slog.Error(err.Error(), "url", url)
+		return 0
+	}
+
+	return result.Count
 }
