@@ -1,5 +1,5 @@
 locals {
-  aggregation_version = "1.6.6"
+  aggregation_version = "1.6.8"
 }
 
 resource "aws_ecs_task_definition" "blue_report_link_aggregation" {

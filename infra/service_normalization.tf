@@ -51,7 +51,7 @@ resource "aws_ecs_task_definition" "blue_report_link_normalization" {
 }
 
 resource "aws_ecs_service" "blue_report_link_normalization" {
-  name            = "blue-report-link-normalization"
+  name            = "link-normalization"
   desired_count   = 1
   cluster         = aws_ecs_cluster.blue_report.id
   task_definition = aws_ecs_task_definition.blue_report_link_normalization.arn

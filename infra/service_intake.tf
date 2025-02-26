@@ -1,5 +1,5 @@
 locals {
-  intake_version = "1.5.9"
+  intake_version = "1.6.7"
 }
 
 resource "aws_ecs_task_definition" "blue_report_intake" {
@@ -59,7 +59,7 @@ resource "aws_ecs_task_definition" "blue_report_intake" {
 }
 
 resource "aws_ecs_service" "blue_report_intake" {
-  name            = "blue-report-intake"
+  name            = "intake"
   launch_type     = "FARGATE"
   desired_count   = 1
   cluster         = aws_ecs_cluster.blue_report.id

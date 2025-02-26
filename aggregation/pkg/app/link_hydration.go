@@ -3,8 +3,6 @@ package app
 import (
 	"errors"
 	"log/slog"
-	"regexp"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/sso/types"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -39,45 +37,48 @@ func hydrateLinks(app App, agg *links.Aggregation, snapshot links.Snapshot) (lin
 
 func hydrateLink(app App, agg *links.Aggregation, index int, link links.Link) (links.Link, error) {
 	hashedURL := util.Hash(link.URL)
-
-	// Get the stats for this link from the aggregation.
 	stats := agg.Get(link.URL)
 
-	// Fetch the URL record from the cache, which contains the title and image URL.
-	record, err := app.Cache.ReadURL(hashedURL)
-	if err != nil {
-		return links.Link{}, util.WrapErr("failed to read url record", err)
-	}
-
-	// Fetch the thumbnail from the Bluesky CDN and store it in our S3 bucket.
-	// The thumbnail ID is the hash of the URL.
-	if record.ImageURL != "" {
-		err := app.Storage.SaveThumbnail(hashedURL, record.ImageURL)
-		if err != nil {
-			slog.Warn(util.WrapErr("failed to save thumbnail", err).Error(), "url", link.URL)
-		}
-	}
-
-	// Set the thumbnail ID if it exists
-	exists, err := app.Storage.ThumbnailExists(hashedURL)
+	// Check whether we have a thumbnail
+	thumbnailExists, err := app.Storage.ThumbnailExists(hashedURL)
 	if err != nil {
 		slog.Warn(util.WrapErr("failed to check for thumbnail", err).Error(), "url", link.URL)
-	} else if exists {
+	}
+	if thumbnailExists {
 		link.ThumbnailID = hashedURL
 	}
 
-	// Fetch the title from storage.
-	// If we don't have a title, use the title in the cache.
+	// Check whether we have a title
+	titleExists := false
 	link.Title = getTitle(app.Storage, link.URL)
-	if link.Title == "" {
-		link.Title = formatTitle(record.Title)
+	if link.Title != "" {
+		titleExists = true
 	}
 
-	// Update storage with the latest title.
-	// Even if it's empty, having the record in storage allows us to manually add a title if it is missing.
-	updateTitle(app.Storage, link.URL, link.Title)
+	// If either title or thumbnail is missing, fetch from CardyB & store
+	if !thumbnailExists || !titleExists {
+		cardy, err := cardyB(link.URL)
+		if err != nil {
+			slog.Warn(util.WrapErr("failed to get title from cardyb", err).Error(), "url", link.URL)
+		}
 
-	// Set display items, such as rank, title, host, and stats
+		// Save title
+		if !titleExists && cardy.Title != "" {
+			link.Title = formatTitle(cardy.Title)
+			updateTitle(app.Storage, link.URL, link.Title)
+		}
+
+		// Save thumbnail
+		if !thumbnailExists && cardy.Image != "" {
+			err := app.Storage.SaveThumbnail(hashedURL, cardy.Image)
+			if err != nil {
+				slog.Warn(util.WrapErr("failed to save thumbnail", err).Error(), "url", link.URL)
+			} else {
+				link.ThumbnailID = hashedURL
+			}
+		}
+	}
+
 	if link.Title == "" {
 		link.Title = "(No Title)"
 	}
@@ -85,10 +86,7 @@ func hydrateLink(app App, agg *links.Aggregation, index int, link links.Link) (l
 	link.PostCount = stats.WeekCount.Posts
 	link.RepostCount = stats.WeekCount.Reposts
 	link.LikeCount = stats.WeekCount.Likes
-
-	// Generate a list of the most popular 1-3 posts referencing the URL.
-	aggregationItem := agg.Get(link.URL)
-	link.RecommendedPosts = recommendedPosts(app.Bluesky, aggregationItem.TopPosts())
+	link.RecommendedPosts = recommendedPosts(app.Bluesky, stats.TopPosts())
 
 	slog.Debug("hydrated", "record", link)
 	return link, nil
@@ -155,52 +153,4 @@ func recommendedPosts(bs Bluesky, uris []string) []links.Post {
 	}
 
 	return posts
-}
-
-func formatTitle(title string) string {
-	// Remove any siren emojis, they are annoying
-	title = strings.ReplaceAll(title, "🚨", "")
-
-	// Remove any sensationalist prefixes
-	title = strings.TrimPrefix(title, "BREAKING: ")
-	title = strings.TrimPrefix(title, "BREAKING NEWS: ")
-	title = strings.TrimPrefix(title, "NEW: ")
-	title = strings.TrimPrefix(title, "🔴")
-	title = strings.TrimPrefix(title, "💥")
-
-	return title
-}
-
-func formatPost(text string) string {
-	urlPattern := `(www\.)?[\w.-]+\.[a-z]{2,}(/[^\s]*)?\w*\.{3}`
-	re := regexp.MustCompile(urlPattern)
-
-	// Clean up any newlines or extra whitespace
-	text = strings.ReplaceAll(text, "\n", " ")
-	text = strings.ReplaceAll(text, "\r", " ")
-	text = strings.ReplaceAll(text, "\t", " ")
-
-	// Remove any siren emojis, they are annoying
-	text = strings.ReplaceAll(text, "🚨", "")
-
-	// Remove any sensationalist prefixes
-	text = strings.TrimPrefix(text, "BREAKING: ")
-	text = strings.TrimPrefix(text, "BREAKING NEWS: ")
-	text = strings.TrimPrefix(text, "NEW: ")
-	text = strings.TrimPrefix(text, "🔴")
-	text = strings.TrimPrefix(text, "💥")
-
-	// Collapse all whitespace into a single space
-	text = strings.Join(strings.Fields(text), " ")
-
-	// Remove URLs from the post text, as it is redundant.
-	// The Bluesky post editor frequently truncates URL, so they appear as the following:
-	//  - 'www.comicsands.com/crockett-bro...'
-	// 	- 'apnews.com/article/trum...
-	// 	- 'www.democracydocket.com/opinion/my-o...'
-	// Use regex to find URLs that match this pattern and remove them.
-	cleaned := re.ReplaceAllString(text, "")
-	trimmed := strings.TrimSpace(cleaned)
-
-	return trimmed
 }
