@@ -23,7 +23,6 @@ type Link struct {
 	PostCount        int    `json:"post_count"`
 	RepostCount      int    `json:"repost_count"`
 	LikeCount        int    `json:"like_count"`
-	ClickCount       int    `json:"click_count"`
 	RecommendedPosts []Post `json:"recommended_posts"`
 }
 

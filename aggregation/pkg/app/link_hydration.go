@@ -1,11 +1,8 @@
 package app
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
-	"net/http"
 	"regexp"
 	"strings"
 
@@ -88,7 +85,6 @@ func hydrateLink(app App, agg *links.Aggregation, index int, link links.Link) (l
 	link.PostCount = stats.WeekCount.Posts
 	link.RepostCount = stats.WeekCount.Reposts
 	link.LikeCount = stats.WeekCount.Likes
-	link.ClickCount = clicks(link.URL)
 
 	// Generate a list of the most popular 1-3 posts referencing the URL.
 	aggregationItem := agg.Get(link.URL)
@@ -207,31 +203,4 @@ func formatPost(text string) string {
 	trimmed := strings.TrimSpace(cleaned)
 
 	return trimmed
-}
-
-// Get the number of clicks for a given URL.
-func clicks(url string) int {
-	resp, err := http.Get(fmt.Sprintf("https://api.theblue.report?url=%s", url))
-	if err != nil {
-		err = util.WrapErr("failed to get clicks", err)
-		slog.Error(err.Error(), "url", url)
-		return 0
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		slog.Error("failed to get clicks", "url", url, "status", resp.StatusCode)
-		return 0
-	}
-
-	var result struct {
-		Count int `json:"count"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		err = util.WrapErr("failed to decode clicks response", err)
-		slog.Error(err.Error(), "url", url)
-		return 0
-	}
-
-	return result.Count
 }
