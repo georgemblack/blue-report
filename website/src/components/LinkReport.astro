@@ -21,7 +21,7 @@ const { links, toggle, generatedAt } = Astro.props;
         <div class="container">
           <div class="link">
             <a
-              href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
+              href={link.url}
               class="preview redirect-link"
               data-original-url={link.url}
             >
@@ -35,7 +35,7 @@ const { links, toggle, generatedAt } = Astro.props;
             </a>
             <div class="content">
               <a
-                href={`https://redirect.theblue.report?url=${encodeURIComponent(link.url)}`}
+                href={link.url}
                 class="redirect-link"
                 data-original-url={link.url}
               >
