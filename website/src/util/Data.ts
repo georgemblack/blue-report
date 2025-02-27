@@ -2,6 +2,7 @@ const API_URL = "https://assets.theblue.report/snapshot.json";
 
 export interface TopLinks {
   generated_at: string;
+  top_hour: Link[];
   top_day: Link[];
   top_week: Link[];
 }

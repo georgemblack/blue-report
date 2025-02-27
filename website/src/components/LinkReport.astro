@@ -20,11 +20,7 @@ const { links, toggle, generatedAt } = Astro.props;
       links.map((link) => (
         <div class="container">
           <div class="link">
-            <a
-              href={link.url}
-              class="preview redirect-link"
-              data-original-url={link.url}
-            >
+            <a href={link.url} class="preview" data-original-url={link.url}>
               {link.thumbnail_id ? (
                 <img
                   src={`https://assets.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
@@ -34,11 +30,7 @@ const { links, toggle, generatedAt } = Astro.props;
               )}
             </a>
             <div class="content">
-              <a
-                href={link.url}
-                class="redirect-link"
-                data-original-url={link.url}
-              >
+              <a href={link.url} data-original-url={link.url}>
                 <h2>
                   {link.rank}. {link.title}
                 </h2>

@@ -1,0 +1,63 @@
+/* navigation */
+nav {
+  margin: 0 auto;
+  max-width: 34em;
+  display: flex;
+  padding: 0.25em;
+  font-family: var(--serif-font);
+  line-height: 100%;
+  border-radius: 2em;
+  background-color: var(--toggle-background-color);
+  box-shadow: 5px 6px 23px -10px rgba(0, 0, 0, 0.25);
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+nav a {
+  color: var(--body-text-color);
+}
+
+nav a:hover {
+  text-decoration: none;
+}
+
+nav div {
+  flex-grow: 1;
+  flex-basis: 0;
+  padding: 0.5em 1em;
+  border-radius: 2em;
+  cursor: pointer;
+  text-align: center;
+}
+
+nav .active {
+  background-color: var(--toggle-selected-color);
+}
+
+nav .active a {
+  color: var(--header-accent-color);
+}
+
+/* small break-point */
+@media screen and (max-width: 30em) {
+  nav a {
+    font-size: var(--font-size-small);
+  }
+}
+
+/* custom break-point */
+@media screen and (max-width: 24em) {
+  nav a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+  }
+
+  /* decrease size of label, increase size of icon */
+  nav .label {
+    font-size: 1em;
+  }
+
+  nav .icon {
+    font-size: 1.35em;
+  }
+}

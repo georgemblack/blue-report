@@ -1,8 +1,8 @@
 ---
 import "../styles/report.css";
 
-import Footer from "../components/Footer.astro";
 import Layout from "../layouts/Layout.astro";
+import Footer from "../components/Footer.astro";
 import { fetchTopLinks } from "../util/Data";
 import LinkReport from "../components/LinkReport.astro";
 
@@ -11,8 +11,8 @@ const snapshot = await fetchTopLinks();
 
 <Layout>
   <LinkReport
-    links={snapshot.top_day}
-    toggle="day"
+    links={snapshot.top_hour}
+    toggle="hour"
     generatedAt={snapshot.generated_at}
   />
   <Footer />
