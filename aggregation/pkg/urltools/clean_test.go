@@ -22,6 +22,12 @@ func TestCleanWithAllowedQueryParams(t *testing.T) {
 		t.Errorf("expected '%s', got '%s'", expected, result)
 	}
 
+	result = Clean("https://m.youtube.com/watch?v=OpViD7KxK-I&feature=web")
+	expected = "https://www.youtube.com/watch?v=OpViD7KxK-I"
+	if result != expected {
+		t.Errorf("expected '%s', got '%s'", expected, result)
+	}
+
 	result = Clean("https://theblue.report/page?bogus=bogus")
 	expected = "https://theblue.report/page"
 	if result != expected {
@@ -32,6 +38,14 @@ func TestCleanWithAllowedQueryParams(t *testing.T) {
 func TestCleanWithYouTubeTransformation(t *testing.T) {
 	result := Clean("https://youtu.be/OpViD7KxK-I?bogus=bogus")
 	expected := "https://www.youtube.com/watch?v=OpViD7KxK-I"
+	if result != expected {
+		t.Errorf("expected '%s', got '%s'", expected, result)
+	}
+}
+
+func TestCleanWithYouTubeMobileTransformation(t *testing.T) {
+	result := Clean("https://m.youtube.com/watch?v=frPvUIchc9s")
+	expected := "https://www.youtube.com/watch?v=frPvUIchc9s"
 	if result != expected {
 		t.Errorf("expected '%s', got '%s'", expected, result)
 	}

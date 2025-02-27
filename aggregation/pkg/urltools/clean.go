@@ -22,6 +22,13 @@ func Clean(input string) string {
 	// Strip query parameters (with exceptions)
 	result = stripQueryWithExceptions(input, parsed)
 
+	// Remove mobile YouTube links.
+	// Examples:
+	// 	- 'https://m.youtube.com/watch?v=abc123' -> 'https://youtube.com/watch?v=abc123'
+	if parsed.Hostname() == "m.youtube.com" {
+		result = strings.Replace(result, "m.youtube.com", "www.youtube.com", 1)
+	}
+
 	// Normalize YouTube share links.
 	// Examples:
 	// 	- 'https://youtu.be/abc123' -> 'https://youtube.com/watch?v=abc123'
@@ -58,6 +65,7 @@ func stripQuery(input string) string {
 // Some websites have query parameters that are necessary for the URL to function properly.
 // This list contains the hosts, as well as the query parameters that are allowed.
 var QueryParamAllowList = map[string][]string{
+	"m.youtube.com":   {"v"},
 	"www.youtube.com": {"v"},
 	"abcnews.go.com":  {"id"},
 }
