@@ -186,6 +186,7 @@ a:hover {
 .last-updated {
   margin-top: 0.75em;
   color: var(--faded-text-color);
+  text-align: center;
 }
 
 /* medium break-point */
@@ -235,10 +236,6 @@ a:hover {
     width: 4rem;
     height: 4rem;
     border-radius: 0.75rem;
-  }
-
-  .last-updated {
-    text-align: center;
   }
 }
 
