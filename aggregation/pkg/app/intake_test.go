@@ -21,7 +21,7 @@ func TestHandlePostNoURL(t *testing.T) {
 	mockCache.EXPECT().ReadPost(gomock.Any()).Times(0)
 	mockCache.EXPECT().SavePost(gomock.Any(), gomock.Any()).Times(0)
 
-	_, _, skip, err := handlePost(mockCache, event)
+	_, skip, err := handlePost(mockCache, event)
 
 	if !skip {
 		t.Error("expected event to be skipped")
@@ -38,36 +38,18 @@ func TestHandlePostWithEmbed(t *testing.T) {
 	expectedPost := cache.PostRecord{
 		URL: "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
 	}
-	expectedURL := cache.URLRecord{
-		Title:    "The Mystery of the Bloomfield Bridge",
-		ImageURL: "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:ruzlll5u7u7pfxybmppqyxbx/bafkreiasj4bgohn7rx2mhf3i4r7tdr43kuyyks6cxsgi5zuttq4274ibny",
-		Totals: cache.Totals{
-			Posts: 1,
-		},
-	}
 	hashedCID := util.Hash("bafyreiehzp2ehowobuutnjsednkq24iisx2mzpdc27yuy4xztspcqid3ni")
-	hashedURL := util.Hash(expectedPost.URL)
 
 	mockCache := testutil.NewMockCache(gomock.NewController(t))
-	mockCache.EXPECT().SavePost(hashedCID, expectedPost)                 // Save the post
-	mockCache.EXPECT().ReadURL(hashedURL).Return(cache.URLRecord{}, nil) // Check for existing URL record (it doesn't exist)
+	mockCache.EXPECT().SavePost(hashedCID, expectedPost) // Save the post
 
-	stg, url, skip, err := handlePost(mockCache, event)
+	stg, skip, err := handlePost(mockCache, event)
 
 	if skip {
 		t.Error("unexpected event skip")
 	}
 	if err != nil {
 		t.Fatal(err)
-	}
-	if url.Title != expectedURL.Title {
-		t.Errorf("unexpected title: %s", url.Title)
-	}
-	if url.ImageURL != expectedURL.ImageURL {
-		t.Errorf("unexpected image url: %s", url.ImageURL)
-	}
-	if url.Totals.Posts != expectedURL.Totals.Posts {
-		t.Errorf("unexpected post count: %d", url.Totals.Posts)
 	}
 	if stg.DID != "did:plc:ruzlll5u7u7pfxybmppqyxbx" {
 		t.Errorf("unexpected did: %s", stg.DID)
@@ -85,42 +67,18 @@ func TestHandlePostWithPartiallySavedURL(t *testing.T) {
 	expectedPost := cache.PostRecord{
 		URL: "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
 	}
-	existingURL := cache.URLRecord{
-		Title: "The Mystery of the Bloomfield Bridge",
-		Totals: cache.Totals{
-			Posts: 1,
-		},
-	}
-	expectedURL := cache.URLRecord{
-		Title:    "The Mystery of the Bloomfield Bridge",
-		ImageURL: "https://cdn.bsky.app/img/feed_thumbnail/plain/did:plc:ruzlll5u7u7pfxybmppqyxbx/bafkreiasj4bgohn7rx2mhf3i4r7tdr43kuyyks6cxsgi5zuttq4274ibny",
-		Totals: cache.Totals{
-			Posts: 2,
-		},
-	}
 	hashedCID := util.Hash("bafyreiehzp2ehowobuutnjsednkq24iisx2mzpdc27yuy4xztspcqid3ni")
-	hashedURL := util.Hash(expectedPost.URL)
 
 	mockCache := testutil.NewMockCache(gomock.NewController(t))
-	mockCache.EXPECT().SavePost(hashedCID, expectedPost)           // Save the post
-	mockCache.EXPECT().ReadURL(hashedURL).Return(existingURL, nil) // Check for existing URL record (it exists, with missing data)
+	mockCache.EXPECT().SavePost(hashedCID, expectedPost)
 
-	stg, url, skip, err := handlePost(mockCache, event)
+	stg, skip, err := handlePost(mockCache, event)
 
 	if skip {
 		t.Error("unexpected event skip")
 	}
 	if err != nil {
 		t.Fatal(err)
-	}
-	if url.Title != expectedURL.Title {
-		t.Errorf("unexpected title: %s", url.Title)
-	}
-	if url.ImageURL != expectedURL.ImageURL {
-		t.Errorf("unexpected image url: %s", url.ImageURL)
-	}
-	if url.Totals.Posts != expectedURL.Totals.Posts {
-		t.Errorf("unexpected post count: %d", url.Totals.Posts)
 	}
 	if stg.DID != "did:plc:ruzlll5u7u7pfxybmppqyxbx" {
 		t.Errorf("unexpected did: %s", stg.DID)
@@ -135,11 +93,6 @@ func TestHandleQuotePost(t *testing.T) {
 	bytes := testutil.GetTestData("post-quote.json")
 	event := toStreamEvent(bytes)
 
-	existingURL := cache.URLRecord{
-		Totals: cache.Totals{
-			Posts: 1,
-		},
-	}
 	expectedRecord := storage.EventRecord{
 		Type: 0,
 		URL:  "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge",
@@ -147,23 +100,18 @@ func TestHandleQuotePost(t *testing.T) {
 	}
 
 	hashedCID := util.Hash("bafyreihhlj7nktvq3h6issjqxor5ldy7yq64qv5wk5jawqeorfhn65evoe")
-	hashedURL := util.Hash(expectedRecord.URL)
 
 	mockCache := testutil.NewMockCache(gomock.NewController(t))
 	mockCache.EXPECT().ReadPost(hashedCID).Return(cache.PostRecord{URL: expectedRecord.URL}, nil) // Check for existing post record (it exists)
 	mockCache.EXPECT().RefreshPost(hashedCID).Return(nil)                                         // Refresh the TTL of the referenced post
-	mockCache.EXPECT().ReadURL(hashedURL).Return(existingURL, nil)                                // Check for existing URL record (it doesn't exist)
 
-	stg, url, skip, err := handleQuotePost(mockCache, event)
+	stg, skip, err := handleQuotePost(mockCache, event)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 	if skip {
 		t.Error("unexpected event skip")
-	}
-	if url.Totals.Posts != 2 {
-		t.Errorf("unexpected post count: %d", url.Totals.Posts)
 	}
 	if stg.Type != expectedRecord.Type {
 		t.Errorf("unexpected type: %d", stg.Type)
@@ -189,7 +137,7 @@ func TestHandleQuotePostWithInvalidReference(t *testing.T) {
 	mockCache := testutil.NewMockCache(gomock.NewController(t))
 	mockCache.EXPECT().ReadPost(hashedCID).Return(cache.PostRecord{}, nil) // Check for existing post record (it doesn't exist)
 
-	_, _, skip, err := handleQuotePost(mockCache, event)
+	_, skip, err := handleQuotePost(mockCache, event)
 
 	if err != nil {
 		t.Fatal(err)
