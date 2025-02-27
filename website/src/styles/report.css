@@ -39,26 +39,23 @@ nav .active a {
 }
 
 /* small break-point */
-@media screen and (max-width: 30em) {
-  nav a {
-    font-size: var(--font-size-small);
+@media screen and (max-width: 36em) {
+  nav {
+    max-width: 24em;
   }
-}
 
-/* custom break-point */
-@media screen and (max-width: 24em) {
   nav a {
     display: flex;
     flex-direction: column;
-    gap: 0.5em;
+    gap: 0.4em;
   }
 
   /* decrease size of label, increase size of icon */
   nav .label {
-    font-size: 1em;
+    font-size: var(--font-size-small);
   }
 
   nav .icon {
-    font-size: 1.35em;
+    font-size: 1.25em;
   }
 }
