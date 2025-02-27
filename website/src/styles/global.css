@@ -6,6 +6,9 @@
   /* font sizes */
   --font-size-small: 0.85em;
 
+  /* font weights */
+  --font-weight-normal: 400;
+
   /* general purpose colors */
   --background-color: #f0ece9;
   --blockquote-border-color: #e4e1de;
@@ -41,7 +44,8 @@ body {
   line-height: 150%;
   color: var(--body-text-color);
   font-family: var(--sans-serif-font);
-  font-weight: 400;
+  font-weight: var(--font-weight-normal);
+  font-style: normal;
   background-color: var(--background-color);
 }
 
@@ -96,6 +100,7 @@ h3 {
 
 h2 {
   font-size: 1.25em;
+  font-weight: var(--font-weight-normal);
   overflow-wrap: anywhere;
 }
 
