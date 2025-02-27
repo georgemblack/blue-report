@@ -13,7 +13,7 @@ nav {
 }
 
 nav a {
-  color: var(--body-text-color);
+  color: var(--body-text-color-lighter);
 }
 
 nav a:hover {
