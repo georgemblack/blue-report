@@ -47,7 +47,7 @@ nav .active a {
   nav a {
     display: flex;
     flex-direction: column;
-    gap: 0.4em;
+    gap: 0.35em;
   }
 
   /* decrease size of label, increase size of icon */
@@ -56,6 +56,6 @@ nav .active a {
   }
 
   nav .icon {
-    font-size: 1.25em;
+    font-size: 1.15em;
   }
 }
