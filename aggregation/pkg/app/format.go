@@ -5,18 +5,29 @@ import (
 	"strings"
 )
 
+var badPrefixes = []string{
+	"BREAKING:",
+	"Breaking:",
+	"BREAKING NEWS:",
+	"Breaking News:",
+	"NEW:",
+	"New:",
+	"EXCLUSIVE:",
+	"Exclusive:",
+	"🔴",
+	"💥",
+}
+
 func formatTitle(title string) string {
 	// Remove any siren emojis, they are annoying
 	title = strings.ReplaceAll(title, "🚨", "")
 
 	// Remove any sensationalist prefixes
-	title = strings.TrimPrefix(title, "BREAKING: ")
-	title = strings.TrimPrefix(title, "BREAKING NEWS: ")
-	title = strings.TrimPrefix(title, "NEW: ")
-	title = strings.TrimPrefix(title, "🔴")
-	title = strings.TrimPrefix(title, "💥")
+	for _, prefix := range badPrefixes {
+		title = strings.TrimPrefix(title, prefix)
+	}
 
-	return title
+	return strings.TrimSpace(title)
 }
 
 func formatPost(text string) string {
@@ -32,11 +43,9 @@ func formatPost(text string) string {
 	text = strings.ReplaceAll(text, "🚨", "")
 
 	// Remove any sensationalist prefixes
-	text = strings.TrimPrefix(text, "BREAKING: ")
-	text = strings.TrimPrefix(text, "BREAKING NEWS: ")
-	text = strings.TrimPrefix(text, "NEW: ")
-	text = strings.TrimPrefix(text, "🔴")
-	text = strings.TrimPrefix(text, "💥")
+	for _, prefix := range badPrefixes {
+		text = strings.TrimPrefix(text, prefix)
+	}
 
 	// Collapse all whitespace into a single space
 	text = strings.Join(strings.Fields(text), " ")
