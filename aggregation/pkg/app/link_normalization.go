@@ -85,7 +85,7 @@ func normalizeWorker(id int, stream chan queue.Message, st Storage, wg *sync.Wai
 			return
 		}
 
-		slog.Debug("normalizing url", "worker", id, "url", msg.URL)
+		slog.Info("normalizing url", "worker", id, "url", msg.URL)
 
 		// Normalize the URL by checking for redirects
 		redirect := urltools.FindRedirect(msg.URL)
@@ -98,6 +98,7 @@ func normalizeWorker(id int, stream chan queue.Message, st Storage, wg *sync.Wai
 		cleaned := urltools.Clean(redirect)
 
 		// Write the translation to storage
+		slog.Info("saving translated url", "url", cleaned)
 		err := st.SaveURLTranslation(storage.URLTranslation{
 			Source:      msg.URL,
 			Destination: cleaned,
