@@ -175,7 +175,7 @@ func intakeWorker(id int, stream chan StreamEvent, shutdown chan struct{}, app A
 
 		// If the total number of interactions reaches a threshold, send URL to the normalization queue.
 		// Prevent sending the same URL to the queue multiple times
-		if urlRecord.Interactions > 500 && !urlRecord.Normalized {
+		if urlRecord.Interactions >= 1000 && !urlRecord.Normalized {
 			err = app.Queue.Send(queue.Message{URL: stRecord.URL})
 			if err != nil {
 				slog.Error(util.WrapErr("failed to send message to queue", err).Error())

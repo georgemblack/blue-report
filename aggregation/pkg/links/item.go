@@ -9,6 +9,7 @@ import (
 type AggregationItem struct {
 	WeekCount Counts
 	DayCount  Counts
+	HourCount Counts
 	Posts     map[string]int
 }
 
@@ -18,19 +19,32 @@ type Counts struct {
 	Likes   int
 }
 
-// DayScore determins a URL's rank on the final report.
-// A post is worth 10 points, a repost 10 points, and a like 1 point.
+func (a *AggregationItem) HourScore() int {
+	return (a.HourCount.Posts * 10) + (a.HourCount.Reposts * 10) + a.HourCount.Likes
+}
+
 func (a *AggregationItem) DayScore() int {
 	return (a.DayCount.Posts * 10) + (a.DayCount.Reposts * 10) + a.DayCount.Likes
 }
 
-// DayScore determins a URL's rank on the final report.
-// A post is worth 10 points, a repost 10 points, and a like 1 point.
 func (a *AggregationItem) WeekScore() int {
 	return (a.WeekCount.Posts * 10) + (a.WeekCount.Reposts * 10) + a.WeekCount.Likes
 }
 
 func (a *AggregationItem) CountEvent(eventType int, post string, ts time.Time, bnds TimeBounds) {
+	// Check if the event should be counted in the 'previous hour' report.
+	if ts.After(bnds.HourStart) {
+		if eventType == 0 {
+			a.HourCount.Posts++
+		}
+		if eventType == 1 {
+			a.HourCount.Reposts++
+		}
+		if eventType == 2 {
+			a.HourCount.Likes++
+		}
+	}
+
 	// Check if the event should be counted in the 'previous day' report.
 	if ts.After(bnds.DayStart) {
 		if eventType == 0 {
@@ -45,7 +59,7 @@ func (a *AggregationItem) CountEvent(eventType int, post string, ts time.Time, b
 	}
 
 	// Assume all events are within the 'previous week' report.
-	// (This is checked in the caller.)
+	// This is checked in the caller.
 	if eventType == 0 {
 		a.WeekCount.Posts++
 	}

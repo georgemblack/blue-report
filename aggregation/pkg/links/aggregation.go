@@ -30,8 +30,9 @@ type Shard struct {
 }
 
 type TimeBounds struct {
-	DayStart  time.Time // Start of the 'previous day' report
-	WeekStart time.Time // Start of the 'previous week' report
+	HourStart time.Time // Start of the 'past hour' report
+	DayStart  time.Time // Start of the 'past day' report
+	WeekStart time.Time // Start of the 'past week' report
 }
 
 func NewAggregation(bounds TimeBounds) Aggregation {
@@ -71,7 +72,7 @@ func (a *Aggregation) Skipped() int64 {
 }
 
 func (a *Aggregation) CountEvent(eventType int, linkURL string, post string, did string, ts time.Time) {
-	// Skip event if it is not within the 'previous day' or 'previous week' report.
+	// Skip event if it is not within a time boundary for any report
 	if ts.Before(a.bounds.WeekStart) {
 		return
 	}
@@ -101,19 +102,37 @@ func (a *Aggregation) CountEvent(eventType int, linkURL string, post string, did
 	atomic.AddInt64(&a.total, 1)
 }
 
-func (a *Aggregation) TopDayLinks(n int) []string {
-	// Convert map to slice
-	type kv struct {
-		URL             string
-		AggregationItem *AggregationItem
-	}
-	var kvs []kv
-	for i := range a.shards {
-		shard := &a.shards[i]
-		for k, v := range shard.items {
-			kvs = append(kvs, kv{URL: k, AggregationItem: v})
+func (a *Aggregation) TopHourLinks(n int) []string {
+	kvs := a.toKV()
+
+	// Sort by score
+	slices.SortFunc(kvs, func(a, b kv) int {
+		scoreA := a.AggregationItem.HourScore()
+		scoreB := b.AggregationItem.HourScore()
+
+		if scoreA > scoreB {
+			return -1
 		}
+		if scoreA < scoreB {
+			return 1
+		}
+		return 0
+	})
+
+	// Find top N items
+	urls := make([]string, 0, n)
+	for i := range kvs {
+		if len(urls) >= n {
+			break
+		}
+		urls = append(urls, kvs[i].URL)
 	}
+
+	return urls
+}
+
+func (a *Aggregation) TopDayLinks(n int) []string {
+	kvs := a.toKV()
 
 	// Sort by score
 	slices.SortFunc(kvs, func(a, b kv) int {
@@ -142,18 +161,7 @@ func (a *Aggregation) TopDayLinks(n int) []string {
 }
 
 func (a *Aggregation) TopWeekLinks(n int) []string {
-	// Convert map to slice
-	type kv struct {
-		URL             string
-		AggregationItem *AggregationItem
-	}
-	var kvs []kv
-	for i := range a.shards {
-		shard := &a.shards[i]
-		for k, v := range shard.items {
-			kvs = append(kvs, kv{URL: k, AggregationItem: v})
-		}
-	}
+	kvs := a.toKV()
 
 	// Sort by score
 	slices.SortFunc(kvs, func(a, b kv) int {
@@ -179,6 +187,25 @@ func (a *Aggregation) TopWeekLinks(n int) []string {
 	}
 
 	return urls
+}
+
+type kv struct {
+	URL             string
+	AggregationItem *AggregationItem
+}
+
+// Convert map to slice that can be sorted
+func (a *Aggregation) toKV() []kv {
+	var kvs []kv
+
+	for i := range a.shards {
+		shard := &a.shards[i]
+		for k, v := range shard.items {
+			kvs = append(kvs, kv{URL: k, AggregationItem: v})
+		}
+	}
+
+	return kvs
 }
 
 func (a *Aggregation) getShard(url string) *Shard {

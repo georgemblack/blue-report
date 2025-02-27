@@ -30,6 +30,7 @@ func AggregateLinks() (links.Snapshot, error) {
 	// Create the time boundaries for the 'previous day' and 'previous week' reports.
 	now := time.Now().UTC()
 	bounds := links.TimeBounds{
+		HourStart: now.Add(-1 * time.Hour),
 		DayStart:  now.Add(-24 * time.Hour),
 		WeekStart: now.Add(-24 * 7 * time.Hour),
 	}
@@ -82,12 +83,19 @@ func AggregateLinks() (links.Snapshot, error) {
 	slog.Info("processed events", "count", aggregation.Total(), "skipped", aggregation.Skipped())
 
 	// Sort links based on score
+	topHour := aggregation.TopHourLinks(ListSize)
 	topDay := aggregation.TopDayLinks(ListSize)
 	topWeek := aggregation.TopWeekLinks(ListSize)
 
 	// Format the data into a snapshot
 	snapshot := links.NewSnapshot()
 
+	hour := make([]links.Link, 0, len(topHour))
+	for _, url := range topHour {
+		hour = append(hour, links.Link{
+			URL: url,
+		})
+	}
 	day := make([]links.Link, 0, len(topDay))
 	for _, url := range topDay {
 		day = append(day, links.Link{
@@ -101,6 +109,7 @@ func AggregateLinks() (links.Snapshot, error) {
 		})
 	}
 
+	snapshot.TopHour = hour
 	snapshot.TopDay = day
 	snapshot.TopWeek = week
 

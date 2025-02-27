@@ -12,6 +12,14 @@ import (
 )
 
 func hydrateLinks(app App, agg *links.Aggregation, snapshot links.Snapshot) (links.Snapshot, error) {
+	for i := range snapshot.TopHour {
+		link, err := hydrateLink(app, agg, i, snapshot.TopHour[i])
+		if err != nil {
+			return links.Snapshot{}, util.WrapErr("failed to hydrate link", err)
+		}
+		snapshot.TopHour[i] = link
+	}
+
 	for i := range snapshot.TopDay {
 		link, err := hydrateLink(app, agg, i, snapshot.TopDay[i])
 		if err != nil {
