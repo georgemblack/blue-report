@@ -55,7 +55,9 @@ nav .active a {
     font-size: var(--font-size-small);
   }
 
+  /* add slight top margin to visuall center icon */
   nav .icon {
+    margin-top: 0.1em;
     font-size: 1.15em;
   }
 }
