@@ -3,20 +3,21 @@ import Layout from "../layouts/Layout.astro";
 import { fetchTopSites } from "../util/Data";
 import { formatCount, formatDate } from "../util/Format";
 
+import "../styles/global.css";
 import "../styles/sites.css";
 
 const snapshot = await fetchTopSites();
 ---
 
 <Layout>
-  <div>
+  <div class="container-group">
     {
       snapshot.sites.map((site) => (
         <div class="container">
           <div class="site">
             <h2>{site.name}</h2>
             <p class="interactions">
-              {formatCount(site.interactions)} interactions (over 30 days)
+              {formatCount(site.interactions)} interactions over 30 days
             </p>
             <h3>Top Links</h3>
             <div class="top-links">

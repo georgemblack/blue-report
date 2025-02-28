@@ -1,22 +1,38 @@
-.interactions {
-  margin-top: 0.25em;
+.site h2 {
+  font-size: 1.5em;
 }
 
-h3 {
+.site h3 {
   margin-top: 1em;
+  font-size: 1em;
+}
+
+.site .interactions {
+  margin-top: 0.25em;
+  color: var(--faded-text-color);
 }
 
 .top-links {
   margin-top: 0.5em;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
+  overflow-x: auto;
   gap: 1em;
 }
 
+.top-links::-webkit-scrollbar {
+  display: none;
+}
+
 .top-link {
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 18em;
   padding: 1em;
   border: 1px solid var(--header-accent-color-faded);
-  border-radius: 0.75em;
+  border-radius: 1em;
   background-color: var(--toggle-background-color);
+  background: linear-gradient(135deg, transparent, rgba(85, 170, 255, 0.05));
   box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
+  /* ensure long text (like links) doesn't cause container to expand in width */
+  overflow-wrap: anywhere;
 }
