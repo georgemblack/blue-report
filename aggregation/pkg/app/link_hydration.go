@@ -58,8 +58,7 @@ func hydrateLink(app App, agg *links.Aggregation, index int, link links.Link) (l
 
 	// Check whether we have a title
 	titleExists := false
-	link.Title = getTitle(app.Storage, link.URL)
-	if link.Title != "" {
+	if link.Title = getTitle(app.Storage, link.URL); link.Title != "" {
 		titleExists = true
 	}
 
