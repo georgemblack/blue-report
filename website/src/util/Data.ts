@@ -44,6 +44,7 @@ export interface Site {
   links: {
     url: string;
     title: string;
+    thumbnail_id: string;
   }[];
 }
 

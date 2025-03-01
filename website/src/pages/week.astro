@@ -9,7 +9,7 @@ import LinkReport from "../components/LinkReport.astro";
 const snapshot = await fetchTopLinks();
 ---
 
-<Layout>
+<Layout subtitle="The top links on Bluesky, updated hourly">
   <LinkReport
     links={snapshot.top_week}
     toggle="week"

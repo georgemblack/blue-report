@@ -9,13 +9,15 @@ import "../styles/sites.css";
 const snapshot = await fetchTopSites();
 ---
 
-<Layout>
+<Layout subtitle="The top sites on Bluesky, updated daily">
   <div class="container-group">
     {
       snapshot.sites.map((site) => (
         <div class="container">
           <div class="site">
-            <h2>{site.name}</h2>
+            <h2>
+              {site.rank}. {site.name}
+            </h2>
             <p class="interactions">
               {formatCount(site.interactions)} interactions over 30 days
             </p>
@@ -23,6 +25,11 @@ const snapshot = await fetchTopSites();
             <div class="top-links">
               {site.links.map((link) => (
                 <div class="top-link">
+                  <figure>
+                    <img
+                      src={`https://assets.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
+                    />
+                  </figure>
                   <p>
                     <a href={link.url}>{link.title}</a>
                   </p>
