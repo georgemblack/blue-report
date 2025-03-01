@@ -19,9 +19,19 @@ const snapshot = await fetchTopSites();
             <h2>
               {site.rank}. {site.name}
             </h2>
-            <p class="interactions">
-              {formatCount(site.interactions)} interactions over 30 days
-            </p>
+            <div class="interactions">
+              <p>{formatCount(site.interactions)} interactions over 30 days </p>
+              <div class="help">
+                <div class="label">?</div>
+                <div class="contents">
+                  <p>
+                    The number of posts referencing a URL, combined with the
+                    number of reposts & likes on those posts.
+                    <a href="#">Learn more.</a>
+                  </p>
+                </div>
+              </div>
+            </div>
             <h3>Top Links</h3>
             <div class="top-links">
               {site.links.map((link) => (

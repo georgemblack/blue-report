@@ -12,6 +12,84 @@
   color: var(--faded-text-color-1);
 }
 
+.site .interactions {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+}
+
+/* Help icon next to user interactions */
+/* TODO: Clean this up */
+/* .site .interactions .help {
+  padding: 0.1em 0.75em;
+  font-size: var(--font-size-small);
+  color: var(--body-text-color-blended);
+  background-color: var(--toggle-background-color);
+  border-radius: 1em;
+  cursor: pointer;
+} */
+
+.site .help {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.site .label {
+  background-color: #007bff;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  user-select: none;
+}
+
+.site .contents {
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: black;
+  color: white;
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 5px;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+  width: max-content;
+  max-width: 18em;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Tooltip arrow */
+.site .contents::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: black transparent transparent transparent;
+}
+
+/* Show tooltip on hover (desktop) and focus (mobile) */
+.site .help:hover .contents,
+.help:focus-within .contents {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* End tooltip code */
+/* TODO: Clean this up */
+
 .top-links {
   margin-top: 0.5em;
   display: flex;
