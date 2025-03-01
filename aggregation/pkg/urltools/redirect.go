@@ -32,6 +32,19 @@ func FindRedirect(input string) string {
 		return ""
 	}
 
+	// If the redirect URL is relative to the domain, i.e. '/some-page', prepend the original domain.
+	if strings.HasPrefix(redirect, "/") {
+		parsed, err := url.Parse(input)
+		if err != nil {
+			return ""
+		}
+		redirect = parsed.Scheme + "://" + parsed.Host + redirect
+
+		if redirect == input {
+			return ""
+		}
+	}
+
 	// Trim the port number if it is included in the redirect URL.
 	// Patreon's redirect does this, i.e. 'https://patreon.com/george' -> 'https://www.patreon.com:443/george'
 	parsed, err := url.Parse(redirect)
