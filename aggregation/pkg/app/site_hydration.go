@@ -20,6 +20,18 @@ func hydrateSites(stg Storage, agg *sites.Aggregation, snapshot sites.Snapshot) 
 		}
 	}
 
+	// Find links with missing titles and remove them from the snapshot.
+	// These links are likely to be invalid.
+	for i, site := range snapshot.Sites {
+		updated := make([]sites.Link, 0)
+		for _, link := range site.Links {
+			if link.Title != "" {
+				updated = append(updated, link)
+			}
+		}
+		snapshot.Sites[i].Links = updated
+	}
+
 	return snapshot, nil
 }
 
@@ -67,9 +79,6 @@ func hydrateSiteLink(stg Storage, agg *sites.Aggregation, host string, link site
 		}
 	}
 
-	if link.Title == "" {
-		link.Title = "(No Title)"
-	}
 	link.Interactions = interactions
 
 	slog.Debug("hydrated", "record", link)
