@@ -1,7 +1,13 @@
 import { formatInTimeZone } from "date-fns-tz";
 
 export function formatHost(url: string): string {
-  let host = new URL(url).host;
+  let host;
+
+  try {
+    host = new URL(url).host;
+  } catch (e) {
+    return "";
+  }
   if (host.startsWith("www.")) host = host.substring(4);
   return host;
 }
