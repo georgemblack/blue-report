@@ -16,7 +16,7 @@ nav {
 }
 
 nav a {
-  color: var(--body-text-color-lighter);
+  color: var(--body-text-color-blended);
 }
 
 nav a:hover {
