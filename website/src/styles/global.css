@@ -80,6 +80,14 @@ header h1 {
   letter-spacing: -1px;
 }
 
+header h1 a {
+  color: var(--body-text-color);
+}
+
+header h1 a:hover {
+  text-decoration: none;
+}
+
 header .accent {
   color: var(--header-accent-color);
   background: linear-gradient(315deg, var(--header-accent-color), var(--header-accent-color-secondary));
