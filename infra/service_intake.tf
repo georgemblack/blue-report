@@ -6,7 +6,7 @@ resource "aws_ecs_task_definition" "blue_report_intake" {
   family                   = "blue-report-intake"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = 512
+  cpu                      = 1024
   memory                   = 1024
   task_role_arn            = aws_iam_role.service.arn
   execution_role_arn       = aws_iam_role.execution.arn
@@ -39,7 +39,7 @@ resource "aws_ecs_task_definition" "blue_report_intake" {
           value = aws_sqs_queue.blue_report.name
         },
       ]
-      cpu    = 512
+      cpu    = 1024
       memory = 1024
       logConfiguration = {
         logDriver = "awslogs"
