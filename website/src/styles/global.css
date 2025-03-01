@@ -247,11 +247,8 @@ a:hover {
   text-align: center;
 }
 
-/* medium break-point */
+/* Medium break-point */
 @media screen and (max-width: 56em) {
-  .link {
-    gap: 0.85em;
-  }
 
   .link .preview img,
   .link .preview .placeholder {
@@ -282,10 +279,14 @@ a:hover {
   }
 }
 
-/* small break-point */
+/* Small break-point */
 @media screen and (max-width: 36em) {
   .link-container {
     min-height: 12em;
+  }
+
+  .link {
+    gap: 0.85em;
   }
 
   .link .preview img,
