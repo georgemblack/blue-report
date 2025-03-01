@@ -11,7 +11,9 @@ nav {
   border-radius: 2em;
   background-color: var(--toggle-background-color);
   box-shadow: 5px 6px 23px -10px rgba(0, 0, 0, 0.25);
+  /* ensure gray shadow does not appear on tap */
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  /* prevent delay on touch devices */
   touch-action: manipulation;
 }
 
@@ -61,6 +63,232 @@ nav .active a {
   nav .icon {
     margin-top: 0.1em;
     font-size: 1.15em;
+  }
+}
+
+/*----------------------------*/
+/*         Links              */
+/*----------------------------*/
+.link {
+  display: flex;
+  gap: 1.85em;
+}
+
+.link .preview img,
+.link .preview .placeholder {
+  display: block;
+  width: 10rem;
+  height: 6rem;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
+}
+
+.link .preview .placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2.5em;
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+.link .content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  justify-items: center;
+}
+
+.link .subcontent {
+  margin: 1em 0 0 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.link .metadata {
+  color: var(--faded-text-color-1);
+  display: flex;
+  gap: 0.5em;
+}
+
+.link .metadata .host {
+  color: var(--faded-text-color-2);
+}
+
+.last-updated {
+  margin-top: 0.75em;
+  color: var(--faded-text-color-1);
+  text-align: center;
+}
+
+/* Medium break-point */
+@media screen and (max-width: 56em) {
+
+  .link .preview img,
+  .link .preview .placeholder {
+    width: 8rem;
+    height: 5rem;
+  }
+
+  .link .preview .placeholder {
+    font-size: 2em;
+  }
+
+  .link .metadata {
+    font-size: var(--font-size-small);
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .link .metadata .bullet {
+    display: none;
+  }
+
+  .last-updated {
+    font-size: var(--font-size-small);
+  }
+
+  .link .subcontent {
+    align-items: flex-end;
+  }
+}
+
+/* Small break-point */
+@media screen and (max-width: 36em) {
+  .link-container {
+    min-height: 12em;
+  }
+
+  .link {
+    gap: 0.85em;
+  }
+
+  .link .preview img,
+  .link .preview .placeholder {
+    margin-top: 0.25rem;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 0.75rem;
+  }
+}
+
+/*-----------------------------------*/
+/*         Link Details              */
+/*-----------------------------------*/
+.link-details {
+  visibility: hidden;
+  height: 0;
+  opacity: 0;
+  transition: opacity 0.1s ease-in;
+}
+
+.link-details.open {
+  visibility: visible;
+  height: auto;
+  opacity: 1;
+  margin-top: 2em;
+}
+
+/* medium break-point */
+@media screen and (max-width: 56em) {
+  .link-details.open {
+    margin-top: 1em;
+  }
+}
+
+/* expand button (inline) */
+.expand-inline button {
+  background: none;
+  font-size: 1em;
+}
+
+.expand-inline svg {
+  width: 1em;
+}
+
+/* medium break-point */
+@media screen and (max-width: 56em) {
+  .expand-inline button {
+    font-size: var(--font-size-small);
+  }
+}
+
+/* expand button (centered) */
+.expand-centered {
+  display: none;
+  margin-top: 0.75em;
+}
+
+.expand-centered button {
+  display: block;
+  font-size: var(--font-size-small);
+  margin: 0 auto;
+  padding: 0.35em 2em;
+  border-radius: 1em;
+  background-color: var(--button-background-color);
+  background: var(--button-background);
+  /* ensure gray shadow does not appear on tap */
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+  /* prevent delay on touch devices */
+  touch-action: manipulation;
+}
+
+.expand-centered button:active {
+  background: linear-gradient(rgba(85, 170, 255, 0.1), rgba(85, 170, 255, 0.2));
+}
+
+.expand-centered svg {
+  width: 1.25em;
+}
+
+.expand-centered button.open svg {
+  transform: rotate(180deg);
+}
+
+.expand-centered button svg {
+  transform: rotate(0deg);
+  transition: transform 0.15s ease-in-out;
+}
+
+/* expand buttons (shared) */
+.expand-centered button,
+.expand-inline button {
+  line-height: 0;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  color: var(--link-color);
+  border: none;
+}
+
+.expand-centered .inner,
+.expand-inline .inner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25em;
+}
+
+.expand-centered button.open svg,
+.expand-inline button.open svg {
+  transform: rotate(180deg);
+}
+
+.expand-centered button svg,
+.expand-inline button svg {
+  transform: rotate(0deg);
+  transition: transform 0.15s ease-in-out;
+}
+
+/* small break-point */
+@media screen and (max-width: 36em) {
+  .expand-inline {
+    display: none;
+  }
+
+  .expand-centered {
+    display: block;
   }
 }
 
