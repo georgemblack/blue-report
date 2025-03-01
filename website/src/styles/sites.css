@@ -9,7 +9,7 @@
 
 .site .interactions {
   margin-top: 0.25em;
-  color: var(--faded-text-color);
+  color: var(--faded-text-color-1);
 }
 
 .top-links {
@@ -68,6 +68,6 @@
 }
 
 .top-link .details p {
-  color: var(--faded-text-color);
+  color: var(--faded-text-color-1);
   font-size: var(--font-size-small);
 }

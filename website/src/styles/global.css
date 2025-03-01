@@ -22,13 +22,13 @@
   /* Text colors */
   --header-accent-color: #4286f4;
   --header-accent-color-secondary: #78acff;
-  --header-accent-color-faded: rgba(66, 134, 244, 0.2);
+  --header-accent-color-transparent: rgba(66, 134, 244, 0.2);
   --link-color: #2b589f;
-  --link-hover-color: #1f4a8f;
+  --link-hover-color: color-mix(in srgb, var(--link-color) 85%, black);
   --body-text-color: #2d2d2d;
-  --body-text-color-blended: #3e3e3e;
-  --faded-text-color: rgba(0, 0, 0, 0.4);
-  --link-host-color: #606060;
+  --body-text-color-blended: color-mix(in srgb, var(--body-text-color) 85%, white);
+  --faded-text-color-1: rgba(0, 0, 0, 0.4);
+  --faded-text-color-2: rgba(0, 0, 0, 0.65);
 
   /* Toggle colors */
   --toggle-background-color: #f4f0eb;
@@ -56,11 +56,11 @@
 
     /* Text colors */
     --body-text-color: #f7f7f7;
-    --body-text-color-blended: #d2d2d2;
-    --link-color: #799cff;
-    --link-hover-color: #5e84ff;
-    --faded-text-color: rgba(255, 255, 255, 0.5);
-    --link-host-color: rgba(255, 255, 255, 0.8);
+    --body-text-color-blended: color-mix(in srgb, var(--body-text-color) 85%, black);
+    --link-color: #79b8ff;
+    --link-hover-color: color-mix(in srgb, var(--link-color) 85%, white);
+    --faded-text-color-1: rgba(255, 255, 255, 0.5);
+    --faded-text-color-2: rgba(255, 255, 255, 0.8);
 
     /* Toggle colors */
     --toggle-background-color: rgba(255, 255, 255, 0.05);
@@ -182,7 +182,7 @@ a:hover {
 
 /* cards */
 .card {
-  border: 1px solid var(--header-accent-color-faded);
+  border: 1px solid var(--header-accent-color-transparent);
   border-radius: 1em;
   background-color: var(--card-background-color);
   background: var(--card-background);
@@ -232,18 +232,18 @@ a:hover {
 }
 
 .link .metadata {
-  color: var(--faded-text-color);
+  color: var(--faded-text-color-1);
   display: flex;
   gap: 0.5em;
 }
 
 .link .metadata .host {
-  color: var(--link-host-color);
+  color: var(--faded-text-color-2);
 }
 
 .last-updated {
   margin-top: 0.75em;
-  color: var(--faded-text-color);
+  color: var(--faded-text-color-1);
   text-align: center;
 }
 
