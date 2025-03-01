@@ -5,6 +5,7 @@ import { formatCount, formatDate } from "../util/Format";
 
 import "../styles/global.css";
 import "../styles/sites.css";
+import Footer from "../components/Footer.astro";
 
 const snapshot = await fetchTopSites();
 ---
@@ -30,9 +31,12 @@ const snapshot = await fetchTopSites();
                       src={`https://assets.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
                     />
                   </figure>
-                  <p>
-                    <a href={link.url}>{link.title}</a>
-                  </p>
+                  <div class="details">
+                    <h3>
+                      <a href={link.url}>{link.title}</a>
+                    </h3>
+                    <p>placeholder interactions</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -42,4 +46,5 @@ const snapshot = await fetchTopSites();
     }
   </div>
   <p class="last-updated">Last updated {formatDate(snapshot.generated_at)}</p>
+  <Footer />
 </Layout>

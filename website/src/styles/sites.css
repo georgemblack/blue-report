@@ -27,6 +27,8 @@
   flex-grow: 0;
   flex-shrink: 0;
   flex-basis: 18em;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--header-accent-color-faded);
   border-radius: 1em;
   background-color: var(--toggle-background-color);
@@ -40,15 +42,35 @@
 .top-link figure {
   margin: 0;
   padding: 0;
+  height: 10em;
 }
 
 /* remove default padding added below the image */
 .top-link img {
   display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.top-link p {
-  margin: 0;
-  padding: 1em;
-  font-family: var(--serif-font);
+.top-link .details {
+  flex-grow: 1;
+  height: initial;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.top-link .details h3,
+.top-link .details p {
+  padding: 0 1rem 0 1rem;
+}
+
+.top-link .details p {
+  margin: 0.5rem 0;
+}
+
+.top-link .details p {
+  color: var(--faded-text-color);
+  font-size: var(--font-size-small);
 }
