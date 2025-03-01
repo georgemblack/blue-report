@@ -11,6 +11,19 @@ const snapshot = await fetchTopSites();
 ---
 
 <Layout subtitle="The top sites on Bluesky, updated daily">
+  <div class="return">
+    <a href="/"
+      ><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"
+        ><path
+          d="m0 0h24v24h-24z"
+          fill="#fff"
+          opacity="0"
+          transform="matrix(0 1 -1 0 24 0)"></path><path
+          d="m13.83 19a1 1 0 0 1 -.78-.37l-4.83-6a1 1 0 0 1 0-1.27l5-6a1 1 0 0 1 1.54 1.28l-4.47 5.36 4.32 5.36a1 1 0 0 1 -.78 1.64z"
+          fill="var(--link-color)"></path></svg
+      ><span>Return to main report</span></a
+    >
+  </div>
   <div class="container-group">
     {
       snapshot.sites.map((site) => (
@@ -22,14 +35,9 @@ const snapshot = await fetchTopSites();
             <div class="interactions">
               <p>{formatCount(site.interactions)} interactions over 30 days </p>
               <div class="help">
-                <div class="label">?</div>
-                <div class="contents">
-                  <p>
-                    The number of posts referencing a URL, combined with the
-                    number of reposts & likes on those posts.
-                    <a href="#">Learn more.</a>
-                  </p>
-                </div>
+                <a href="https://github.com/georgemblack/blue-report/blob/master/RANKING.md#how-are-top-sites-ranked">
+                  ?
+                </a>
               </div>
             </div>
             <h3>Top Links</h3>
@@ -46,7 +54,7 @@ const snapshot = await fetchTopSites();
                       <a href={link.url}>{link.title}</a>
                     </h3>
                     <p>
-                      {formatCount(link.interactions)} interactions over 30 days
+                      {formatCount(link.interactions)} posts, reposts, and likes
                     </p>
                   </div>
                 </div>
