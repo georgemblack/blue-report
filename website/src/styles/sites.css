@@ -7,33 +7,6 @@
   font-size: 1em;
 }
 
-/* Return to home link */
-.return {
-  margin: 1em 0 0 0;
-}
-
-.return a {
-  margin: 0 auto;
-  width: 16em;
-  display: flex;
-  gap: 0.5em;
-  justify-content: center;
-  font-size: var(--font-size-small);
-  padding: 0.35em 2em;
-  border-radius: 2em;
-  background-color: rgba(85, 170, 255, 0.1);
-  background: linear-gradient(rgba(85, 170, 255, 0.05), rgba(85, 170, 255, 0.1));
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-  touch-action: manipulation;
-  text-decoration: none;
-}
-
-.return svg {
-  display: inline-block;
-  width: 1.25em;
-  padding: 0;
-}
-
 .site .interactions {
   display: flex;
   gap: 0.5em;
