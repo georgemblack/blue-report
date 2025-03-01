@@ -11,24 +11,24 @@ type FormatTest struct {
 
 // This test uses actual examples taken from the website.
 func TestFormatTitle(t *testing.T) {
-	examples := []FormatTest{
+	tests := []FormatTest{
 		{
 			input:    "Exclusive: Anti-Trump Podcaster Who Dethroned Joe Rogan Wants to Beat Fox News",
 			expected: "Anti-Trump Podcaster Who Dethroned Joe Rogan Wants to Beat Fox News",
 		},
 	}
 
-	for _, example := range examples {
-		actual := formatTitle(example.input)
-		if actual != example.expected {
-			t.Errorf("expected '%s', got '%s'", example.expected, actual)
+	for _, test := range tests {
+		actual := formatTitle(test.input)
+		if actual != test.expected {
+			t.Errorf("expected '%s', got '%s'", test.expected, actual)
 		}
 	}
 }
 
 // This test uses actual examples taken from the website.
 func TestFormatPost(t *testing.T) {
-	examples := []FormatTest{
+	tests := []FormatTest{
 		{
 			input:    "Hello, world!",
 			expected: "Hello, world!",
@@ -71,10 +71,10 @@ func TestFormatPost(t *testing.T) {
 		},
 	}
 
-	for _, example := range examples {
-		actual := formatPost(example.input)
-		if actual != example.expected {
-			t.Errorf("expected '%s', got '%s'", example.expected, actual)
+	for _, test := range tests {
+		actual := formatPost(test.input)
+		if actual != test.expected {
+			t.Errorf("expected '%s', got '%s'", test.expected, actual)
 		}
 	}
 }
