@@ -33,7 +33,7 @@ func Ignore(input string) bool {
 	}
 
 	// Ignore known explicit content
-	if parsed.Hostname() == "beacons.ai" {
+	if parsed.Hostname() == "beacons.ai" || parsed.Hostname() == "yokubo.tv" {
 		return true
 	}
 
