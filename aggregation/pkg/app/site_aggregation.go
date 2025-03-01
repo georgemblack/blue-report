@@ -83,7 +83,7 @@ func AggregateSites() (sites.Snapshot, error) {
 	}
 
 	// Hydrate the snapshot with metadata from storage
-	snapshot, err = hydrateSites(app.Storage, snapshot)
+	snapshot, err = hydrateSites(app.Storage, &aggregation, snapshot)
 	if err != nil {
 		return sites.Snapshot{}, util.WrapErr("failed to hydrate sites", err)
 	}

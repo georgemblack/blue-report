@@ -29,9 +29,10 @@ type Post struct {
 }
 
 type Link struct {
-	URL         string `json:"url"`
-	Title       string `json:"title"`
-	ThumbnailID string `json:"thumbnail_id"`
+	URL          string `json:"url"`
+	Title        string `json:"title"`
+	ThumbnailID  string `json:"thumbnail_id"`
+	Interactions int    `json:"interactions"`
 }
 
 func (s *Snapshot) AddSite(domain string, agg AggregationItem) {

@@ -17,6 +17,13 @@ func (c Counts) Total() int {
 	return c.Posts + c.Reposts + c.Likes
 }
 
+func (a *AggregationItem) Get(url string) Counts {
+	if a.links == nil {
+		return Counts{}
+	}
+	return a.links[url]
+}
+
 func (a *AggregationItem) CountEvent(eventType int, linkURL string, did string) {
 	if a.links == nil {
 		a.links = make(map[string]Counts)

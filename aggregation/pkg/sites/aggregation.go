@@ -27,7 +27,7 @@ type Aggregation struct {
 
 type Shard struct {
 	lock  sync.Mutex
-	items map[string]AggregationItem
+	items map[string]*AggregationItem
 }
 
 func NewAggregation() Aggregation {
@@ -35,7 +35,7 @@ func NewAggregation() Aggregation {
 	for i := range shards {
 		shards[i] = Shard{
 			lock:  sync.Mutex{},
-			items: make(map[string]AggregationItem),
+			items: make(map[string]*AggregationItem),
 		}
 	}
 
@@ -48,7 +48,12 @@ func NewAggregation() Aggregation {
 }
 
 func (a *Aggregation) Get(host string) AggregationItem {
-	return a.getShard(host).items[host]
+	shard := a.getShard(host)
+	result := shard.items[host]
+	if result == nil {
+		return AggregationItem{}
+	}
+	return *result
 }
 
 func (a *Aggregation) Total() int64 {
@@ -90,9 +95,10 @@ func (a *Aggregation) CountEvent(eventType int, linkURL string, did string) {
 	shard := a.getShard(host)
 
 	shard.lock.Lock()
-	item := shard.items[host]
-	item.CountEvent(eventType, linkURL, did)
-	shard.items[host] = item
+	if shard.items[host] == nil {
+		shard.items[host] = &AggregationItem{}
+	}
+	shard.items[host].CountEvent(eventType, linkURL, did)
 	shard.lock.Unlock()
 
 	atomic.AddInt64(&a.total, 1)
@@ -102,7 +108,7 @@ func (a *Aggregation) TopSites(n int) []string {
 	// Convert map to slice
 	type kv struct {
 		Domain          string
-		AggregationItem AggregationItem
+		AggregationItem *AggregationItem
 	}
 
 	var kvs []kv

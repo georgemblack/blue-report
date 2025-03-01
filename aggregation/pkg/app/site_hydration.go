@@ -9,10 +9,10 @@ import (
 
 // Given a snapshot of top sites, hydrate it with data from storage. Specifically:
 // - Add the title to each top link
-func hydrateSites(stg Storage, snapshot sites.Snapshot) (sites.Snapshot, error) {
+func hydrateSites(stg Storage, agg *sites.Aggregation, snapshot sites.Snapshot) (sites.Snapshot, error) {
 	for i, site := range snapshot.Sites {
 		for j, link := range site.Links {
-			link, err := hydrateSiteLink(stg, link)
+			link, err := hydrateSiteLink(stg, agg, site.Domain, link)
 			if err != nil {
 				return sites.Snapshot{}, util.WrapErr("failed to hydrate site link", err)
 			}
@@ -23,8 +23,10 @@ func hydrateSites(stg Storage, snapshot sites.Snapshot) (sites.Snapshot, error) 
 	return snapshot, nil
 }
 
-func hydrateSiteLink(stg Storage, link sites.Link) (sites.Link, error) {
+func hydrateSiteLink(stg Storage, agg *sites.Aggregation, host string, link sites.Link) (sites.Link, error) {
 	hashedURL := util.Hash(link.URL)
+	stats := agg.Get(host)
+	interactions := stats.Get(link.URL).Total()
 
 	// Check whether we have a thumbnail
 	thumbnailExists, err := stg.ThumbnailExists(hashedURL)
@@ -68,6 +70,7 @@ func hydrateSiteLink(stg Storage, link sites.Link) (sites.Link, error) {
 	if link.Title == "" {
 		link.Title = "(No Title)"
 	}
+	link.Interactions = interactions
 
 	slog.Debug("hydrated", "record", link)
 	return link, nil
