@@ -35,7 +35,9 @@ const snapshot = await fetchTopSites();
                     <h3>
                       <a href={link.url}>{link.title}</a>
                     </h3>
-                    <p>placeholder interactions</p>
+                    <p>
+                      {formatCount(link.interactions)} interactions over 30 days
+                    </p>
                   </div>
                 </div>
               ))}
