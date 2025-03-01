@@ -52,7 +52,7 @@ const { links, toggle, generatedAt } = Astro.props;
           <div class="link-details" id={strip(link.url)}>
             <div class="recommended-posts">
               {link.recommended_posts.map((post) => (
-                <div class="recommended-post">
+                <div class="recommended-post card">
                   <div class="inner">
                     <div>
                       <p class="username">{post.username}</p>

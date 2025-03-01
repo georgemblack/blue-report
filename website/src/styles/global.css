@@ -1,4 +1,7 @@
 :root {
+  /* layout */
+  --body-padding: 1rem;
+
   /* primary fonts */
   --serif-font: "Crete Round", serif;
   --sans-serif-font: system-ui;
@@ -29,6 +32,18 @@
   --toggle-text-color: #2d2d2d;
   --toggle-background-color: #f4f0eb;
   --toggle-selected-color: rgba(66, 134, 244, 0.25);
+
+  /* cards */
+  --card-background-color: #f4f0eb;
+  --card-background: linear-gradient(135deg, transparent, rgba(85, 170, 255, 0.05));
+  --card-box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
+}
+
+/* small break-point */
+@media screen and (max-width: 36em) {
+  :root {
+    --body-padding: 0.85rem;
+  }
 }
 
 * {
@@ -39,7 +54,7 @@
 
 body {
   margin: 1em auto;
-  padding: 0 1em;
+  padding: 0 var(--body-padding);
   max-width: 56rem;
   line-height: 150%;
   color: var(--body-text-color);
@@ -68,13 +83,6 @@ header .accent {
 
 header .subtitle {
   margin-top: 0.5em;
-}
-
-/* small break-point */
-@media screen and (max-width: 36em) {
-  body {
-    padding: 0 0.85em;
-  }
 }
 
 main {
@@ -140,10 +148,23 @@ a:hover {
   border-bottom: 2px solid var(--line-separator-color);
 }
 
+/* cards */
+.card {
+  border: 1px solid var(--header-accent-color-faded);
+  border-radius: 1em;
+  background-color: var(--card-background-color);
+  background: var(--card-background);
+  box-shadow: var(--card-box-shadow);
+  /* Ensure images that reach the edges don't overflow */
+  overflow: hidden;
+  /* Ensure long text (like links) doesn't cause container to expand in width */
+  overflow-wrap: anywhere;
+}
+
 /* links */
 .link {
   display: flex;
-  gap: 2em;
+  gap: 1.85em;
 }
 
 .link .preview img,
@@ -197,7 +218,7 @@ a:hover {
 /* medium break-point */
 @media screen and (max-width: 56em) {
   .link {
-    gap: 1em;
+    gap: 0.85em;
   }
 
   .link .preview img,
@@ -361,70 +382,4 @@ a:hover {
   .link-details.open {
     margin-top: 1em;
   }
-}
-
-/* recommended posts */
-.recommended-posts {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1em;
-}
-
-/* medium break-point */
-@media screen and (max-width: 56em) {
-  .recommended-posts {
-    display: flex;
-    overflow-x: auto;
-  }
-
-  .recommended-posts::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.recommended-post {
-  padding: 1em;
-  border: 1px solid var(--header-accent-color-faded);
-  border-radius: 1em;
-  background-color: var(--toggle-background-color);
-  background: linear-gradient(135deg, transparent, rgba(85, 170, 255, 0.05));
-  box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
-  /* ensure long text (like links) doesn't cause container to expand in width */
-  overflow-wrap: anywhere;
-}
-
-/* medium break-point */
-@media screen and (max-width: 56em) {
-  .recommended-post {
-    flex-grow: 0;
-    flex-shrink: 0;
-    flex-basis: 18em;
-  }
-}
-
-.recommended-post .inner {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.recommended-post .username {
-  font-family: var(--serif-font);
-  line-height: 100%;
-}
-
-.recommended-post .handle {
-  font-size: 0.85em;
-  line-height: 100%;
-}
-
-.recommended-post .text {
-  margin-top: 0.5em;
-  font-size: 0.85em;
-}
-
-.recommended-post .view-more {
-  font-size: var(--font-size-small);
-  text-align: right;
 }

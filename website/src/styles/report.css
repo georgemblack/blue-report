@@ -1,4 +1,6 @@
-/* navigation */
+/*--------------------------------*/
+/*         Navigation             */
+/*--------------------------------*/
 nav {
   margin: 0 auto;
   max-width: 34em;
@@ -38,7 +40,7 @@ nav .active a {
   color: var(--header-accent-color);
 }
 
-/* small break-point */
+/* Small break-point */
 @media screen and (max-width: 36em) {
   nav {
     max-width: 24em;
@@ -50,14 +52,83 @@ nav .active a {
     gap: 0.35em;
   }
 
-  /* decrease size of label, increase size of icon */
+  /* Decrease size of label, increase size of icon */
   nav .label {
     font-size: var(--font-size-small);
   }
 
-  /* add slight top margin to visuall center icon */
+  /* Add slight top margin to visuall center icon */
   nav .icon {
     margin-top: 0.1em;
     font-size: 1.15em;
   }
+}
+
+/*---------------------------------------*/
+/*         Recommended posts             */
+/*---------------------------------------*/
+.recommended-posts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1em;
+}
+
+/* medium break-point */
+@media screen and (max-width: 56em) {
+  .recommended-posts {
+    /* Convert to horizontal scroll */
+    display: flex;
+    overflow-x: auto;
+
+    /* Extend beyond body's padding dynamically */
+    margin-left: calc(-1 * var(--body-padding));
+    margin-right: calc(-1 * var(--body-padding));
+    padding-left: var(--body-padding);
+    padding-right: var(--body-padding);
+  }
+
+  .recommended-posts::-webkit-scrollbar {
+    /* Hide scrollbar */
+    display: none;
+  }
+}
+
+.recommended-post {
+  padding: 1em;
+}
+
+/* medium break-point */
+@media screen and (max-width: 56em) {
+  .recommended-post {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 20em;
+  }
+}
+
+.recommended-post .inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.recommended-post .username {
+  font-family: var(--serif-font);
+  line-height: 100%;
+}
+
+.recommended-post .handle {
+  font-size: 0.85em;
+  line-height: 100%;
+}
+
+.recommended-post .text {
+  margin-top: 0.5em;
+  font-size: 0.85em;
+}
+
+.recommended-post .view-more {
+  font-size: var(--font-size-small);
+  text-align: right;
 }

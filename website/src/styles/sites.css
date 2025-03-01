@@ -17,6 +17,12 @@
   display: flex;
   overflow-x: auto;
   gap: 1em;
+
+  /* Extend beyond body's padding dynamically */
+  margin-left: calc(-1 * var(--body-padding));
+  margin-right: calc(-1 * var(--body-padding));
+  padding-left: var(--body-padding);
+  padding-right: var(--body-padding);
 }
 
 .top-links::-webkit-scrollbar {
@@ -26,17 +32,9 @@
 .top-link {
   flex-grow: 0;
   flex-shrink: 0;
-  flex-basis: 18em;
+  flex-basis: 20em;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--header-accent-color-faded);
-  border-radius: 1em;
-  background-color: var(--toggle-background-color);
-  background: linear-gradient(135deg, transparent, rgba(85, 170, 255, 0.05));
-  box-shadow: 0px 0px 50px -25px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  /* ensure long text (like links) doesn't cause container to expand in width */
-  overflow-wrap: anywhere;
 }
 
 .top-link figure {
