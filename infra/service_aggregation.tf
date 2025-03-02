@@ -43,6 +43,10 @@ resource "aws_ecs_task_definition" "blue_report_link_aggregation" {
           value = aws_dynamodb_table.url_translations.name
         },
         {
+          name  = "DYNAMO_FEED_TABLE"
+          value = aws_dynamodb_table.feed.name
+        },
+        {
           name  = "SQS_NORMALIZATION_QUEUE_NAME"
           value = aws_sqs_queue.blue_report.name
         }

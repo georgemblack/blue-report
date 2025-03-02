@@ -10,6 +10,11 @@ import (
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
+type URLTranslation struct {
+	Source      string
+	Destination string
+}
+
 func (a AWS) SaveURLTranslation(translation URLTranslation) error {
 	now := time.Now().UTC()
 	ts := now.Format(time.RFC3339Nano)

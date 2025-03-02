@@ -31,6 +31,7 @@ type AWS struct {
 	writeEventsBucketName    string
 	urlMetadataTableName     string
 	urlTranslationsTableName string
+	feedTableName            string
 }
 
 func New(cfg config.Config) (AWS, error) {
@@ -47,6 +48,7 @@ func New(cfg config.Config) (AWS, error) {
 		writeEventsBucketName:    cfg.WriteEventsBucketName,
 		urlMetadataTableName:     cfg.URLMetadataTableName,
 		urlTranslationsTableName: cfg.URLTranslationsTableName,
+		feedTableName:            cfg.FeedTableName,
 	}, nil
 }
 

@@ -166,6 +166,20 @@ func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 	return m.recorder
 }
 
+// AddFeedEntry mocks base method.
+func (m *MockStorage) AddFeedEntry(entry storage.FeedEntry) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddFeedEntry", entry)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddFeedEntry indicates an expected call of AddFeedEntry.
+func (mr *MockStorageMockRecorder) AddFeedEntry(entry any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddFeedEntry", reflect.TypeOf((*MockStorage)(nil).AddFeedEntry), entry)
+}
+
 // FlushEvents mocks base method.
 func (m *MockStorage) FlushEvents(start time.Time, events []storage.EventRecord) error {
 	m.ctrl.T.Helper()
@@ -223,6 +237,20 @@ func (m *MockStorage) ListEventChunks(start, end time.Time) ([]string, error) {
 func (mr *MockStorageMockRecorder) ListEventChunks(start, end any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEventChunks", reflect.TypeOf((*MockStorage)(nil).ListEventChunks), start, end)
+}
+
+// MarkFeedEntryPublished mocks base method.
+func (m *MockStorage) MarkFeedEntryPublished(urlHash string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkFeedEntryPublished", urlHash)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkFeedEntryPublished indicates an expected call of MarkFeedEntryPublished.
+func (mr *MockStorageMockRecorder) MarkFeedEntryPublished(urlHash any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkFeedEntryPublished", reflect.TypeOf((*MockStorage)(nil).MarkFeedEntryPublished), urlHash)
 }
 
 // PublishLinkSnapshot mocks base method.

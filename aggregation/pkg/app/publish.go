@@ -10,9 +10,12 @@ import (
 
 	"github.com/georgemblack/blue-report/pkg/links"
 	"github.com/georgemblack/blue-report/pkg/sites"
+	"github.com/georgemblack/blue-report/pkg/storage"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
+// PublishLinkSnapshot publishes data for the 'top links' report to storage, where it is then read by a static site generator.
+// It also updates the feed of top posts, which is used by the Bluesky bot, as well as the RSS generator.
 func PublishLinkSnapshot(snapshot links.Snapshot) error {
 	slog.Info("publishing snapshot")
 	start := time.Now()
@@ -34,6 +37,18 @@ func PublishLinkSnapshot(snapshot links.Snapshot) error {
 
 	if os.Getenv("DEBUG") == "true" {
 		os.WriteFile("dist/snapshot.json", data, 0644)
+	}
+
+	// Find the top link over the last 24 hours, and add it to the feed
+	topLink := snapshot.TopDayLink()
+	if topLink.URL != "" {
+		err = app.Storage.AddFeedEntry(storage.FeedEntry{
+			URL:    topLink.URL,
+			PostID: topLink.RecommendedPostID(),
+		})
+		if err != nil {
+			return util.WrapErr("failed to add feed item", err)
+		}
 	}
 
 	slog.Info("triggering deployment")
