@@ -53,3 +53,25 @@ resource "aws_dynamodb_table" "url_translations_test" {
     type = "S"
   }
 }
+
+resource "aws_dynamodb_table" "feed" {
+  name         = "blue-report-feed"
+  hash_key     = "urlHash"
+  billing_mode = "PAY_PER_REQUEST"
+
+  attribute {
+    name = "urlHash"
+    type = "S"
+  }
+}
+
+resource "aws_dynamodb_table" "feed_test" {
+  name         = "blue-report-url-feed-test"
+  hash_key     = "urlHash"
+  billing_mode = "PAY_PER_REQUEST"
+
+  attribute {
+    name = "urlHash"
+    type = "S"
+  }
+}
