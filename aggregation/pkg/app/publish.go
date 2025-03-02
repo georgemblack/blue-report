@@ -37,7 +37,7 @@ func PublishLinkSnapshot(snapshot links.Snapshot) error {
 	}
 
 	slog.Info("triggering deployment")
-	err = deploy(app.Config.DeployHookURL)
+	err = deploy(app.Config.CloudflareDeployHook)
 	if err != nil {
 		return util.WrapErr("failed to deploy", err)
 	}
@@ -71,7 +71,7 @@ func PublishSiteSnapshot(snapshot sites.Snapshot) error {
 	}
 
 	slog.Info("triggering deployment")
-	err = deploy(app.Config.DeployHookURL)
+	err = deploy(app.Config.CloudflareDeployHook)
 	if err != nil {
 		return util.WrapErr("failed to deploy", err)
 	}

@@ -66,3 +66,11 @@ func TestCleanSubstackWithoutOpenLink(t *testing.T) {
 		t.Errorf("expected '%s', got '%s'", expected, result)
 	}
 }
+
+func TestCleanWithFragment(t *testing.T) {
+	result := Clean("https://theblue.report/some-page#fragment")
+	expected := "https://theblue.report/some-page"
+	if result != expected {
+		t.Errorf("expected '%s', got '%s'", expected, result)
+	}
+}

@@ -9,10 +9,10 @@ import (
 
 // Given a snapshot of top sites, hydrate it with data from storage. Specifically:
 // - Add the title to each top link
-func hydrateSites(stg Storage, agg *sites.Aggregation, snapshot sites.Snapshot) (sites.Snapshot, error) {
+func hydrateSites(app App, agg *sites.Aggregation, snapshot sites.Snapshot) (sites.Snapshot, error) {
 	for i, site := range snapshot.Sites {
 		for j, link := range site.Links {
-			link, err := hydrateSiteLink(stg, agg, site.Domain, link)
+			link, err := hydrateSiteLink(app, agg, site.Domain, link)
 			if err != nil {
 				return sites.Snapshot{}, util.WrapErr("failed to hydrate site link", err)
 			}
@@ -35,13 +35,13 @@ func hydrateSites(stg Storage, agg *sites.Aggregation, snapshot sites.Snapshot) 
 	return snapshot, nil
 }
 
-func hydrateSiteLink(stg Storage, agg *sites.Aggregation, host string, link sites.Link) (sites.Link, error) {
+func hydrateSiteLink(app App, agg *sites.Aggregation, host string, link sites.Link) (sites.Link, error) {
 	hashedURL := util.Hash(link.URL)
 	stats := agg.Get(host)
 	interactions := stats.Get(link.URL).Total()
 
 	// Check whether we have a thumbnail
-	thumbnailExists, err := stg.ThumbnailExists(hashedURL)
+	thumbnailExists, err := app.Storage.ThumbnailExists(hashedURL)
 	if err != nil {
 		slog.Warn(util.WrapErr("failed to check for thumbnail", err).Error(), "url", link.URL)
 	}
@@ -51,26 +51,23 @@ func hydrateSiteLink(stg Storage, agg *sites.Aggregation, host string, link site
 
 	// Check whether we have a title
 	titleExists := false
-	if link.Title = getTitle(stg, link.URL); link.Title != "" {
+	if link.Title = getTitle(app.Storage, link.URL); link.Title != "" {
 		titleExists = true
 	}
 
 	// If either title or thumbnail is missing, fetch from CardyB & store
 	if !thumbnailExists || !titleExists {
-		cardy, err := cardyB(link.URL)
-		if err != nil {
-			slog.Warn(util.WrapErr("failed to get title from cardyb", err).Error(), "url", link.URL)
-		}
+		metadata := GetCardMetadata(app.Config.CloudflareAPIToken, app.Config.CloudflareAccountID, link.URL)
 
 		// Save title
-		if !titleExists && cardy.Title != "" {
-			link.Title = formatTitle(cardy.Title)
-			updateTitle(stg, link.URL, link.Title)
+		if !titleExists && metadata.Title != "" {
+			link.Title = formatTitle(metadata.Title)
+			updateTitle(app.Storage, link.URL, link.Title)
 		}
 
 		// Save thumbnail
-		if !thumbnailExists && cardy.Image != "" {
-			err := stg.SaveThumbnail(hashedURL, cardy.Image)
+		if !thumbnailExists && metadata.ImageURL != "" {
+			err := app.Storage.SaveThumbnail(hashedURL, metadata.ImageURL)
 			if err != nil {
 				slog.Warn(util.WrapErr("failed to save thumbnail", err).Error(), "url", link.URL)
 			} else {

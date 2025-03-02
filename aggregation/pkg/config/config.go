@@ -15,7 +15,9 @@ type Config struct {
 	ValkeyAddress            string
 	ValkeyTLSEnabled         bool
 	NoralizationQueueName    string
-	DeployHookURL            string
+	CloudflareDeployHook     string
+	CloudflareAPIToken       string
+	CloudflareAccountID      string
 }
 
 func New() (Config, error) {
@@ -24,9 +26,19 @@ func New() (Config, error) {
 		return Config{}, util.WrapErr("failed to create secrets manager", err)
 	}
 
-	deployHookURL, err := sm.GetDeployHook()
+	deployHook, err := sm.GetDeployHook()
 	if err != nil {
 		return Config{}, util.WrapErr("failed to get deploy hook", err)
+	}
+
+	apiToken, err := sm.GetCloudflareAPIToken()
+	if err != nil {
+		return Config{}, util.WrapErr("failed to get cloudflare api token", err)
+	}
+
+	accountID, err := sm.GetCloudflareAccountID()
+	if err != nil {
+		return Config{}, util.WrapErr("failed to get cloudflare account id", err)
 	}
 
 	return Config{
@@ -39,6 +51,8 @@ func New() (Config, error) {
 		ValkeyAddress:            util.GetEnvStr("VALKEY_ADDRESS", "127.0.0.1:6379"),
 		ValkeyTLSEnabled:         util.GetEnvBool("VALKEY_TLS_ENABLED", false),
 		NoralizationQueueName:    util.GetEnvStr("SQS_NORMALIZATION_QUEUE_NAME", "blue-report-normalization-test"),
-		DeployHookURL:            deployHookURL,
+		CloudflareDeployHook:     deployHook,
+		CloudflareAPIToken:       apiToken,
+		CloudflareAccountID:      accountID,
 	}, nil
 }

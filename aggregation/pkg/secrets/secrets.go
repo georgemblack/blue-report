@@ -25,8 +25,18 @@ func New() (SecretsManager, error) {
 }
 
 func (s SecretsManager) GetDeployHook() (string, error) {
-	secretName := "blue-report/cloudflare-deploy-hook-url"
+	return s.getSecret("blue-report/cloudflare-deploy-hook-url")
+}
 
+func (s SecretsManager) GetCloudflareAPIToken() (string, error) {
+	return s.getSecret("blue-report/cloudflare-api-token")
+}
+
+func (s SecretsManager) GetCloudflareAccountID() (string, error) {
+	return s.getSecret("blue-report/cloudflare-account-id")
+}
+
+func (s SecretsManager) getSecret(secretName string) (string, error) {
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId: aws.String(secretName),
 	}

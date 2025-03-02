@@ -13,14 +13,17 @@ import (
 func Clean(input string) string {
 	result := input
 
+	// Strip fragments
+	result = strings.Split(result, "#")[0]
+
 	// If the URL cannot be parsed, there is nothing to modify.
-	parsed, err := url.Parse(input)
+	parsed, err := url.Parse(result)
 	if err != nil {
 		return result
 	}
 
 	// Strip query parameters (with exceptions)
-	result = stripQueryWithExceptions(input, parsed)
+	result = stripQueryWithExceptions(result, parsed)
 
 	// Remove mobile YouTube links.
 	// Examples:

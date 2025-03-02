@@ -1,6 +1,7 @@
 package urltools
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -11,8 +12,10 @@ import (
 
 var redirectStatusCodes = []int{http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect}
 
+// FindRedirect attempts to find the destination URL from a given source URL. If no redirect is found, an empty string is returned.
+// Up to two redirects are followed. (Anything more than that is likely a scummy link.)
 func FindRedirect(input string) string {
-	var redirect string
+	var result string
 
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -21,52 +24,56 @@ func FindRedirect(input string) string {
 		Timeout: 1 * time.Second,
 	}
 
+	// Check for a first redirect
 	resp, err := client.Get(input)
 	if err != nil {
+		// A valid website could be blocking us. Assume no redirect.
 		return ""
 	}
-	if util.ContainsInt(redirectStatusCodes, resp.StatusCode) {
-		redirect = resp.Header.Get("Location")
-	}
-	if redirect == "" {
+	if !util.ContainsInt(redirectStatusCodes, resp.StatusCode) || resp.Header.Get("Location") == "" {
 		return ""
 	}
+	result = resolveLocation(input, resp.Header.Get("Location"))
 
-	// If the redirect URL is relative to the domain, i.e. '/some-page', prepend the original domain.
-	if strings.HasPrefix(redirect, "/") {
-		parsed, err := url.Parse(input)
-		if err != nil {
-			return ""
-		}
-		redirect = parsed.Scheme + "://" + parsed.Host + redirect
-
-		if redirect == input {
-			return ""
-		}
-	}
-
-	// Trim the port number if it is included in the redirect URL.
-	// Patreon's redirect does this, i.e. 'https://patreon.com/george' -> 'https://www.patreon.com:443/george'
-	parsed, err := url.Parse(redirect)
+	// Check for a second redirect
+	resp, err = client.Get(result)
 	if err != nil {
-		return ""
+		// A valid website could be blocking us. Return the inital result.
+		return result
 	}
-	parsed.Host = strings.TrimSuffix(parsed.Host, ":443")
-	redirect = parsed.String()
+	if !util.ContainsInt(redirectStatusCodes, resp.StatusCode) || resp.Header.Get("Location") == "" {
+		return result
+	}
+	return resolveLocation(result, resp.Header.Get("Location"))
+}
 
-	// Trim the fragment identifier (everything after the '#').
-	redirect = strings.Split(redirect, "#")[0]
-
-	// Check the new URL for a second redirect.
-	// If a second redirect exists, return nothing – it is likely a scummy link! Bastards.
-	resp, err = client.Get(redirect)
+// Given a URL, and the 'Location' header of its redirect, return the final destination URL. Examples:
+//   - Absolute URIs: 'https://theblue.report', 'https://theblue.report/something' -> 'https://theblue.report/something'
+//   - Absolute Path: 'https://theblue.report', '/something' -> 'https://theblue.report/something'
+//   - Relative Path: 'https://theblue.report/something', 'else' -> 'https://theblue.report/something/else'
+func resolveLocation(originalURL, location string) string {
+	orig, err := url.Parse(originalURL)
 	if err != nil {
-		// Could be a valid endpoint/website that's blocking us, that's fine (cough cough, Washington Post)
-		return redirect
+		return originalURL
 	}
-	if util.ContainsInt(redirectStatusCodes, resp.StatusCode) {
-		return ""
+	loc, err := url.Parse(location)
+	if err != nil {
+		return originalURL
 	}
 
-	return redirect
+	if loc.IsAbs() {
+		return loc.String()
+	}
+
+	// If the location is prefixed with a '/', it is an absolute path
+	if strings.HasPrefix(location, "/") {
+		orig.Path = location
+		return orig.String()
+	}
+
+	// Otherwise, assume this is a relative path. Yikes!
+	if strings.HasSuffix(originalURL, "/") {
+		return fmt.Sprintf("%s%s", originalURL, location)
+	}
+	return fmt.Sprintf("%s/%s", originalURL, location)
 }
