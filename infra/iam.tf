@@ -41,7 +41,11 @@ resource "aws_iam_policy" "service" {
           "dynamodb:DeleteItem",
           "dynamodb:Query",
         ],
-        Resource = [aws_dynamodb_table.url_metadata.arn, aws_dynamodb_table.url_translations.arn]
+        Resource = [
+          aws_dynamodb_table.url_metadata.arn,
+          aws_dynamodb_table.url_translations.arn,
+          aws_dynamodb_table.feed.arn
+        ]
       },
       {
         Effect = "Allow",
@@ -61,12 +65,15 @@ resource "aws_iam_policy" "service" {
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret"
         ],
-        Resource = ["arn:aws:secretsmanager:us-west-2:242201310196:secret:blue-report/cloudflare-deploy-hook-url-GVHZlh"]
+        Resource = [
+          "arn:aws:secretsmanager:us-west-2:242201310196:secret:blue-report/cloudflare-deploy-hook-url-GVHZlh",
+          "arn:aws:secretsmanager:us-west-2:242201310196:secret:blue-report/cloudflare-account-id-GPLTdm",
+          "arn:aws:secretsmanager:us-west-2:242201310196:secret:blue-report/cloudflare-api-token-HSOC3A"
+        ]
       }
     ]
   })
 }
-
 
 resource "aws_iam_role_policy_attachment" "service" {
   role       = aws_iam_role.service.name
