@@ -66,7 +66,7 @@ resource "aws_dynamodb_table" "feed" {
 }
 
 resource "aws_dynamodb_table" "feed_test" {
-  name         = "blue-report-url-feed-test"
+  name         = "blue-report-feed-test"
   hash_key     = "urlHash"
   billing_mode = "PAY_PER_REQUEST"
 

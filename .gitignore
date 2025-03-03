@@ -1,7 +1,9 @@
 publish.sh
 node_modules
 dist
+index.js
 .DS_Store
 .astro
 .vscode
 .terraform
+.env
