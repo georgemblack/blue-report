@@ -20,6 +20,7 @@ const (
 	EventBufferSize  = 10000
 	ErrorThreshold   = 10
 	JetstreamURL     = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost&wantedCollections=app.bsky.feed.like"
+	BlueReportDID    = "did:plc:zrcqicmkxum6tir6ahthppif"
 )
 
 type Stats struct {
@@ -124,6 +125,12 @@ func intakeWorker(id int, stream chan StreamEvent, shutdown chan struct{}, app A
 		// Check whether event is a valid post, repost, or like
 		if !event.Valid() {
 			stats.invalid++
+			continue
+		}
+
+		// Ignore posts from @theblue.report
+		if event.IsPost() && event.DID == BlueReportDID {
+			stats.skipped++
 			continue
 		}
 

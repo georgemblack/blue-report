@@ -3,6 +3,11 @@ resource "aws_ecr_repository" "blue_report" {
   image_tag_mutability = "MUTABLE"
 }
 
+resource "aws_ecr_repository" "blue_report_bot" {
+  name                 = "blue-report-bot"
+  image_tag_mutability = "MUTABLE"
+}
+
 resource "aws_cloudwatch_log_group" "blue_report" {
   name              = "blue-report"
   retention_in_days = 7
