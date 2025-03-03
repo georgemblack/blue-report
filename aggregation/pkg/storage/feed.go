@@ -2,11 +2,13 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dynamoDBTypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/smithy-go"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
@@ -21,17 +23,7 @@ func (a AWS) AddFeedEntry(entry FeedEntry) error {
 	ts := time.Now().UTC().Format(time.RFC3339)
 	hashedURL := util.Hash(entry.URL)
 
-	_, err := a.dynamoDB.GetItem(context.Background(), &dynamodb.GetItemInput{
-		TableName: aws.String(a.feedTableName),
-		Key: map[string]dynamoDBTypes.AttributeValue{
-			"urlHash": &dynamoDBTypes.AttributeValueMemberS{Value: hashedURL},
-		},
-	})
-	if err == nil {
-		return nil // Entry already exists
-	}
-
-	_, err = a.dynamoDB.PutItem(context.Background(), &dynamodb.PutItemInput{
+	_, err := a.dynamoDB.PutItem(context.Background(), &dynamodb.PutItemInput{
 		TableName: aws.String(a.feedTableName),
 		Item: map[string]dynamoDBTypes.AttributeValue{
 			"url":       &dynamoDBTypes.AttributeValueMemberS{Value: entry.URL},
@@ -40,8 +32,14 @@ func (a AWS) AddFeedEntry(entry FeedEntry) error {
 			"timestamp": &dynamoDBTypes.AttributeValueMemberS{Value: ts},
 			"published": &dynamoDBTypes.AttributeValueMemberBOOL{Value: false},
 		},
+		ConditionExpression: aws.String("attribute_not_exists(urlHash)"), // Do not overwrite existing entries
 	})
+
 	if err != nil {
+		var awsErr smithy.APIError
+		if errors.As(err, &awsErr) && awsErr.ErrorCode() == "ConditionalCheckFailedException" {
+			return nil // Not an error, just means the entry already exists
+		}
 		return util.WrapErr("failed to put url metadata", err)
 	}
 
