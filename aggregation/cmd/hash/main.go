@@ -8,5 +8,6 @@ import (
 )
 
 func main() {
-	fmt.Println(util.Hash(os.Args[0]))
+	fmt.Println("Hashing:", os.Args[1])
+	fmt.Println(util.Hash(os.Args[1]))
 }
