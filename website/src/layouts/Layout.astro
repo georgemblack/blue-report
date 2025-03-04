@@ -10,12 +10,15 @@ const { subtitle } = Astro.props;
     <!-- Metadata -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Blue Report</title>
     <meta
       name="description"
       content="The top links on Bluesky, updated hourly"
     />
     <meta name="author" content="George Black" />
-    <title>The Blue Report</title>
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://theblue.report" />
+
     <!-- Open Graph tags -->
     <meta property="og:title" content="The Blue Report" />
     <meta
@@ -29,10 +32,7 @@ const { subtitle } = Astro.props;
     <meta property="og:image:alt" content="The Blue Report" />
     <meta property="og:url" content="https://theblue.report" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="The Blue Report" />
-    <!-- Prefetch -->
-    <link rel="prefetch" href="/week/" />
-    <link rel="prefetch" href="/hour/" />
+
     <!-- Icons -->
     <link
       rel="icon"
@@ -48,6 +48,7 @@ const { subtitle } = Astro.props;
       href="/icons/apple-touch-icon.png"
     />
     <link rel="manifest" href="/icons/site.webmanifest" />
+
     <!-- Theme color -->
     <meta
       name="theme-color"
@@ -59,13 +60,18 @@ const { subtitle } = Astro.props;
       content="#101212"
       media="(prefers-color-scheme: dark)"
     />
-    <!-- External -->
+
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Crete+Round&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Prefetch hourly/weekly reports, as users frequently click on them -->
+    <link rel="prefetch" href="/week/" />
+    <link rel="prefetch" href="/hour/" />
   </head>
   <body>
     <header>
