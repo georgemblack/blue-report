@@ -21,7 +21,7 @@ func (a AWS) SaveURLTranslation(translation URLTranslation) error {
 	month := now.Format("2006-01")
 
 	_, err := a.dynamoDB.PutItem(context.Background(), &dynamodb.PutItemInput{
-		TableName: aws.String(a.urlTranslationsTableName),
+		TableName: aws.String(a.cfg.URLTranslationsTableName),
 		Item: map[string]dynamoDBTypes.AttributeValue{
 			"updatedAt":      &dynamoDBTypes.AttributeValueMemberS{Value: ts},
 			"updatedAtMonth": &dynamoDBTypes.AttributeValueMemberS{Value: month},
@@ -46,7 +46,7 @@ func (a AWS) GetURLTranslations() (map[string]string, error) {
 	// Perform two queries to fetch the translations for the current & previous month.
 	for _, month := range []string{thisMonth, lastMonth} {
 		resp, err := a.dynamoDB.Query(context.Background(), &dynamodb.QueryInput{
-			TableName:              aws.String(a.urlTranslationsTableName),
+			TableName:              aws.String(a.cfg.URLTranslationsTableName),
 			KeyConditionExpression: aws.String("updatedAtMonth = :month and updatedAt < :now"),
 			ExpressionAttributeValues: map[string]dynamoDBTypes.AttributeValue{
 				":month": &dynamoDBTypes.AttributeValueMemberS{Value: month},

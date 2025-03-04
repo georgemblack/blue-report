@@ -67,10 +67,7 @@ resource "aws_iam_policy" "service" {
           "secretsmanager:DescribeSecret"
         ],
         Resource = [
-          "arn:aws:secretsmanager:us-west-2:242201310196:secret:blue-report/cloudflare-deploy-hook-url-GVHZlh",
-          "arn:aws:secretsmanager:us-west-2:242201310196:secret:blue-report/cloudflare-account-id-GPLTdm",
-          "arn:aws:secretsmanager:us-west-2:242201310196:secret:blue-report/cloudflare-api-token-HSOC3A",
-          "arn:aws:secretsmanager:us-west-2:242201310196:secret:blue-report/bluesky-password-laqpQQ",
+          "arn:aws:secretsmanager:us-west-2:242201310196:secret:blue-report/*"
         ]
       }
     ]

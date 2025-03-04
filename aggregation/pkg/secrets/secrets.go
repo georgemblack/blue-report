@@ -24,6 +24,10 @@ func New() (SecretsManager, error) {
 	return SecretsManager{client: secretsmanager.NewFromConfig(config)}, nil
 }
 
+func (s SecretsManager) GetCloudflareAccountID() (string, error) {
+	return s.getSecret("blue-report/cloudflare-account-id")
+}
+
 func (s SecretsManager) GetDeployHook() (string, error) {
 	return s.getSecret("blue-report/cloudflare-deploy-hook-url")
 }
@@ -32,8 +36,12 @@ func (s SecretsManager) GetCloudflareAPIToken() (string, error) {
 	return s.getSecret("blue-report/cloudflare-api-token")
 }
 
-func (s SecretsManager) GetCloudflareAccountID() (string, error) {
-	return s.getSecret("blue-report/cloudflare-account-id")
+func (s SecretsManager) GetCloudflareR2AccessKeyID() (string, error) {
+	return s.getSecret("blue-report/cloudflare-r2-access-key-id")
+}
+
+func (s SecretsManager) GetCloudflareR2SecretAccessKey() (string, error) {
+	return s.getSecret("blue-report/cloudflare-r2-secret-access-key")
 }
 
 func (s SecretsManager) getSecret(secretName string) (string, error) {

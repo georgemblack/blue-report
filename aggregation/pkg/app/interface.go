@@ -40,10 +40,6 @@ type Queue interface {
 	Receive() ([]queue.Message, error)
 }
 
-type Secrets interface {
-	GetDeployHook() (string, error)
-}
-
 type Bluesky interface {
 	GetPost(atURI string) (bluesky.Post, error)
 }

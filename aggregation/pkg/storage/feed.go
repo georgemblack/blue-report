@@ -24,7 +24,7 @@ func (a AWS) AddFeedEntry(entry FeedEntry) error {
 	hashedURL := util.Hash(entry.URL)
 
 	_, err := a.dynamoDB.PutItem(context.Background(), &dynamodb.PutItemInput{
-		TableName: aws.String(a.feedTableName),
+		TableName: aws.String(a.cfg.FeedTableName),
 		Item: map[string]dynamoDBTypes.AttributeValue{
 			"url":       &dynamoDBTypes.AttributeValueMemberS{Value: entry.URL},
 			"urlHash":   &dynamoDBTypes.AttributeValueMemberS{Value: hashedURL},
@@ -48,7 +48,7 @@ func (a AWS) AddFeedEntry(entry FeedEntry) error {
 
 func (a AWS) MarkFeedEntryPublished(urlHash string) error {
 	_, err := a.dynamoDB.UpdateItem(context.Background(), &dynamodb.UpdateItemInput{
-		TableName: aws.String(a.feedTableName),
+		TableName: aws.String(a.cfg.FeedTableName),
 		Key: map[string]dynamoDBTypes.AttributeValue{
 			"urlHash": &dynamoDBTypes.AttributeValueMemberS{Value: urlHash},
 		},
