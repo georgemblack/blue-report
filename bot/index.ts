@@ -22,6 +22,7 @@ const BLUESKY_PASSWORD = process.env.BLUESKY_PASSWORD;
 interface FeedItem {
   urlHash: string;
   url: string;
+  postId: string;
   timestamp: string;
   published: boolean;
 }
@@ -65,12 +66,14 @@ async function main() {
   if (entries.length === 0) {
     console.log("No unpublished feed entries found, exiting");
     return;
+  } else {
+    console.log(`Found ${entries.length} unpublished feed entries`);
   }
 
   // Select the first entry to process.
   // Other entries will be processed in subsequent runs.
   const firstEntry = entries[0];
-  console.log(`Processing entry: ${firstEntry.urlHash}`);
+  console.log(`Processing feed entry: '${firstEntry.urlHash}'`);
 
   // Fetch title and description from DynamoDB 'metadata' table
   const metadataCommand = new GetCommand({
@@ -86,30 +89,41 @@ async function main() {
     await markAsPublished(firstEntry.urlHash);
     return;
   } else {
-    console.log(`Fetched title from URL metadata: ${metadata.Item.title}`);
+    console.log(`Fetched title from URL metadata: '${metadata.Item.title}'`);
   }
 
-  // Fetch the thumbnail for the given URL
-  let thumbnail: Uint8Array<ArrayBuffer>;
+  // Convert AT URI into DID and rkey
+  // i.e. 'at://did:plc:u5cwb2mwiv2bfq53cjufe6yn/app.bsky.feed.post/3k44deefqdk2g' -> ['did:plc:u5cwb2mwiv2bfq53cjufe6yn', '3k44deefqdk2g']
+  const uriParts = firstEntry.postId.split("/");
+  const repo = uriParts[2];
+  const rkey = uriParts[4];
+  console.log(`Parsed repo: '${repo}', rkey: '${rkey}' from AT URI`);
+
+  // Fetch the 'top post' associated with the entry from Bluesky.
+  // Find the CID of this post, as well as the author's handle.
+  let cid: string;
+  let handle: string;
   try {
-    const resp = await fetch(
-      `https://assets.theblue.report/thumbnails/${firstEntry.urlHash}.jpg`
-    );
-    const arrayBuffer = await resp.arrayBuffer();
-    thumbnail = new Uint8Array(arrayBuffer);
-  } catch (e) {
-    console.error(`No thumbnail found for ${firstEntry.urlHash}, skipping`);
-    await markAsPublished(firstEntry.urlHash);
+    const post = await atpAgent.getPost({ repo: repo, rkey: rkey });
+    cid = post.cid;
+  } catch (error) {
+    console.error(`Error fetching post from Bluesky: ${error}`);
     return;
   }
-  console.log(`Fetched thumbnail`);
+  console.log(`Fetched post CID: '${cid}'`);
 
-  // Upload the thumbnail to Bluesky
-  const { data } = await atpAgent.uploadBlob(thumbnail);
+  try {
+    const profile = await atpAgent.getProfile({ actor: repo });
+    handle = profile.data.handle;
+  } catch (error) {
+    console.error(`Error fetching profile from Bluesky: ${error}`);
+    return;
+  }
+  console.log(`Fetched author handle: '${handle}'`);
 
   // Generate post content
   const richText = new RichText({
-    text: `#1 on Bluesky: ${metadata.Item.title}`,
+    text: `${metadata.Item.title}.\n\n${metadata.Item.url}\n\nTop post by @${handle}:`,
   });
   await richText.detectFacets(atpAgent);
 
@@ -118,12 +132,10 @@ async function main() {
     text: richText.text,
     facets: richText.facets,
     embed: {
-      $type: "app.bsky.embed.external",
-      external: {
-        uri: firstEntry.url,
-        title: metadata.Item.title,
-        description: "",
-        thumb: data.blob,
+      $type: "app.bsky.embed.record",
+      record: {
+        uri: firstEntry.postId,
+        cid: cid,
       },
     },
   });
