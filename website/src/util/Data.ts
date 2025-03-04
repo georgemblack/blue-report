@@ -1,4 +1,4 @@
-const API_URL = "https://assets.theblue.report/snapshot.json";
+const API_URL = "https://data.theblue.report/data/top-links.json";
 
 export interface TopLinks {
   generated_at: string;
@@ -50,6 +50,8 @@ export interface Site {
 }
 
 export async function fetchTopSites(): Promise<TopSites> {
-  const response = await fetch("https://assets.theblue.report/sites.json");
+  const response = await fetch(
+    "https://data.theblue.report/data/top-sites.json"
+  );
   return await response.json();
 }

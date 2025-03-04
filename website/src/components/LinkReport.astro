@@ -23,7 +23,7 @@ const { links, toggle, generatedAt } = Astro.props;
             <a href={link.url} class="preview" data-original-url={link.url}>
               {link.thumbnail_id ? (
                 <img
-                  src={`https://theblue.report/cdn-cgi/image/width=480/https://assets.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
+                  src={`https://theblue.report/cdn-cgi/image/width=480/https://data.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
                 />
               ) : (
                 <div class="placeholder">📄</div>
