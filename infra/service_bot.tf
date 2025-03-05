@@ -1,5 +1,5 @@
 locals {
-  bot_version = "1.0.2"
+  bot_version = "1.0.3"
 }
 
 resource "aws_ecs_task_definition" "blue_report_bot" {

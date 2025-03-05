@@ -123,7 +123,7 @@ async function main() {
 
   // Generate post content
   const richText = new RichText({
-    text: `${metadata.Item.title}.\n\n${metadata.Item.url}\n\nTop post by @${handle}:`,
+    text: `${metadata.Item.title} ${metadata.Item.url}\n\nTop post by @${handle}:`,
   });
   await richText.detectFacets(atpAgent);
 
