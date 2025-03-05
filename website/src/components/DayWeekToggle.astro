@@ -6,19 +6,13 @@ const weekClasses = toggle === "week" ? "week active" : "week";
 ---
 
 <nav>
-  <div class={hourClasses}>
-    <a href="/hour/"
-      ><span class="icon">🔥</span> <span class="label">Past Hour</span></a
-    >
-  </div>
-  <div class={dayClasses}>
-    <a href="/"
-      ><span class="icon">⏰</span> <span class="label">Past Day</span></a
-    >
-  </div>
-  <div class={weekClasses}>
-    <a href="/week/"
-      ><span class="icon">🗓️</span> <span class="label">Past Week</span></a
-    >
-  </div>
+  <a class={hourClasses} href="/hour/"
+    ><span class="icon">🔥</span> <span class="label">Past Hour</span></a
+  >
+  <a class={dayClasses} href="/"
+    ><span class="icon">⏰</span> <span class="label">Past Day</span></a
+  >
+  <a class={weekClasses} href="/week/"
+    ><span class="icon">🗓️</span> <span class="label">Past Week</span></a
+  >
 </nav>

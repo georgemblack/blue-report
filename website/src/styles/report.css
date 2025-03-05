@@ -18,20 +18,17 @@ nav {
 }
 
 nav a {
-  color: var(--body-text-color-blended);
-}
-
-nav a:hover {
-  text-decoration: none;
-}
-
-nav div {
   flex-grow: 1;
   flex-basis: 0;
   padding: 0.5em 1em;
   border-radius: 2em;
   cursor: pointer;
   text-align: center;
+  color: var(--body-text-color-blended);
+}
+
+nav a:hover {
+  text-decoration: none;
 }
 
 nav .active {
