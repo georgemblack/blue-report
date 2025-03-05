@@ -29,6 +29,7 @@
   /* Button colors */
   --button-background-color: rgba(85, 170, 255, 0.1);
   --button-background: linear-gradient(rgba(85, 170, 255, 0.05), rgba(85, 170, 255, 0.1));
+  --help-icon-color: rgba(0, 0, 0, 0.05);
 
   /* Toggle colors */
   --toggle-background-color: #f4f0eb;
@@ -61,6 +62,9 @@
     --link-hover-color: color-mix(in srgb, var(--link-color) 85%, white);
     --faded-text-color-1: rgba(255, 255, 255, 0.5);
     --faded-text-color-2: rgba(255, 255, 255, 0.8);
+
+    /* Button colors */
+    --help-icon-color: rgba(255, 255, 255, 0.1);
 
     /* Toggle colors */
     --toggle-background-color: rgba(255, 255, 255, 0.05);
@@ -125,14 +129,6 @@ footer {
   margin: 4em 0;
   font-size: var(--font-size-small);
   text-align: center;
-}
-
-/* small break-point */
-@media screen and (max-width: 36em) {
-  footer p {
-    text-align: left;
-    margin-top: 1em;
-  }
 }
 
 h1,
@@ -218,4 +214,20 @@ a:hover {
   overflow: hidden;
   /* Ensure long text (like links) doesn't cause container to expand in width */
   overflow-wrap: anywhere;
+}
+
+/*--------------------------------*/
+/*         Misc                   */
+/*--------------------------------*/
+.last-updated {
+  margin-top: 0.75em;
+  color: var(--faded-text-color-1);
+  text-align: center;
+}
+
+/* Medium break-point */
+@media screen and (max-width: 56em) {
+  .last-updated {
+    font-size: var(--font-size-small);
+  }
 }

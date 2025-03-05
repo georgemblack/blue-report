@@ -18,6 +18,12 @@ nav {
 }
 
 nav a {
+  flex-grow: 1;
+  flex-basis: 0;
+  padding: 0.5em 1em;
+  border-radius: 2em;
+  cursor: pointer;
+  text-align: center;
   color: var(--body-text-color-blended);
 }
 
@@ -116,12 +122,6 @@ nav .active a {
   color: var(--faded-text-color-2);
 }
 
-.last-updated {
-  margin-top: 0.75em;
-  color: var(--faded-text-color-1);
-  text-align: center;
-}
-
 /* Medium break-point */
 @media screen and (max-width: 56em) {
 
@@ -143,10 +143,6 @@ nav .active a {
 
   .link .metadata .bullet {
     display: none;
-  }
-
-  .last-updated {
-    font-size: var(--font-size-small);
   }
 
   .link .subcontent {
