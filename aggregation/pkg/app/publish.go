@@ -25,7 +25,7 @@ func PublishLinkSnapshot(snapshot links.Snapshot) error {
 		return util.WrapErr("failed to create app", err)
 	}
 
-	// Save snapshot to storage as JSON
+	// Save data to storage as JSON
 	data, err := json.Marshal(snapshot)
 	if err != nil {
 		return util.WrapErr("failed to marshal snapshot", err)
@@ -43,14 +43,33 @@ func PublishLinkSnapshot(snapshot links.Snapshot) error {
 	topLink := snapshot.TopDayLink()
 	if topLink.URL != "" {
 		err = app.Storage.AddFeedEntry(storage.FeedEntry{
-			URL:    topLink.URL,
-			PostID: topLink.RecommendedPostID(),
+			URL:       topLink.URL,
+			PostID:    topLink.RecommendedPostID(),
+			Timestamp: time.Now().UTC(),
 		})
 		if err != nil {
 			return util.WrapErr("failed to add feed item", err)
 		}
 	}
 
+	// Generate Atom and JSON feeds
+	atom, err := generateAtomFeed(app.Storage)
+	if err != nil {
+		return util.WrapErr("failed to generate atom feed", err)
+	}
+
+	json, err := generateJSONFeed(app.Storage)
+	if err != nil {
+		return util.WrapErr("failed to generate json feed", err)
+	}
+
+	// Save feeds to storage
+	err = app.Storage.PublishFeeds(atom, json)
+	if err != nil {
+		return util.WrapErr("failed to publish feeds", err)
+	}
+
+	// Trigger Cloudflare Pages deployment to re-build site with fresh data
 	slog.Info("triggering deployment")
 	err = deploy(app.Config.CloudflareDeployHook)
 	if err != nil {

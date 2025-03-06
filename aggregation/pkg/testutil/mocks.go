@@ -194,6 +194,21 @@ func (mr *MockStorageMockRecorder) FlushEvents(start, events any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FlushEvents", reflect.TypeOf((*MockStorage)(nil).FlushEvents), start, events)
 }
 
+// GetFeedEntries mocks base method.
+func (m *MockStorage) GetFeedEntries() ([]storage.FeedEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFeedEntries")
+	ret0, _ := ret[0].([]storage.FeedEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFeedEntries indicates an expected call of GetFeedEntries.
+func (mr *MockStorageMockRecorder) GetFeedEntries() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeedEntries", reflect.TypeOf((*MockStorage)(nil).GetFeedEntries))
+}
+
 // GetURLMetadata mocks base method.
 func (m *MockStorage) GetURLMetadata(url string) (storage.URLMetadata, error) {
 	m.ctrl.T.Helper()
@@ -239,18 +254,18 @@ func (mr *MockStorageMockRecorder) ListEventChunks(start, end any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEventChunks", reflect.TypeOf((*MockStorage)(nil).ListEventChunks), start, end)
 }
 
-// MarkFeedEntryPublished mocks base method.
-func (m *MockStorage) MarkFeedEntryPublished(urlHash string) error {
+// PublishFeeds mocks base method.
+func (m *MockStorage) PublishFeeds(atom, json string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkFeedEntryPublished", urlHash)
+	ret := m.ctrl.Call(m, "PublishFeeds", atom, json)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// MarkFeedEntryPublished indicates an expected call of MarkFeedEntryPublished.
-func (mr *MockStorageMockRecorder) MarkFeedEntryPublished(urlHash any) *gomock.Call {
+// PublishFeeds indicates an expected call of PublishFeeds.
+func (mr *MockStorageMockRecorder) PublishFeeds(atom, json any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkFeedEntryPublished", reflect.TypeOf((*MockStorage)(nil).MarkFeedEntryPublished), urlHash)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishFeeds", reflect.TypeOf((*MockStorage)(nil).PublishFeeds), atom, json)
 }
 
 // PublishLinkSnapshot mocks base method.
@@ -404,45 +419,6 @@ func (m *MockQueue) Send(message queue.Message) error {
 func (mr *MockQueueMockRecorder) Send(message any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Send", reflect.TypeOf((*MockQueue)(nil).Send), message)
-}
-
-// MockSecrets is a mock of Secrets interface.
-type MockSecrets struct {
-	ctrl     *gomock.Controller
-	recorder *MockSecretsMockRecorder
-	isgomock struct{}
-}
-
-// MockSecretsMockRecorder is the mock recorder for MockSecrets.
-type MockSecretsMockRecorder struct {
-	mock *MockSecrets
-}
-
-// NewMockSecrets creates a new mock instance.
-func NewMockSecrets(ctrl *gomock.Controller) *MockSecrets {
-	mock := &MockSecrets{ctrl: ctrl}
-	mock.recorder = &MockSecretsMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockSecrets) EXPECT() *MockSecretsMockRecorder {
-	return m.recorder
-}
-
-// GetDeployHook mocks base method.
-func (m *MockSecrets) GetDeployHook() (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDeployHook")
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetDeployHook indicates an expected call of GetDeployHook.
-func (mr *MockSecretsMockRecorder) GetDeployHook() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeployHook", reflect.TypeOf((*MockSecrets)(nil).GetDeployHook))
 }
 
 // MockBluesky is a mock of Bluesky interface.

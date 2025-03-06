@@ -30,7 +30,7 @@ func GetCardMetadata(cloudflareToken, cloudflareAccountID, url string) CardMetad
 	result.Title = title
 	result.ImageURL = imageURL
 
-	// Cloudflare Browser Rendering
+	// Cloudflare browser rendering
 	if result.Title == "" || result.ImageURL == "" {
 		title, imageURL, err := browserRender(cloudflareToken, cloudflareAccountID, url)
 		if err != nil {

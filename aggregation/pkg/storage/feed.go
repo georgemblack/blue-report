@@ -3,24 +3,26 @@ package storage
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dynamoDBTypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/smithy-go"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
 type FeedEntry struct {
-	URL    string
-	PostID string // The top post associated with the given URL
+	URL       string
+	PostID    string // The top post associated with the given URL
+	Timestamp time.Time
 }
 
 // AddFeedEntry creates a new entry in the DynamoDB 'feed' table.
 // If the entry already exists, we do not want to modify it.
 func (a AWS) AddFeedEntry(entry FeedEntry) error {
-	ts := time.Now().UTC().Format(time.RFC3339)
 	hashedURL := util.Hash(entry.URL)
 
 	_, err := a.dynamoDB.PutItem(context.Background(), &dynamodb.PutItemInput{
@@ -29,7 +31,7 @@ func (a AWS) AddFeedEntry(entry FeedEntry) error {
 			"url":       &dynamoDBTypes.AttributeValueMemberS{Value: entry.URL},
 			"urlHash":   &dynamoDBTypes.AttributeValueMemberS{Value: hashedURL},
 			"postId":    &dynamoDBTypes.AttributeValueMemberS{Value: entry.PostID},
-			"timestamp": &dynamoDBTypes.AttributeValueMemberS{Value: ts},
+			"timestamp": &dynamoDBTypes.AttributeValueMemberS{Value: entry.Timestamp.Format(time.RFC3339)},
 			"published": &dynamoDBTypes.AttributeValueMemberBOOL{Value: false},
 		},
 		ConditionExpression: aws.String("attribute_not_exists(urlHash)"), // Do not overwrite existing entries
@@ -46,19 +48,50 @@ func (a AWS) AddFeedEntry(entry FeedEntry) error {
 	return nil
 }
 
-func (a AWS) MarkFeedEntryPublished(urlHash string) error {
-	_, err := a.dynamoDB.UpdateItem(context.Background(), &dynamodb.UpdateItemInput{
+func (a AWS) GetFeedEntries() ([]FeedEntry, error) {
+	res, err := a.dynamoDB.Scan(context.Background(), &dynamodb.ScanInput{
 		TableName: aws.String(a.cfg.FeedTableName),
-		Key: map[string]dynamoDBTypes.AttributeValue{
-			"urlHash": &dynamoDBTypes.AttributeValueMemberS{Value: urlHash},
-		},
-		ExpressionAttributeValues: map[string]dynamoDBTypes.AttributeValue{
-			":published": &dynamoDBTypes.AttributeValueMemberBOOL{Value: true},
-		},
-		UpdateExpression: aws.String("SET published = :published"),
 	})
 	if err != nil {
-		return util.WrapErr("failed to update feed item", err)
+		return nil, util.WrapErr("failed to scan feed table", err)
 	}
+
+	entries := make([]FeedEntry, len(res.Items))
+	for i, item := range res.Items {
+		ts, err := time.Parse(time.RFC3339, item["timestamp"].(*dynamoDBTypes.AttributeValueMemberS).Value)
+		if err != nil {
+			return nil, util.WrapErr("failed to parse timestamp", err)
+		}
+		entries[i] = FeedEntry{
+			URL:       item["url"].(*dynamoDBTypes.AttributeValueMemberS).Value,
+			PostID:    item["postId"].(*dynamoDBTypes.AttributeValueMemberS).Value,
+			Timestamp: ts,
+		}
+	}
+
+	return entries, nil
+}
+
+func (a AWS) PublishFeeds(atom, json string) error {
+	_, err := a.r2.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:      aws.String(a.cfg.PublicBucketName),
+		Key:         aws.String("feeds/top-day.xml"),
+		Body:        strings.NewReader(atom),
+		ContentType: aws.String("application/atom+xml"),
+	})
+	if err != nil {
+		return util.WrapErr("failed to put atom feed", err)
+	}
+
+	_, err = a.r2.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:      aws.String(a.cfg.PublicBucketName),
+		Key:         aws.String("feeds/top-day.json"),
+		Body:        strings.NewReader(json),
+		ContentType: aws.String("application/feed+json"),
+	})
+	if err != nil {
+		return util.WrapErr("failed to put json feed", err)
+	}
+
 	return nil
 }

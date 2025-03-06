@@ -32,24 +32,11 @@ func (a AWS) SaveThumbnail(id string, url string) error {
 	}
 
 	key := fmt.Sprintf("thumbnails/%s.jpg", id)
-	_, err = a.s3.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:               aws.String(a.cfg.PublicBucketName),
-		Key:                  aws.String(key),
-		Body:                 bytes.NewReader(image),
-		ServerSideEncryption: "AES256",
-		ContentType:          aws.String("image/jpeg"),
-		CacheControl:         aws.String("max-age=86400"), // 1 day
-	})
-	if err != nil {
-		return util.WrapErr("failed to put object", err)
-	}
-
 	_, err = a.r2.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:       aws.String(a.cfg.PublicBucketName),
-		Key:          aws.String(key),
-		Body:         bytes.NewReader(image),
-		ContentType:  aws.String("image/jpeg"),
-		CacheControl: aws.String("max-age=86400"), // 1 day
+		Bucket:      aws.String(a.cfg.PublicBucketName),
+		Key:         aws.String(key),
+		Body:        bytes.NewReader(image),
+		ContentType: aws.String("image/jpeg"),
 	})
 	if err != nil {
 		return util.WrapErr("failed to put object", err)
@@ -58,9 +45,8 @@ func (a AWS) SaveThumbnail(id string, url string) error {
 	return nil
 }
 
-// TODO: Move to R2 storage
 func (a AWS) ThumbnailExists(id string) (bool, error) {
-	_, err := a.s3.HeadObject(context.Background(), &s3.HeadObjectInput{
+	_, err := a.r2.HeadObject(context.Background(), &s3.HeadObjectInput{
 		Bucket: aws.String(a.cfg.PublicBucketName),
 		Key:    aws.String(fmt.Sprintf("thumbnails/%s.jpg", id)),
 	})

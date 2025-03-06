@@ -32,7 +32,8 @@ type Storage interface {
 	SaveURLTranslation(translation storage.URLTranslation) error
 	GetURLTranslations() (map[string]string, error)
 	AddFeedEntry(entry storage.FeedEntry) error
-	MarkFeedEntryPublished(urlHash string) error
+	GetFeedEntries() ([]storage.FeedEntry, error)
+	PublishFeeds(atom, json string) error
 }
 
 type Queue interface {
