@@ -30,7 +30,12 @@ resource "aws_iam_policy" "service" {
           "s3:GetObject",
           "s3:ListBucket"
         ],
-        Resource = ["${aws_s3_bucket.site.arn}/*", "${aws_s3_bucket.site.arn}"]
+        Resource = [
+          "${aws_s3_bucket.assets.arn}/*",
+          "${aws_s3_bucket.assets.arn}",
+          "${aws_s3_bucket.test.arn}/*",
+          "${aws_s3_bucket.test.arn}",
+        ]
       },
       {
         Effect = "Allow",
