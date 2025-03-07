@@ -10,7 +10,6 @@ func NewSnapshot() Snapshot {
 
 type Snapshot struct {
 	GeneratedAt string `json:"generated_at"`
-	Links       []Link `json:"links"` // Kept for backwards compatibility: https://bsky.app/profile/brianell.in/post/3lhw7kyaqgc2l
 	TopHour     []Link `json:"top_hour"`
 	TopDay      []Link `json:"top_day"`
 	TopWeek     []Link `json:"top_week"`

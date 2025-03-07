@@ -36,10 +36,6 @@ func hydrateLinks(app App, agg *links.Aggregation, snapshot links.Snapshot) (lin
 		snapshot.TopWeek[i] = link
 	}
 
-	// Backwards compatibility: copy the top links from the day to the general 'Links' field.
-	// https://bsky.app/profile/brianell.in/post/3lhw7kyaqgc2l
-	snapshot.Links = snapshot.TopDay
-
 	return snapshot, nil
 }
 
