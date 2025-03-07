@@ -69,6 +69,20 @@ const { subtitle } = Astro.props;
       rel="stylesheet"
     />
 
+    <!-- Feeds -->
+    <link
+      rel="alternate"
+      type="application/atom+xml"
+      title="Atom Feed"
+      href="https://data.theblue.report/feeds/top-day.xml"
+    />
+    <link
+      rel="alternate"
+      type="application/feed+json"
+      title="JSON Feed"
+      href="https://data.theblue.report/feeds/top-day.json"
+    />
+
     <!-- Prefetch hourly/weekly reports, as users frequently click on them -->
     <link rel="prefetch" href="/week/" />
     <link rel="prefetch" href="/hour/" />
