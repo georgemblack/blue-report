@@ -2,6 +2,11 @@ package urltools
 
 import "testing"
 
+type CleanTest struct {
+	Input    string
+	Expected string
+}
+
 func TestCleanWithInvalidURL(t *testing.T) {
 	result := Clean("invalid")
 	if result != "invalid" {
@@ -10,36 +15,58 @@ func TestCleanWithInvalidURL(t *testing.T) {
 }
 
 func TestCleanWithAllowedQueryParams(t *testing.T) {
-	result := Clean("https://abcnews.go.com/page?story=id&id=12345678&something=else")
-	expected := "https://abcnews.go.com/page?id=12345678"
-	if result != expected {
-		t.Errorf("expected '%s', got '%s'", expected, result)
+	tests := []CleanTest{
+		{
+			Input:    "https://abcnews.go.com/page?story=id&id=12345678&something=else",
+			Expected: "https://abcnews.go.com/page?id=12345678",
+		},
+		{
+			Input:    "https://www.youtube.com/watch?v=OpViD7KxK-I&feature=web",
+			Expected: "https://www.youtube.com/watch?v=OpViD7KxK-I",
+		},
+		{
+			Input:    "https://m.youtube.com/watch?v=OpViD7KxK-I&feature=web",
+			Expected: "https://www.youtube.com/watch?v=OpViD7KxK-I",
+		},
+		{
+			Input:    "https://theblue.report/page?bogus=bogus",
+			Expected: "https://theblue.report/page",
+		},
 	}
 
-	result = Clean("https://www.youtube.com/watch?v=OpViD7KxK-I&feature=web")
-	expected = "https://www.youtube.com/watch?v=OpViD7KxK-I"
-	if result != expected {
-		t.Errorf("expected '%s', got '%s'", expected, result)
-	}
-
-	result = Clean("https://m.youtube.com/watch?v=OpViD7KxK-I&feature=web")
-	expected = "https://www.youtube.com/watch?v=OpViD7KxK-I"
-	if result != expected {
-		t.Errorf("expected '%s', got '%s'", expected, result)
-	}
-
-	result = Clean("https://theblue.report/page?bogus=bogus")
-	expected = "https://theblue.report/page"
-	if result != expected {
-		t.Errorf("expected '%s', got '%s'", expected, result)
+	for _, test := range tests {
+		result := Clean(test.Input)
+		if result != test.Expected {
+			t.Errorf("expected '%s', got '%s'", test.Expected, result)
+		}
 	}
 }
 
 func TestCleanWithYouTubeTransformation(t *testing.T) {
-	result := Clean("https://youtu.be/OpViD7KxK-I?bogus=bogus")
-	expected := "https://www.youtube.com/watch?v=OpViD7KxK-I"
-	if result != expected {
-		t.Errorf("expected '%s', got '%s'", expected, result)
+	tests := []CleanTest{
+		{
+			Input:    "https://youtu.be/OpViD7KxK-I?bogus=bogus",
+			Expected: "https://www.youtube.com/watch?v=OpViD7KxK-I",
+		},
+		{
+			Input:    "https://youtube.com/watch?v=au-IVW4M0Oo&si=x6a8c4tGayR1rFqu",
+			Expected: "https://www.youtube.com/watch?v=au-IVW4M0Oo",
+		},
+		{
+			Input:    "https://youtube.com/watch?v=3r_SVM4Ui74&feature=shared",
+			Expected: "https://www.youtube.com/watch?v=3r_SVM4Ui74",
+		},
+		{
+			Input:    "https://youtube.com/watch?v=Cv2UdJhXdQg",
+			Expected: "https://www.youtube.com/watch?v=Cv2UdJhXdQg",
+		},
+	}
+
+	for _, test := range tests {
+		result := Clean(test.Input)
+		if result != test.Expected {
+			t.Errorf("expected '%s', got '%s'", test.Expected, result)
+		}
 	}
 }
 

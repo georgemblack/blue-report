@@ -32,9 +32,14 @@ func Clean(input string) string {
 		result = strings.Replace(result, "m.youtube.com", "www.youtube.com", 1)
 	}
 
+	// Prepend 'www', as YouTube redirects to this subdomain.
+	if parsed.Hostname() == "youtube.com" {
+		result = strings.Replace(result, "youtube.com", "www.youtube.com", 1)
+	}
+
 	// Normalize YouTube share links.
 	// Examples:
-	// 	- 'https://youtu.be/abc123' -> 'https://youtube.com/watch?v=abc123'
+	// 	- 'https://youtu.be/abc123' -> 'https://www.youtube.com/watch?v=abc123'
 	if parsed.Hostname() == "youtu.be" {
 		split := strings.Split(result, "/")
 		videoID := split[len(split)-1]
@@ -68,6 +73,7 @@ func stripQuery(input string) string {
 // Some websites have query parameters that are necessary for the URL to function properly.
 // This list contains the hosts, as well as the query parameters that are allowed.
 var QueryParamAllowList = map[string][]string{
+	"youtube.com":     {"v"},
 	"m.youtube.com":   {"v"},
 	"www.youtube.com": {"v"},
 	"abcnews.go.com":  {"id"},
