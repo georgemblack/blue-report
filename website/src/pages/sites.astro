@@ -33,11 +33,12 @@ const snapshot = await fetchTopSites();
               <div class="top-links">
                 {site.links.map((link) => (
                   <div class="top-link card">
-                    <figure>
+                    <picture>
                       <img
-                        src={`https://theblue.report/cdn-cgi/image/width=954/https://data.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
+                        src={`https://theblue.report/cdn-cgi/image/width=954,format=auto/https://data.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
+                        alt={link.title}
                       />
-                    </figure>
+                    </picture>
                     <div class="details">
                       <h3>
                         <a href={link.url}>{link.title}</a>
