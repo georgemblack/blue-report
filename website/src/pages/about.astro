@@ -1,26 +1,51 @@
 ---
-import ContributionButton from "../components/ContributionButton.astro";
+import "../styles/about.css";
+
 import Layout from "../layouts/Layout.astro";
+import ContributionButton from "../components/ContributionButton.astro";
 ---
 
 <Layout subtitle="About this site">
   <main>
-    <p>
-      The Blue Report is side project by <a
-        href="https://bsky.app/profile/george.black">George Black</a
-      >, inspired by <a href="https://sill.social">Sill</a>. Feedback and ideas
-      are welcome!
-    </p>
-    <p></p>
-    <p style="margin-top: 1.5em;">
-      The source code, as well as information on how links are ranked is <a
-        href="https://github.com/georgemblack/blue-report/blob/master/RANKING.md"
-        >available here</a
-      >.
-    </p>
-    <p style="margin-top: 1.5em;">
-      Want to help keep the servers happy? Feel free to buy a coffee!
-    </p>
+    <div class="about">
+      <h2>About</h2>
+      <p>
+        The Blue Report is a project by <a
+          href="https://bsky.app/profile/george.black">George Black</a
+        >. The source code, as well as information on how links are ranked is <a
+          href="https://github.com/georgemblack/blue-report/blob/master/RANKING.md"
+          >available here</a
+        >.
+      </p>
+      <p>
+        For more advanced news aggregation on Bluesky, I'd highly recommend
+        checking out <a href="https://sill.social">sill.social</a>.
+      </p>
+      <p>
+        Buying a coffee helps keep the servers running, and is greatly
+        appreciated!
+      </p>
+      <h2>Feeds</h2>
+      <p>
+        The <a href="https://bsky.app/profile/theblue.report">@theblue.report</a
+        > account on Bluesky posts links that reach #1 on the report. For feed readers,
+        there is an Atom and JSON feed available:
+      </p>
+      <ul>
+        <li>
+          <a href="https://data.theblue.report/feeds/top-day.xml">Atom feed</a>
+        </li>
+        <li>
+          <a href="https://data.theblue.report/feeds/top-day.json">JSON feed</a>
+        </li>
+      </ul>
+      <h2>Contact</h2>
+      <p>
+        For questions or feedback, reach out to <a
+          href="mailto:contact@george.black">contact@george.black</a
+        >.
+      </p>
+    </div>
   </main>
   <footer>
     <ContributionButton />

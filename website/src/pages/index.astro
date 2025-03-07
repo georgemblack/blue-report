@@ -3,8 +3,8 @@ import "../styles/report.css";
 
 import Footer from "../components/Footer.astro";
 import Layout from "../layouts/Layout.astro";
-import { fetchTopLinks } from "../util/Data";
 import LinkReport from "../components/LinkReport.astro";
+import { fetchTopLinks } from "../util/Data";
 
 const snapshot = await fetchTopLinks();
 ---

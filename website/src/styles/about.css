@@ -1,0 +1,22 @@
+.about {
+  max-width: 32em;
+  margin: 0 auto;
+}
+
+.about h2 {
+  margin-top: 2em;
+}
+
+.about p {
+  margin-top: 1em;
+  line-height: 1.75;
+}
+
+.about ul {
+  margin-top: 1em;
+  padding-left: 1.5em;
+}
+
+.about ul li {
+  margin-top: 0.5em;
+}

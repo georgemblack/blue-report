@@ -1,10 +1,10 @@
 ---
 import "../styles/report.css";
 
-import Layout from "../layouts/Layout.astro";
 import Footer from "../components/Footer.astro";
-import { fetchTopLinks } from "../util/Data";
+import Layout from "../layouts/Layout.astro";
 import LinkReport from "../components/LinkReport.astro";
+import { fetchTopLinks } from "../util/Data";
 
 const snapshot = await fetchTopLinks();
 ---

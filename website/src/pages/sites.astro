@@ -1,11 +1,10 @@
 ---
+import "../styles/sites.css";
+
 import Layout from "../layouts/Layout.astro";
+import Footer from "../components/Footer.astro";
 import { fetchTopSites } from "../util/Data";
 import { formatCount, formatDate } from "../util/Format";
-
-import "../styles/global.css";
-import "../styles/sites.css";
-import Footer from "../components/Footer.astro";
 
 const snapshot = await fetchTopSites();
 ---
