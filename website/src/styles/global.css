@@ -3,7 +3,7 @@
 /*--------------------------------*/
 :root {
   /* Layout */
-  --body-padding: 1rem;
+  --body-padding: 2rem;
 
   /* Fonts */
   --serif-font: "Crete Round", serif;
@@ -22,7 +22,6 @@
   --link-color: #2b589f;
   --link-hover-color: color-mix(in srgb, var(--link-color) 85%, black);
   --body-text-color: #2d2d2d;
-  --body-text-color-blended: color-mix(in srgb, var(--body-text-color) 85%, white);
   --faded-text-color-1: rgba(0, 0, 0, 0.4);
   --faded-text-color-2: rgba(0, 0, 0, 0.65);
 
@@ -52,12 +51,11 @@
 @media screen and (prefers-color-scheme: dark) {
   :root {
     /* General purpose colors */
-    --background-color: #101212;
+    --background-color: #141617;
     --line-separator-color: rgba(255, 255, 255, 0.05);
 
     /* Text colors */
     --body-text-color: #f7f7f7;
-    --body-text-color-blended: color-mix(in srgb, var(--body-text-color) 85%, black);
     --link-color: #79b8ff;
     --link-hover-color: color-mix(in srgb, var(--link-color) 85%, white);
     --faded-text-color-1: rgba(255, 255, 255, 0.5);
@@ -84,7 +82,6 @@ body {
   margin: 1em auto;
   padding: 0 var(--body-padding);
   max-width: 56rem;
-  line-height: 150%;
   color: var(--body-text-color);
   font-family: var(--sans-serif-font);
   font-weight: var(--font-weight-normal);
@@ -117,18 +114,18 @@ header .accent {
   -webkit-text-fill-color: transparent;
 }
 
-header .subtitle {
-  margin-top: 0.5em;
-}
-
 main {
   margin-top: 1.5em;
 }
 
 footer {
   margin: 4em 0;
-  font-size: var(--font-size-small);
   text-align: center;
+}
+
+footer p {
+  margin-top: 0.5em;
+  font-size: var(--font-size-small);
 }
 
 h1,
@@ -159,31 +156,6 @@ a {
 a:hover {
   color: var(--link-hover-color);
   text-decoration: underline;
-}
-
-/*-----------------------------------*/
-/*         Link buttons              */
-/*-----------------------------------*/
-.link-button a {
-  margin: 0 auto;
-  padding: 0.35em 2em;
-  width: 16em;
-  display: flex;
-  gap: 0.5em;
-  justify-content: center;
-  font-size: var(--font-size-small);
-  border-radius: 2em;
-  text-decoration: none;
-  background-color: var(--button-background-color);
-  background: var(--button-background);
-  /* ensure gray shadow does not appear on tap */
-  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
-  /* prevent delay on touch devices */
-  touch-action: manipulation;
-}
-
-.link-button svg {
-  width: 1.25em;
 }
 
 /* container group */
@@ -217,17 +189,12 @@ a:hover {
 }
 
 /*--------------------------------*/
-/*         Misc                   */
+/*         Tail                   */
 /*--------------------------------*/
-.last-updated {
-  margin-top: 0.75em;
-  color: var(--faded-text-color-1);
+.tail {
   text-align: center;
-}
-
-/* Medium break-point */
-@media screen and (max-width: 56em) {
-  .last-updated {
-    font-size: var(--font-size-small);
-  }
+  margin-top: 1em;
+  font-size: 0.85em;
+  color: var(--faded-text-color-1);
+  line-height: 1.75;
 }

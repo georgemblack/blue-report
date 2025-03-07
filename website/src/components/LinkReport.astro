@@ -20,7 +20,7 @@ const { links, toggle, generatedAt } = Astro.props;
       links.map((link) => (
         <div class="container">
           <div class="link">
-            <a href={link.url} class="preview" data-original-url={link.url}>
+            <a href={link.url} class="preview">
               {link.thumbnail_id ? (
                 <img
                   src={`https://theblue.report/cdn-cgi/image/width=480/https://data.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
@@ -30,7 +30,7 @@ const { links, toggle, generatedAt } = Astro.props;
               )}
             </a>
             <div class="content">
-              <a href={link.url} data-original-url={link.url}>
+              <a href={link.url}>
                 <h2>
                   {link.rank}. {link.title}
                 </h2>
@@ -79,21 +79,9 @@ const { links, toggle, generatedAt } = Astro.props;
       ))
     }
   </div>
-  <p class="last-updated">Last updated {formatDate(generatedAt)}</p>
-  <div class="link-button" style="margin-top: 1.5em;">
-    <a href="/sites/"
-      ><span>View top sites report</span><svg
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg"
-        ><path
-          d="m0 0h24v24h-24z"
-          fill="#fff"
-          opacity="0"
-          transform="matrix(0 -1 1 0 0 24)"></path><path
-          d="m10 19a1 1 0 0 1 -.64-.23 1 1 0 0 1 -.13-1.41l4.48-5.36-4.32-5.37a1 1 0 0 1 .15-1.41 1 1 0 0 1 1.46.15l4.83 6a1 1 0 0 1 0 1.27l-5 6a1 1 0 0 1 -.83.36z"
-          fill="var(--link-color)"></path></svg
-      ></a
-    >
+  <div class="tail">
+    <p>Last updated {formatDate(generatedAt)}</p>
+    <p><a href="/sites/">View top sites on Bluesky</a></p>
   </div>
   <script is:inline>
     function toggleLinkDetails(id) {

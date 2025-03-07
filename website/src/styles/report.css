@@ -7,7 +7,6 @@ nav {
   display: flex;
   padding: 0.25em;
   font-family: var(--serif-font);
-  line-height: 100%;
   border-radius: 2em;
   background-color: var(--toggle-background-color);
   box-shadow: 5px 6px 23px -10px rgba(0, 0, 0, 0.25);
@@ -24,7 +23,8 @@ nav a {
   border-radius: 2em;
   cursor: pointer;
   text-align: center;
-  color: var(--body-text-color-blended);
+  color: var(--body-text-color);
+  line-height: 1;
 }
 
 nav a:hover {
@@ -35,8 +35,8 @@ nav .active {
   background-color: var(--toggle-selected-color);
 }
 
-nav .active a {
-  color: var(--header-accent-color);
+nav a.active {
+  color: var(--header-accent-color) !important;
 }
 
 /* Small break-point */
@@ -94,7 +94,6 @@ nav .active a {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  justify-items: center;
 }
 
 .link .subcontent {
@@ -104,9 +103,9 @@ nav .active a {
 }
 
 .link .metadata {
-  color: var(--faded-text-color-1);
   display: flex;
   gap: 0.5em;
+  color: var(--faded-text-color-1);
 }
 
 .link .metadata .host {
@@ -129,7 +128,7 @@ nav .active a {
   .link .metadata {
     font-size: var(--font-size-small);
     flex-direction: column;
-    gap: 0;
+    gap: 0.5em;
   }
 
   .link .metadata .bullet {
@@ -226,6 +225,7 @@ nav .active a {
 }
 
 .expand-centered svg {
+  display: block;
   width: 1.25em;
 }
 
@@ -241,7 +241,6 @@ nav .active a {
 /* expand buttons (shared) */
 .expand-centered button,
 .expand-inline button {
-  line-height: 0;
   cursor: pointer;
   user-select: none;
   touch-action: manipulation;
@@ -252,9 +251,8 @@ nav .active a {
 .expand-centered .inner,
 .expand-inline .inner {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 0.25em;
+  gap: 0.2em;
 }
 
 .expand-centered button.open svg,
@@ -330,20 +328,20 @@ nav .active a {
 
 .recommended-post .username {
   font-family: var(--serif-font);
-  line-height: 100%;
 }
 
 .recommended-post .handle {
   font-size: 0.85em;
-  line-height: 100%;
 }
 
 .recommended-post .text {
   margin-top: 0.5em;
   font-size: 0.85em;
+  line-height: 1.75;
 }
 
 .recommended-post .view-more {
+  margin-top: 0.75em;
   font-size: var(--font-size-small);
   text-align: right;
 }
