@@ -46,9 +46,12 @@ func PublishLinkSnapshot(snapshot links.Snapshot) error {
 		if topLink.URL != "" {
 			slog.Info("adding feed entry if it doesn't exist", "url", topLink.URL)
 			err = app.Storage.AddFeedEntry(storage.FeedEntry{
-				URL:       topLink.URL,
-				PostID:    topLink.RecommendedPostID(),
 				Timestamp: time.Now().UTC(),
+				Content: storage.FeedEntryContent{
+					Title:            topLink.Title,
+					URL:              topLink.URL,
+					RecommendedPosts: toFeedPosts(topLink.RecommendedPosts),
+				},
 			})
 			if err != nil {
 				return util.WrapErr("failed to add feed item", err)
@@ -135,4 +138,17 @@ func deploy(hookURL string) error {
 	}
 
 	return nil
+}
+
+func toFeedPosts(posts []links.Post) []storage.FeedEntryPost {
+	var feedPosts []storage.FeedEntryPost
+	for _, post := range posts {
+		feedPosts = append(feedPosts, storage.FeedEntryPost{
+			AtURI:    post.AtURI,
+			Username: post.Username,
+			Handle:   post.Handle,
+			Text:     post.Text,
+		})
+	}
+	return feedPosts
 }

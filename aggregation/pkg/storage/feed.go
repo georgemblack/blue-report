@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"strings"
@@ -16,24 +17,39 @@ import (
 )
 
 type FeedEntry struct {
-	URL       string
-	PostID    string // The top post associated with the given URL
+	Content   FeedEntryContent // Stored as JSON blob
 	Timestamp time.Time
+}
+
+type FeedEntryContent struct {
+	Title            string          `json:"title"`
+	URL              string          `json:"url"`
+	RecommendedPosts []FeedEntryPost `json:"recommended_posts"`
+}
+
+type FeedEntryPost struct {
+	AtURI    string `json:"at_uri"`
+	Username string `json:"username"`
+	Handle   string `json:"handle"`
+	Text     string `json:"text"`
 }
 
 // AddFeedEntry creates a new entry in the DynamoDB 'feed' table.
 // If the entry already exists, we do not want to modify it.
 func (a AWS) AddFeedEntry(entry FeedEntry) error {
-	hashedURL := util.Hash(entry.URL)
+	hashedURL := util.Hash(entry.Content.URL)
+	content, err := json.Marshal(entry.Content)
+	if err != nil {
+		return util.WrapErr("failed to marshal feed entry content", err)
+	}
 
-	_, err := a.dynamoDB.PutItem(context.Background(), &dynamodb.PutItemInput{
+	_, err = a.dynamoDB.PutItem(context.Background(), &dynamodb.PutItemInput{
 		TableName: aws.String(a.cfg.FeedTableName),
 		Item: map[string]dynamoDBTypes.AttributeValue{
-			"url":       &dynamoDBTypes.AttributeValueMemberS{Value: entry.URL},
 			"urlHash":   &dynamoDBTypes.AttributeValueMemberS{Value: hashedURL},
-			"postId":    &dynamoDBTypes.AttributeValueMemberS{Value: entry.PostID},
 			"timestamp": &dynamoDBTypes.AttributeValueMemberS{Value: entry.Timestamp.Format(time.RFC3339)},
 			"published": &dynamoDBTypes.AttributeValueMemberBOOL{Value: false},
+			"content":   &dynamoDBTypes.AttributeValueMemberS{Value: string(content)},
 		},
 		ConditionExpression: aws.String("attribute_not_exists(urlHash)"), // Do not overwrite existing entries
 	})
@@ -59,14 +75,22 @@ func (a AWS) GetFeedEntries() ([]FeedEntry, error) {
 
 	entries := make([]FeedEntry, len(res.Items))
 	for i, item := range res.Items {
+
+		// Convert timestamp to time.Time
 		ts, err := time.Parse(time.RFC3339, item["timestamp"].(*dynamoDBTypes.AttributeValueMemberS).Value)
 		if err != nil {
 			return nil, util.WrapErr("failed to parse timestamp", err)
 		}
+
+		// Unmarshal content JSON
+		var content FeedEntryContent
+		if err := json.Unmarshal([]byte(item["content"].(*dynamoDBTypes.AttributeValueMemberS).Value), &content); err != nil {
+			return nil, util.WrapErr("failed to unmarshal feed entry content", err)
+		}
+
 		entries[i] = FeedEntry{
-			URL:       item["url"].(*dynamoDBTypes.AttributeValueMemberS).Value,
-			PostID:    item["postId"].(*dynamoDBTypes.AttributeValueMemberS).Value,
 			Timestamp: ts,
+			Content:   content,
 		}
 	}
 

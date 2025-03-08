@@ -3,8 +3,10 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/georgemblack/blue-report/pkg/storage"
 	"github.com/georgemblack/blue-report/pkg/urltools"
 	"github.com/georgemblack/blue-report/pkg/util"
 	"github.com/gorilla/feeds"
@@ -28,14 +30,13 @@ func generateAtomFeed(stg Storage) (string, error) {
 	}
 
 	for _, entry := range entries {
-		title := getTitle(stg, entry.URL)
-		hostname := urltools.Hostname(entry.URL)
+		hostname := urltools.Hostname(entry.Content.URL)
 
 		feed.Add(&feeds.Item{
-			Id:      entry.URL,
-			Title:   getTitle(stg, entry.URL),
-			Link:    &feeds.Link{Href: entry.URL},
-			Content: generateFeedContent(entry.URL, title),
+			Id:      entry.Content.URL,
+			Title:   entry.Content.Title,
+			Link:    &feeds.Link{Href: entry.Content.URL},
+			Content: generateFeedContent(entry.Content),
 			Author:  &feeds.Author{Name: hostname},
 			Updated: entry.Timestamp,
 		})
@@ -87,13 +88,11 @@ func generateJSONFeed(stg Storage) (string, error) {
 	}
 
 	for _, entry := range entries {
-		title := getTitle(stg, entry.URL)
-
 		feed.Items = append(feed.Items, JSONFeedItem{
-			ID:            entry.URL,
-			URL:           entry.URL,
-			Title:         title,
-			ContentHTML:   generateFeedContent(entry.URL, title),
+			ID:            entry.Content.URL,
+			URL:           entry.Content.URL,
+			Title:         entry.Content.Title,
+			ContentHTML:   generateFeedContent(entry.Content),
 			DatePublished: entry.Timestamp.Format(time.RFC3339),
 		})
 	}
@@ -106,6 +105,29 @@ func generateJSONFeed(stg Storage) (string, error) {
 	return string(data), nil
 }
 
-func generateFeedContent(url, title string) string {
-	return fmt.Sprintf("<p>Trending on Bluesky: <a href=\"%s\">%s</a></p>", url, title)
+func generateFeedContent(content storage.FeedEntryContent) string {
+	result := fmt.Sprintf("<p>Trending on Bluesky: <a href=\"%s\">%s</a></p>", content.URL, content.Title)
+	if len(content.RecommendedPosts) == 0 {
+		return result
+	}
+
+	result += "<p>Recommended posts</p>"
+	for _, post := range content.RecommendedPosts {
+		postURL := postURL(post.AtURI, post.Handle)
+		result += fmt.Sprintf("<blockquote>%s<cite><a href=\"https://bsky.app/profile/%s\">%s</a></cite></blockquote>", post.Text, post.Handle, post.Handle)
+		result += fmt.Sprintf("<p><a href=\"%s\">View Post</a></p>", postURL)
+	}
+
+	return result
+}
+
+// Convert an AT URI & user handle to a URL
+func postURL(atURI, handle string) string {
+	// Parse rkey from AT URI
+	// 'at://did:plc:y5xyloyy7s4a2bwfeimj7r3b/app.bsky.feed.post/3lhrms2lbc22c' -> '3lhrms2lbc22c'
+	parts := strings.Split(atURI, "/")
+	rkey := parts[len(parts)-1]
+
+	// Construct URL
+	return fmt.Sprintf("https://bsky.app/profile/%s/post/%s", handle, rkey)
 }
