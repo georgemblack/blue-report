@@ -1,5 +1,5 @@
 locals {
-  aggregation_version = "1.12.2"
+  aggregation_version = "1.13.0"
 }
 
 resource "aws_ecs_task_definition" "blue_report_link_aggregation" {
@@ -32,7 +32,7 @@ resource "aws_ecs_task_definition" "blue_report_link_aggregation" {
         },
         {
           name  = "S3_ASSETS_BUCKET_NAME"
-          value = "blue-report-assets"
+          value = aws_s3_bucket.assets.bucket
         },
         {
           name  = "DYNAMO_URL_METADATA_TABLE"

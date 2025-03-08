@@ -1,5 +1,5 @@
-resource "aws_ecs_task_definition" "blue_report_link_normalization" {
-  family                   = "blue-report-link-normalization"
+resource "aws_ecs_task_definition" "blue_report_link_redirect" {
+  family                   = "blue-report-link-redirect"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
   cpu                      = 256
@@ -9,10 +9,10 @@ resource "aws_ecs_task_definition" "blue_report_link_normalization" {
 
   container_definitions = jsonencode([
     {
-      name      = "link-normalization"
+      name      = "link-redirect"
       image     = "242201310196.dkr.ecr.us-west-2.amazonaws.com/blue-report:${local.aggregation_version}"
       essential = true
-      command   = ["/link_normalization"]
+      command   = ["/link_redirect"]
       environment = [
         {
           name  = "VALKEY_ADDRESS"
@@ -38,7 +38,7 @@ resource "aws_ecs_task_definition" "blue_report_link_normalization" {
         options = {
           "awslogs-region" = "us-west-2"
           "awslogs-group"  = aws_cloudwatch_log_stream.blue_report.name
-          "awslogs-stream-prefix" : "link-normalization"
+          "awslogs-stream-prefix" : "link-redirect"
         }
       }
     },
@@ -50,20 +50,36 @@ resource "aws_ecs_task_definition" "blue_report_link_normalization" {
   }
 }
 
-resource "aws_ecs_service" "blue_report_link_normalization" {
-  name            = "link-normalization"
-  desired_count   = 1
-  cluster         = aws_ecs_cluster.blue_report.id
-  task_definition = aws_ecs_task_definition.blue_report_link_normalization.arn
+resource "aws_scheduler_schedule" "blue_report_link_redirect" {
+  name                = "blue-report-link-redirect-schedule"
+  schedule_expression = "rate(20 minutes)"
 
-  network_configuration {
-    subnets          = [aws_subnet.blue_report_subnet_2a.id, aws_subnet.blue_report_subnet_2b.id, aws_subnet.blue_report_subnet_2c.id]
-    assign_public_ip = true
-    security_groups  = [aws_security_group.blue_report.id]
+  flexible_time_window {
+    mode                      = "FLEXIBLE"
+    maximum_window_in_minutes = 5
   }
 
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE_SPOT"
-    weight            = 1
+  target {
+    arn      = aws_ecs_cluster.blue_report.arn
+    role_arn = aws_iam_role.scheduler.arn
+
+    retry_policy {
+      maximum_retry_attempts = 0
+    }
+
+    ecs_parameters {
+      task_definition_arn = aws_ecs_task_definition.blue_report_link_redirect.arn
+
+      network_configuration {
+        subnets          = [aws_subnet.blue_report_subnet_2a.id, aws_subnet.blue_report_subnet_2b.id, aws_subnet.blue_report_subnet_2c.id]
+        assign_public_ip = true
+        security_groups  = [aws_security_group.blue_report.id]
+      }
+
+      capacity_provider_strategy {
+        capacity_provider = "FARGATE_SPOT"
+        weight            = 1
+      }
+    }
   }
 }

@@ -32,7 +32,7 @@ resource "aws_ecs_task_definition" "blue_report_intake" {
         },
         {
           name  = "S3_ASSETS_BUCKET_NAME"
-          value = "blue-report-assets"
+          value = aws_s3_bucket.assets.bucket
         },
         {
           name  = "SQS_NORMALIZATION_QUEUE_NAME"

@@ -11,7 +11,7 @@ func main() {
 	if os.Getenv("DEBUG") == "true" {
 		slog.SetLogLoggerLevel(slog.LevelDebug)
 	}
-	err := app.NormalizeLinks()
+	err := app.ResolveLinkRedirects()
 	if err != nil {
 		slog.Error(err.Error())
 		os.Exit(1)
