@@ -1,4 +1,4 @@
-import { AtpAgent, RichText } from "@atproto/api";
+import { AtpAgent, RichText, AppBskyFeedPost } from "@atproto/api";
 import {
   SecretsManagerClient,
   GetSecretValueCommand,
@@ -21,10 +21,21 @@ const BLUESKY_PASSWORD = process.env.BLUESKY_PASSWORD;
 
 interface FeedItem {
   urlHash: string;
-  url: string;
-  postId: string;
   timestamp: string;
   published: boolean;
+  content: string;
+}
+
+interface FeedItemContent {
+  url: string;
+  title: string;
+  recommended_posts: FeedItemPost[];
+}
+
+interface FeedItemPost {
+  at_uri: string;
+  username: string;
+  handle: string;
 }
 
 const dbClient = new DynamoDBClient({ region: "us-west-2" });
@@ -70,79 +81,76 @@ async function main() {
     console.log(`Found ${entries.length} unpublished feed entries`);
   }
 
-  // Select the first entry to process.
-  // Other entries will be processed in subsequent runs.
-  const firstEntry = entries[0];
-  console.log(`Processing feed entry: '${firstEntry.urlHash}'`);
+  // Select the first entry to process. Other entries will be processed in subsequent runs.
+  const entry = entries[0];
+  console.log(`Processing feed entry: '${entry.urlHash}'`);
 
-  // Fetch title and description from DynamoDB 'metadata' table
-  const metadataCommand = new GetCommand({
-    TableName: DYNAMO_URL_META_TABLE_NAME,
-    Key: {
-      urlHash: firstEntry.urlHash,
-    },
-  });
-  const metadata = await docClient.send(metadataCommand);
-
-  if (!metadata.Item) {
-    console.error(`No metadata found for ${firstEntry.urlHash}, skipping`);
-    await markAsPublished(firstEntry.urlHash);
+  // Parse entry contents
+  let entryContent: FeedItemContent;
+  try {
+    entryContent = JSON.parse(entry.content);
+  } catch (error) {
+    console.error(`Error parsing entry content: ${error}`);
+    markAsPublished(entry.urlHash);
     return;
-  } else {
-    console.log(`Fetched title from URL metadata: '${metadata.Item.title}'`);
   }
 
-  // Convert AT URI into DID and rkey
+  // Select the first recommended post to quote.
+  // If there are no recommended posts, create a post without a quote.
+  let recommendedPost: FeedItemPost | undefined;
+  if (entryContent.recommended_posts.length > 0) {
+    recommendedPost = entryContent.recommended_posts[0];
+  }
+
+  // Find the CID of the given post. Convert AT URI into DID and rkey.
   // i.e. 'at://did:plc:u5cwb2mwiv2bfq53cjufe6yn/app.bsky.feed.post/3k44deefqdk2g' -> ['did:plc:u5cwb2mwiv2bfq53cjufe6yn', '3k44deefqdk2g']
-  const uriParts = firstEntry.postId.split("/");
-  const repo = uriParts[2];
-  const rkey = uriParts[4];
-  console.log(`Parsed repo: '${repo}', rkey: '${rkey}' from AT URI`);
+  let cid: string | undefined;
+  if (recommendedPost) {
+    const uriParts = recommendedPost?.at_uri.split("/");
+    const repo = uriParts[2];
+    const rkey = uriParts[4];
+    console.log(`Parsed repo: '${repo}', rkey: '${rkey}' from AT URI`);
 
-  // Fetch the 'top post' associated with the entry from Bluesky.
-  // Find the CID of this post, as well as the author's handle.
-  let cid: string;
-  let handle: string;
-  try {
-    const post = await atpAgent.getPost({ repo: repo, rkey: rkey });
-    cid = post.cid;
-  } catch (error) {
-    console.error(`Error fetching post from Bluesky: ${error}`);
-    return;
+    // Fetch the 'top post' associated with the entry from Bluesky.
+    // Find the CID of this post, as well as the author's handle.
+    try {
+      const post = await atpAgent.getPost({ repo: repo, rkey: rkey });
+      cid = post.cid;
+    } catch (error) {
+      console.error(`Error fetching post from Bluesky: ${error}`);
+      return;
+    }
+    console.log(`Fetched post CID: '${cid}'`);
   }
-  console.log(`Fetched post CID: '${cid}'`);
-
-  try {
-    const profile = await atpAgent.getProfile({ actor: repo });
-    handle = profile.data.handle;
-  } catch (error) {
-    console.error(`Error fetching profile from Bluesky: ${error}`);
-    return;
-  }
-  console.log(`Fetched author handle: '${handle}'`);
 
   // Generate post content
-  const richText = new RichText({
-    text: `${metadata.Item.title} ${metadata.Item.url}\n\nTop post by @${handle}:`,
-  });
+  let text = `${entryContent.title} ${entryContent.url}`;
+  if (recommendedPost && cid) {
+    text += `\n\nTop post by @${recommendedPost.handle}:`;
+  }
+  const richText = new RichText({ text });
   await richText.detectFacets(atpAgent);
 
   // Create post with external embed
-  await atpAgent.post({
+  let newPost: Partial<AppBskyFeedPost.Record> = {
     text: richText.text,
     facets: richText.facets,
-    embed: {
+  };
+  if (recommendedPost && cid) {
+    newPost.embed = {
       $type: "app.bsky.embed.record",
       record: {
-        uri: firstEntry.postId,
+        uri: recommendedPost.at_uri,
         cid: cid,
       },
-    },
-  });
+    };
+  }
+
+  await atpAgent.post(newPost);
   console.log(`Post published to Bluesky successfully`);
 
   // Mark the entry as published
-  await markAsPublished(firstEntry.urlHash);
+  await markAsPublished(entry.urlHash);
 }
 
 async function markAsPublished(urlHash: string) {
