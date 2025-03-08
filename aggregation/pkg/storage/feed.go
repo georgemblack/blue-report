@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -70,6 +71,24 @@ func (a AWS) GetFeedEntries() ([]FeedEntry, error) {
 	}
 
 	return entries, nil
+}
+
+// RecentFeedEntry determies if a feed entry has been added within the last X hours.
+// This is used to limit the number of items published if there's a low-engagement day and many links are trending.
+func (a AWS) RecentFeedEntry() bool {
+	entries, err := a.GetFeedEntries()
+	if err != nil {
+		slog.Error("failed to get feed entries", "error", err)
+		return false
+	}
+
+	for _, entry := range entries {
+		if time.Since(entry.Timestamp) < 12*time.Hour {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (a AWS) PublishFeeds(atom, json string) error {

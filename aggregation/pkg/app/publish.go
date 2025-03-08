@@ -39,17 +39,23 @@ func PublishLinkSnapshot(snapshot links.Snapshot) error {
 		os.WriteFile("dist/snapshot.json", data, 0644)
 	}
 
-	// Find the top link over the last 24 hours, and add it to the feed
-	topLink := snapshot.TopDayLink()
-	if topLink.URL != "" {
-		err = app.Storage.AddFeedEntry(storage.FeedEntry{
-			URL:       topLink.URL,
-			PostID:    topLink.RecommendedPostID(),
-			Timestamp: time.Now().UTC(),
-		})
-		if err != nil {
-			return util.WrapErr("failed to add feed item", err)
+	// Find the top link over the last 24 hours, and add it to the feed.
+	// Skip if there was an entry in the last X hours to avoid spamming the feed.
+	if !app.Storage.RecentFeedEntry() {
+		topLink := snapshot.TopDayLink()
+		if topLink.URL != "" {
+			slog.Info("adding feed entry if it doesn't exist", "url", topLink.URL)
+			err = app.Storage.AddFeedEntry(storage.FeedEntry{
+				URL:       topLink.URL,
+				PostID:    topLink.RecommendedPostID(),
+				Timestamp: time.Now().UTC(),
+			})
+			if err != nil {
+				return util.WrapErr("failed to add feed item", err)
+			}
 		}
+	} else {
+		slog.Info("skipping feed entry due to cooldown period")
 	}
 
 	// Generate Atom and JSON feeds
@@ -63,7 +69,7 @@ func PublishLinkSnapshot(snapshot links.Snapshot) error {
 		return util.WrapErr("failed to generate json feed", err)
 	}
 
-	// Save feeds to storage
+	// Publish Atom and JSON feeds
 	err = app.Storage.PublishFeeds(atom, json)
 	if err != nil {
 		return util.WrapErr("failed to publish feeds", err)

@@ -34,6 +34,7 @@ type Storage interface {
 	AddFeedEntry(entry storage.FeedEntry) error
 	GetFeedEntries() ([]storage.FeedEntry, error)
 	PublishFeeds(atom, json string) error
+	RecentFeedEntry() bool
 }
 
 type Queue interface {

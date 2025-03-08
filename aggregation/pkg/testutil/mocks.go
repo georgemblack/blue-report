@@ -311,6 +311,20 @@ func (mr *MockStorageMockRecorder) ReadEvents(key, eventBufferSize any) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadEvents", reflect.TypeOf((*MockStorage)(nil).ReadEvents), key, eventBufferSize)
 }
 
+// RecentFeedEntry mocks base method.
+func (m *MockStorage) RecentFeedEntry() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RecentFeedEntry")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// RecentFeedEntry indicates an expected call of RecentFeedEntry.
+func (mr *MockStorageMockRecorder) RecentFeedEntry() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecentFeedEntry", reflect.TypeOf((*MockStorage)(nil).RecentFeedEntry))
+}
+
 // SaveThumbnail mocks base method.
 func (m *MockStorage) SaveThumbnail(id, url string) error {
 	m.ctrl.T.Helper()
