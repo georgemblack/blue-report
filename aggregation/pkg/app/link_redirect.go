@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/georgemblack/blue-report/pkg/queue"
+	"github.com/georgemblack/blue-report/pkg/rendering"
 	"github.com/georgemblack/blue-report/pkg/storage"
 	"github.com/georgemblack/blue-report/pkg/urltools"
 	"github.com/georgemblack/blue-report/pkg/util"
@@ -38,18 +39,40 @@ func ResolveLinkRedirects() error {
 
 		for _, msg := range messages {
 			slog.Info("normalizing url", "url", msg.URL)
-			go resolveLink(app.Storage, msg, &wg)
+			go resolveLink(app, msg, &wg)
 		}
 
 		wg.Wait()
 	}
 }
 
-func resolveLink(st Storage, msg queue.Message, wg *sync.WaitGroup) {
+func resolveLink(app App, msg queue.Message, wg *sync.WaitGroup) {
+	redirect := ""
 	defer wg.Done()
 
-	// Normalize the URL by checking for redirects
-	redirect := urltools.FindRedirect(msg.URL)
+	// If the URL is an Apple News URL, HTTP redirects are not used.
+	// Instead, user browser rendering and parse the article URL from the web page.
+	if urltools.IsAppleNewsURL(msg.URL) {
+		elements, err := rendering.GetPageElements(app.Config.CloudflareAPIToken, app.Config.CloudflareAccountID, []string{"a"}, msg.URL)
+		if err != nil {
+			slog.Error("failed to get data from browser rendering", "error", err)
+			return
+		}
+
+		// Find the first none-Apple anchor tag and set the URL to the href
+		hrefs := elements.GetAttribute("a", "href")
+		for _, href := range hrefs {
+			if !urltools.IsAppleURL(href) {
+				slog.Info("found canonical url from apple news", "original", msg.URL, "canonical", href)
+				redirect = href
+				break
+			}
+		}
+	} else {
+		// Check for normal redirects
+		redirect = urltools.FindRedirect(msg.URL)
+	}
+
 	if redirect == "" {
 		slog.Debug("no redirect found for url", "url", msg.URL)
 		return
@@ -60,7 +83,7 @@ func resolveLink(st Storage, msg queue.Message, wg *sync.WaitGroup) {
 
 	// Write the translation to storage
 	slog.Info("saving translated url", "url", cleaned)
-	err := st.SaveURLTranslation(storage.URLTranslation{
+	err := app.Storage.SaveURLTranslation(storage.URLTranslation{
 		Source:      msg.URL,
 		Destination: cleaned,
 	})

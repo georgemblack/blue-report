@@ -1,14 +1,13 @@
 package app
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/georgemblack/blue-report/pkg/rendering"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
 
@@ -32,16 +31,19 @@ func GetCardMetadata(cloudflareToken, cloudflareAccountID, url string) CardMetad
 
 	// Cloudflare browser rendering
 	if result.Title == "" || result.ImageURL == "" {
-		title, imageURL, err := browserRender(cloudflareToken, cloudflareAccountID, url)
+		elements, err := rendering.GetPageElements(cloudflareToken, cloudflareAccountID, []string{"meta[property=\"og:title\"]", "meta[property=\"og:image\"]"}, url)
 		if err != nil {
 			slog.Warn(util.WrapErr("failed to get data from browser rendering", err).Error())
 		}
 
-		if result.Title == "" {
-			result.Title = title
+		titles := elements.GetAttribute("meta[property=\"og:title\"]", "content")
+		images := elements.GetAttribute("meta[property=\"og:image\"]", "content")
+
+		if len(titles) > 0 {
+			result.Title = titles[0]
 		}
-		if result.ImageURL == "" {
-			result.ImageURL = imageURL
+		if len(images) > 0 {
+			result.ImageURL = images[0]
 		}
 	}
 
@@ -97,73 +99,4 @@ type BrowserRenderingResponse struct {
 		} `json:"results"`
 		Selector string `json:"selector"`
 	} `json:"result"`
-}
-
-func browserRender(cloudflareToken, cloudflareAccountID, url string) (string, string, error) {
-	reqBody := BrowserRenderingRequest{
-		URL: url,
-		Elements: []BrowserRenderingRequestElements{
-			{Selector: "meta[property=\"og:title\"]"},
-			{Selector: "meta[property=\"og:image\"]"},
-		},
-	}
-	data, err := json.Marshal(reqBody)
-	if err != nil {
-		return "", "", util.WrapErr("failed to marshal request body", err)
-	}
-
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://api.cloudflare.com/client/v4/accounts/%s/browser-rendering/scrape", cloudflareAccountID), bytes.NewBuffer(data))
-	if err != nil {
-		return "", "", util.WrapErr("failed to create request", err)
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cloudflareToken))
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", "", util.WrapErr("failed to send request", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("failed to get title from browser rendering: status code %s", resp.Status)
-	}
-
-	var browserRenderingResponse BrowserRenderingResponse
-	if err := json.NewDecoder(resp.Body).Decode(&browserRenderingResponse); err != nil {
-		return "", "", util.WrapErr("failed to decode browser rendering response", err)
-	}
-
-	if !browserRenderingResponse.Success {
-		return "", "", errors.New("browswer rendering request failed")
-	}
-
-	title := ""
-	imageURL := ""
-	for _, result := range browserRenderingResponse.Result {
-		for _, r := range result.Results {
-			// Search for title result
-			if result.Selector == "meta[property=\"og:title\"]" {
-				for _, attr := range r.Attributes {
-					if attr.Name == "content" {
-						title = attr.Value
-					}
-				}
-			}
-
-			// Search for image result
-			if result.Selector == "meta[property=\"og:image\"]" {
-				for _, attr := range r.Attributes {
-					if attr.Name == "content" {
-						imageURL = attr.Value
-					}
-				}
-			}
-		}
-	}
-
-	return title, imageURL, nil
 }
