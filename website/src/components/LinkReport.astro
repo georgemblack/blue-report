@@ -21,14 +21,14 @@ const { links, toggle, generatedAt } = Astro.props;
         <div class="container">
           <div class="link">
             <a href={link.url} class="preview">
-              {link.thumbnail_id ? (
+              {link.thumbnail_url ? (
                 <picture>
                   <source
-                    srcset={`https://theblue.report/cdn-cgi/image/width=192,format=auto/https://data.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
+                    srcset={`https://theblue.report/cdn-cgi/image/width=192,format=auto/${link.thumbnail_url}`}
                     media="(max-width: 576px)"
                   />
                   <img
-                    src={`https://theblue.report/cdn-cgi/image/width=480,format=auto/https://data.theblue.report/thumbnails/${link.thumbnail_id}.jpg`}
+                    src={`https://theblue.report/cdn-cgi/image/width=480,format=auto/${link.thumbnail_url}`}
                     alt={link.title}
                   />
                 </picture>

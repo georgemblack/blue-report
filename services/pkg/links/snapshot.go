@@ -26,7 +26,7 @@ type Link struct {
 	Rank             int    `json:"rank"`
 	URL              string `json:"url"`
 	Title            string `json:"title"`
-	ThumbnailID      string `json:"thumbnail_id"`
+	ThumbnailURL     string `json:"thumbnail_url"`
 	PostCount        int    `json:"post_count"`
 	RepostCount      int    `json:"repost_count"`
 	LikeCount        int    `json:"like_count"`

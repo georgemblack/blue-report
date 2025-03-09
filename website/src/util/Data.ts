@@ -11,7 +11,7 @@ export interface Link {
   rank: number;
   url: string;
   title: string;
-  thumbnail_id: string;
+  thumbnail_url: string;
   post_count: number;
   repost_count: number;
   like_count: number;
@@ -44,7 +44,7 @@ export interface Site {
   links: {
     url: string;
     title: string;
-    thumbnail_id: string;
+    thumbnail_url: string;
     interactions: number;
   }[];
 }

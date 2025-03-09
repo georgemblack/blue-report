@@ -44,37 +44,30 @@ func hydrateLink(app App, agg *links.Aggregation, index int, link links.Link) (l
 	stats := agg.Get(link.URL)
 
 	// Check whether we have a thumbnail
-	thumbnailExists, err := app.Storage.ThumbnailExists(hashedURL)
+	thumbnailURL, err := app.Storage.GetThumbnailURL(hashedURL)
 	if err != nil {
 		slog.Warn(util.WrapErr("failed to check for thumbnail", err).Error(), "url", link.URL)
 	}
-	if thumbnailExists {
-		link.ThumbnailID = hashedURL
-	}
+	link.ThumbnailURL = thumbnailURL
 
 	// Check whether we have a title
-	titleExists := false
-	if link.Title = getTitle(app.Storage, link.URL); link.Title != "" {
-		titleExists = true
-	}
+	link.Title = getTitle(app.Storage, link.URL)
 
 	// If either title or thumbnail is missing, fetch from CardyB & store
-	if !thumbnailExists || !titleExists {
+	if link.ThumbnailURL == "" || link.Title == "" {
 		metadata := GetCardMetadata(app.Config.CloudflareAPIToken, app.Config.CloudflareAccountID, link.URL)
 
 		// Save title
-		if !titleExists && metadata.Title != "" {
+		if link.Title == "" && metadata.Title != "" {
 			link.Title = formatTitle(metadata.Title)
 			updateTitle(app.Storage, link.URL, link.Title)
 		}
 
 		// Save thumbnail
-		if !thumbnailExists && metadata.ImageURL != "" {
-			err := app.Storage.SaveThumbnail(hashedURL, metadata.ImageURL)
+		if link.ThumbnailURL == "" && metadata.ImageURL != "" {
+			link.ThumbnailURL, err = app.Storage.SaveThumbnail(hashedURL, metadata.ImageURL)
 			if err != nil {
 				slog.Warn(util.WrapErr("failed to save thumbnail", err).Error(), "url", link.URL)
-			} else {
-				link.ThumbnailID = hashedURL
 			}
 		}
 	}

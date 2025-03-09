@@ -223,6 +223,21 @@ func (mr *MockStorageMockRecorder) GetFeedEntries() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeedEntries", reflect.TypeOf((*MockStorage)(nil).GetFeedEntries))
 }
 
+// GetThumbnailURL mocks base method.
+func (m *MockStorage) GetThumbnailURL(id string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetThumbnailURL", id)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetThumbnailURL indicates an expected call of GetThumbnailURL.
+func (mr *MockStorageMockRecorder) GetThumbnailURL(id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetThumbnailURL", reflect.TypeOf((*MockStorage)(nil).GetThumbnailURL), id)
+}
+
 // GetURLMetadata mocks base method.
 func (m *MockStorage) GetURLMetadata(url string) (storage.URLMetadata, error) {
 	m.ctrl.T.Helper()
@@ -340,11 +355,12 @@ func (mr *MockStorageMockRecorder) RecentFeedEntry() *gomock.Call {
 }
 
 // SaveThumbnail mocks base method.
-func (m *MockStorage) SaveThumbnail(id, url string) error {
+func (m *MockStorage) SaveThumbnail(id, url string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SaveThumbnail", id, url)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // SaveThumbnail indicates an expected call of SaveThumbnail.
@@ -379,21 +395,6 @@ func (m *MockStorage) SaveURLTranslation(translation storage.URLTranslation) err
 func (mr *MockStorageMockRecorder) SaveURLTranslation(translation any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveURLTranslation", reflect.TypeOf((*MockStorage)(nil).SaveURLTranslation), translation)
-}
-
-// ThumbnailExists mocks base method.
-func (m *MockStorage) ThumbnailExists(id string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ThumbnailExists", id)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ThumbnailExists indicates an expected call of ThumbnailExists.
-func (mr *MockStorageMockRecorder) ThumbnailExists(id any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ThumbnailExists", reflect.TypeOf((*MockStorage)(nil).ThumbnailExists), id)
 }
 
 // MockQueue is a mock of Queue interface.

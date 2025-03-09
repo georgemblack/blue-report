@@ -25,8 +25,8 @@ type Storage interface {
 	ReadEvents(key string, eventBufferSize int) ([]storage.EventRecord, error)
 	FlushEvents(start time.Time, events []storage.EventRecord) error
 	ListEventChunks(start, end time.Time) ([]string, error)
-	SaveThumbnail(id string, url string) error
-	ThumbnailExists(id string) (bool, error)
+	SaveThumbnail(id string, url string) (string, error)
+	GetThumbnailURL(id string) (string, error)
 	GetURLMetadata(url string) (storage.URLMetadata, error)
 	SaveURLMetadata(metadata storage.URLMetadata) error
 	SaveURLTranslation(translation storage.URLTranslation) error

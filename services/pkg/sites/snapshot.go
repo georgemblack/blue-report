@@ -32,7 +32,7 @@ type Link struct {
 	Rank         int    `json:"rank"`
 	URL          string `json:"url"`
 	Title        string `json:"title"`
-	ThumbnailID  string `json:"thumbnail_id"`
+	ThumbnailURL string `json:"thumbnail_url"`
 	Interactions int    `json:"interactions"`
 }
 
