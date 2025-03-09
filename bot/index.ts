@@ -174,9 +174,7 @@ async function main() {
     );
 
     // Find DID of handle
-    const resolveResp = await atpAgent.resolveHandle({
-      handle: recommendedPost.handle,
-    });
+    const did = recommendedPost.at_uri.split("/")[2];
 
     // Add handle facet
     facets.push({
@@ -187,7 +185,7 @@ async function main() {
       features: [
         {
           $type: "app.bsky.richtext.facet#mention",
-          did: resolveResp.data.did,
+          did,
         },
       ],
     });
