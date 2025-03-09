@@ -21,20 +21,26 @@ The following rules also apply:
 * Only one post/repost/like is counted per user, per link
   * Example: if a user likes five separate posts containing the same link, this is counted as one like
 * Removal of posts/reposts/likes is not counted
-  * Exampe: if a user likes a post containing a link, then removes the like, this is counted as one like
+  * Exampe: if a user likes a post containing a link, then removes the like, this is still counted as one like
+* Posts/reposts/likes associated with the [@theblue.report](https://bsky.app/profile/theblue.report) account are **not** counted
 
 The 'posts/reposts/likes' displayed under each link represents the number of each that have occurred in the past week, with the same caveats as above.
 
 ## How Are Top Sites Ranked?
 
-The 'Top Sites' page of The Blue Report displays the top domains on Bluesky over the last 30 days, based on the number of **interactions**.
+The ['Top Sites' page](https://theblue.report/sites/) of The Blue Report displays the top domains on Bluesky over the last 30 days, based on the number of **interactions**.
 
 **Interactions** refer to the number of posts referencing a URL, combined with the number of reposts & likes on those posts.
 
 The following rules also apply:
 
+* Only English language posts are counted
 * Only one post/repost/like is counted per user, per link
   * This means a single user can only have up to three interactions with a single URL
+* Removal of interactions is not counted
+  * Exampe: if a user likes a post containing a link, then removes the like, this is still counted as one interaction
+* Interactions associated with the [@theblue.report](https://bsky.app/profile/theblue.report) account are **not** counted
+
 
 ## Disclaimers
 
