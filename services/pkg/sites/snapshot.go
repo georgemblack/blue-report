@@ -29,6 +29,7 @@ type Post struct {
 }
 
 type Link struct {
+	Rank         int    `json:"rank"`
 	URL          string `json:"url"`
 	Title        string `json:"title"`
 	ThumbnailID  string `json:"thumbnail_id"`
@@ -41,7 +42,8 @@ func (s *Snapshot) AddSite(domain string, agg AggregationItem) {
 	links := make([]Link, 0, len(urls))
 	for _, url := range urls {
 		links = append(links, Link{
-			URL: url,
+			Rank: len(links) + 1,
+			URL:  url,
 		})
 	}
 

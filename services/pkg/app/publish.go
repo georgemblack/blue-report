@@ -148,6 +148,7 @@ func toFeedPosts(posts []links.Post) []storage.FeedEntryPost {
 	var feedPosts []storage.FeedEntryPost
 	for _, post := range posts {
 		feedPosts = append(feedPosts, storage.FeedEntryPost{
+			Rank:     post.Rank,
 			AtURI:    post.AtURI,
 			Username: post.Username,
 			Handle:   post.Handle,

@@ -143,6 +143,7 @@ func recommendedPosts(bs Bluesky, uris []string) []links.Post {
 		formatted := formatPost(postData.Record.Text)
 		if formatted != "" && postData.IsEnglish() && postData.LikeCount > 50 && !authors.Contains(postData.Author.Handle) {
 			posts = append(posts, links.Post{
+				Rank:     len(posts) + 1,
 				AtURI:    uri,
 				Username: postData.Author.DisplayName,
 				Handle:   postData.Author.Handle,

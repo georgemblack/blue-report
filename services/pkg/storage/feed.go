@@ -28,6 +28,7 @@ type FeedEntryContent struct {
 }
 
 type FeedEntryPost struct {
+	Rank     int    `json:"rank"`
 	AtURI    string `json:"at_uri"`
 	Username string `json:"username"`
 	Handle   string `json:"handle"`

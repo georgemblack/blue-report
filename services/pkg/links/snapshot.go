@@ -33,14 +33,8 @@ type Link struct {
 	RecommendedPosts []Post `json:"recommended_posts"`
 }
 
-func (l *Link) RecommendedPostID() string {
-	if len(l.RecommendedPosts) == 0 {
-		return ""
-	}
-	return l.RecommendedPosts[0].AtURI
-}
-
 type Post struct {
+	Rank     int    `json:"rank"`
 	AtURI    string `json:"at_uri"`
 	Username string `json:"username"`
 	Handle   string `json:"handle"`

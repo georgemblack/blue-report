@@ -24,11 +24,15 @@ func hydrateSites(app App, agg *sites.Aggregation, snapshot sites.Snapshot) (sit
 	// These links are likely to be invalid.
 	for i, site := range snapshot.Sites {
 		updated := make([]sites.Link, 0)
+
 		for _, link := range site.Links {
 			if link.Title != "" {
+				// Update the link's rank, as removing items from the list may change it
+				link.Rank = len(updated) + 1
 				updated = append(updated, link)
 			}
 		}
+
 		snapshot.Sites[i].Links = updated
 	}
 
