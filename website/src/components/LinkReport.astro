@@ -15,10 +15,10 @@ const { links, toggle, generatedAt } = Astro.props;
 
 <main>
   <DayWeekToggle toggle={toggle} />
-  <div class="container-group">
+  <div class="group">
     {
       links.map((link) => (
-        <div class="container">
+        <section>
           <div class="link">
             <a href={link.url} class="preview">
               {link.thumbnail_url ? (
@@ -82,7 +82,7 @@ const { links, toggle, generatedAt } = Astro.props;
             </div>
           </div>
           <CenteredExpandButton id={strip(link.url)} />
-        </div>
+        </section>
       ))
     }
   </div>

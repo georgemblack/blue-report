@@ -22,12 +22,12 @@
   --link-color: #2b589f;
   --link-hover-color: color-mix(in srgb, var(--link-color) 85%, black);
   --body-text-color: #2d2d2d;
-  --faded-text-color-1: rgba(0, 0, 0, 0.4);
-  --faded-text-color-2: rgba(0, 0, 0, 0.65);
+  --faded-text-color-1: color-mix(in srgb, var(--body-text-color) 45%, var(--background-color));
+  --faded-text-color-2: color-mix(in srgb, var(--body-text-color) 80%, var(--background-color));
 
   /* Button colors */
-  --button-background-color: rgba(85, 170, 255, 0.1);
   --button-background: linear-gradient(rgba(85, 170, 255, 0.05), rgba(85, 170, 255, 0.1));
+  --button-background-active: linear-gradient(rgba(85, 170, 255, 0.1), rgba(85, 170, 255, 0.2));
   --help-icon-color: rgba(0, 0, 0, 0.05);
 
   /* Toggle colors */
@@ -51,17 +51,17 @@
 @media screen and (prefers-color-scheme: dark) {
   :root {
     /* General purpose colors */
-    --background-color: #141617;
+    --background-color: #121415;
     --line-separator-color: rgba(255, 255, 255, 0.05);
 
     /* Text colors */
     --body-text-color: #f7f7f7;
     --link-color: #79b8ff;
     --link-hover-color: color-mix(in srgb, var(--link-color) 85%, white);
-    --faded-text-color-1: rgba(255, 255, 255, 0.5);
-    --faded-text-color-2: rgba(255, 255, 255, 0.8);
 
     /* Button colors */
+    --button-background: linear-gradient(rgba(85, 170, 255, 0.1), rgba(85, 170, 255, 0.08));
+    --button-background-active: linear-gradient(rgba(85, 170, 255, 0.2), rgba(85, 170, 255, 0.1));
     --help-icon-color: rgba(255, 255, 255, 0.1);
 
     /* Toggle colors */
@@ -105,9 +105,10 @@ header h1 a {
 
 header h1 a:hover {
   text-decoration: none;
+  color: var(--body-text-color);
 }
 
-header .accent {
+header h1 .accent {
   color: var(--header-accent-color);
   background: linear-gradient(315deg, var(--header-accent-color), var(--header-accent-color-secondary));
   background-clip: text;
@@ -158,18 +159,19 @@ a:hover {
   text-decoration: underline;
 }
 
-/* container group */
-.container-group {
+/*-------------------------------*/
+/*         Sections              */
+/*-------------------------------*/
+.group {
   margin-top: 1.5em;
 }
 
-/* containers for list items */
-.container {
+section {
   padding: 2em 0em;
   border-top: 2px solid var(--line-separator-color);
 }
 
-.container:last-of-type {
+section:last-of-type {
   border-bottom: 2px solid var(--line-separator-color);
 }
 

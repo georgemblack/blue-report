@@ -11,10 +11,10 @@ const snapshot = await fetchTopSites();
 
 <Layout subtitle="The top sites on Bluesky, updated daily">
   <main>
-    <div class="container-group">
+    <div class="group">
       {
         snapshot.sites.map((site) => (
-          <div class="container">
+          <section>
             <div class="site">
               <h2>
                 {site.rank}. {site.name}
@@ -52,7 +52,7 @@ const snapshot = await fetchTopSites();
                 ))}
               </div>
             </div>
-          </div>
+          </section>
         ))
       }
     </div>

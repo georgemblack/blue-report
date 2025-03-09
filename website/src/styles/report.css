@@ -212,7 +212,6 @@ nav a.active {
   margin: 0 auto;
   padding: 0.35em 2em;
   border-radius: 1em;
-  background-color: var(--button-background-color);
   background: var(--button-background);
   /* ensure gray shadow does not appear on tap */
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
@@ -221,7 +220,7 @@ nav a.active {
 }
 
 .expand-centered button:active {
-  background: linear-gradient(rgba(85, 170, 255, 0.1), rgba(85, 170, 255, 0.2));
+  background: var(--button-background-active);
 }
 
 .expand-centered svg {
