@@ -91,13 +91,15 @@ func stripQueryWithExceptions(full string, parsed *url.URL) string {
 	}
 
 	params := parsed.Query()
-	for i, key := range allowed {
+	first := true
+	for _, key := range allowed {
 		if val, ok := params[key]; ok {
-			if i == 0 {
+			if first {
 				result += fmt.Sprintf("?%s=%s", key, val[0])
 			} else {
 				result += fmt.Sprintf("&%s=%s", key, val[0])
 			}
+			first = false
 		}
 	}
 
