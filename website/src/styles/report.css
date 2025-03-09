@@ -142,9 +142,6 @@ nav a.active {
 
 /* Small break-point */
 @media screen and (max-width: 36em) {
-  .link-container {
-    min-height: 12em;
-  }
 
   .link {
     gap: 0.85em;
@@ -285,7 +282,7 @@ nav a.active {
   gap: 1em;
 }
 
-/* medium break-point */
+/* Medium break-point */
 @media screen and (max-width: 56em) {
   .recommended-posts {
     /* Convert to horizontal scroll */
@@ -309,7 +306,7 @@ nav a.active {
   padding: 1em;
 }
 
-/* medium break-point */
+/* Medium break-point */
 @media screen and (max-width: 56em) {
   .recommended-post {
     flex-grow: 0;
