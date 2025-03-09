@@ -114,10 +114,10 @@ func generateFeedContent(content storage.FeedEntryContent) string {
 		return result
 	}
 
-	result += "<p>Top posts:</p>"
 	for _, post := range content.RecommendedPosts {
 		postURL := postURL(post.AtURI, post.Handle)
-		result += fmt.Sprintf("<blockquote>%s\n\n<cite><a href=\"https://bsky.app/profile/%s\">%s</a></cite></blockquote>", post.Text, post.Handle, post.Handle)
+		result += fmt.Sprintf("<p>Post by <a href=\"https://bsky.app/profile/%s\">@%s</a></p>", post.Handle, post.Handle)
+		result += fmt.Sprintf("<blockquote>%s</blockquote>", post.Text)
 		result += fmt.Sprintf("<p><a href=\"%s\">View Post</a></p>", postURL)
 	}
 
