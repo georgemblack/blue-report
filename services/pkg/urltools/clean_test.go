@@ -32,6 +32,10 @@ func TestCleanWithAllowedQueryParams(t *testing.T) {
 			Input:    "https://theblue.report/page?bogus=bogus",
 			Expected: "https://theblue.report/page",
 		},
+		{
+			Input:    "https://commons.stmarytx.edu/cgi/viewcontent.cgi?article=1051&context=lmej",
+			Expected: "https://commons.stmarytx.edu/cgi/viewcontent.cgi?article=1051&context=lmej",
+		},
 	}
 
 	for _, test := range tests {

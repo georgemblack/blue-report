@@ -73,10 +73,11 @@ func stripQuery(input string) string {
 // Some websites have query parameters that are necessary for the URL to function properly.
 // This list contains the hosts, as well as the query parameters that are allowed.
 var QueryParamAllowList = map[string][]string{
-	"youtube.com":     {"v"},
-	"m.youtube.com":   {"v"},
-	"www.youtube.com": {"v"},
-	"abcnews.go.com":  {"id"},
+	"youtube.com":          {"v"},
+	"m.youtube.com":        {"v"},
+	"www.youtube.com":      {"v"},
+	"abcnews.go.com":       {"id"},
+	"commons.stmarytx.edu": {"article", "context"},
 }
 
 func stripQueryWithExceptions(full string, parsed *url.URL) string {
@@ -88,10 +89,15 @@ func stripQueryWithExceptions(full string, parsed *url.URL) string {
 	if !ok {
 		return result
 	}
+
 	params := parsed.Query()
-	for _, key := range allowed {
+	for i, key := range allowed {
 		if val, ok := params[key]; ok {
-			result += fmt.Sprintf("?%s=%s", key, val[0])
+			if i == 0 {
+				result += fmt.Sprintf("?%s=%s", key, val[0])
+			} else {
+				result += fmt.Sprintf("&%s=%s", key, val[0])
+			}
 		}
 	}
 
