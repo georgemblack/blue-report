@@ -41,21 +41,25 @@ func PublishLinkSnapshot(snapshot links.Snapshot) error {
 
 	// Find the top link over the last 24 hours, and add it to the feed.
 	// Skip if there was an entry in the last X hours to avoid spamming the feed.
-	if !app.Storage.RecentFeedEntry() {
-		topLink := snapshot.TopDayLink()
-		if topLink.URL != "" {
-			slog.Info("adding feed entry if it doesn't exist", "url", topLink.URL)
-			err = app.Storage.AddFeedEntry(storage.FeedEntry{
-				Timestamp: time.Now().UTC(),
-				Content: storage.FeedEntryContent{
-					Title:            topLink.Title,
-					URL:              topLink.URL,
-					RecommendedPosts: toFeedPosts(topLink.RecommendedPosts),
-				},
-			})
-			if err != nil {
-				return util.WrapErr("failed to add feed item", err)
-			}
+	topLink := snapshot.TopDayLink()
+	if !app.Storage.RecentFeedEntry() && topLink.URL != "" {
+		slog.Info("adding feed entry if it doesn't exist", "url", topLink.URL)
+		err = app.Storage.AddFeedEntry(storage.FeedEntry{
+			Timestamp: time.Now().UTC(),
+			Content: storage.FeedEntryContent{
+				Title:            topLink.Title,
+				URL:              topLink.URL,
+				RecommendedPosts: toFeedPosts(topLink.RecommendedPosts),
+			},
+		})
+		if err != nil {
+			return util.WrapErr("failed to add feed item", err)
+		}
+
+		slog.Info("removing feed entries older than 90 days")
+		err = app.Storage.CleanFeed()
+		if err != nil {
+			slog.Warn("failed to clean feed", "error", err)
 		}
 	} else {
 		slog.Info("skipping feed entry due to cooldown period")

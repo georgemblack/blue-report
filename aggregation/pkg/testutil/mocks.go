@@ -180,6 +180,20 @@ func (mr *MockStorageMockRecorder) AddFeedEntry(entry any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddFeedEntry", reflect.TypeOf((*MockStorage)(nil).AddFeedEntry), entry)
 }
 
+// CleanFeed mocks base method.
+func (m *MockStorage) CleanFeed() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanFeed")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanFeed indicates an expected call of CleanFeed.
+func (mr *MockStorageMockRecorder) CleanFeed() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanFeed", reflect.TypeOf((*MockStorage)(nil).CleanFeed))
+}
+
 // FlushEvents mocks base method.
 func (m *MockStorage) FlushEvents(start time.Time, events []storage.EventRecord) error {
 	m.ctrl.T.Helper()

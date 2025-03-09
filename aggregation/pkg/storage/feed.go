@@ -138,3 +138,28 @@ func (a AWS) PublishFeeds(atom, json string) error {
 
 	return nil
 }
+
+// CleanFeed removes entries from the feed table that are older than 90 days.
+func (a AWS) CleanFeed() error {
+	entries, err := a.GetFeedEntries()
+	if err != nil {
+		return util.WrapErr("failed to get feed entries", err)
+	}
+
+	for _, entry := range entries {
+		if time.Since(entry.Timestamp) > 90*24*time.Hour {
+			hashedURL := util.Hash(entry.Content.URL)
+			_, err := a.dynamoDB.DeleteItem(context.Background(), &dynamodb.DeleteItemInput{
+				TableName: aws.String(a.cfg.FeedTableName),
+				Key: map[string]dynamoDBTypes.AttributeValue{
+					"urlHash": &dynamoDBTypes.AttributeValueMemberS{Value: hashedURL},
+				},
+			})
+			if err != nil {
+				return util.WrapErr("failed to delete feed entry", err)
+			}
+		}
+	}
+
+	return nil
+}
