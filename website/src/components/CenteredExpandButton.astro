@@ -4,9 +4,9 @@ const { id } = Astro.props;
 
 <div class="expand-centered">
   <button id={`${id}-centered`} onclick={`toggleLinkDetails('${id}')`}>
-    <div class="inner">
+    <span class="inner">
       <p>Top posts</p>
-      <div class="icon">
+      <span class="icon">
         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <>
             <path d="m0 0h24v24h-24z" fill="#fff" opacity="0"></path>
@@ -15,7 +15,7 @@ const { id } = Astro.props;
               fill="var(--link-color)"></path>
           </>
         </svg>
-      </div>
-    </div>
+      </span>
+    </span>
   </button>
 </div>
