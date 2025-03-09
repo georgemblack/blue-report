@@ -161,7 +161,13 @@ async function main() {
 
   // Attatch recommended post if it exists
   if (recommendedPost && cid) {
-    text += `\n\nTop post by @${recommendedPost.handle}:`;
+    // For visual appeal, add mention on a new line if the title is long.
+    // Otherwise, add it inline.
+    if (text.length > 100) {
+      text += `\n\nTop post by @${recommendedPost.handle}:`;
+    } else {
+      text += `. Top post by @${recommendedPost.handle}:`;
+    }
 
     // Find index of '@', start of handle
     const at = text.indexOf("@");
