@@ -163,7 +163,7 @@ async function main() {
   if (recommendedPost && cid) {
     // For visual appeal, add mention on a new line if the title is long.
     // Otherwise, add it inline.
-    if (text.length > 100) {
+    if (text.length > 50) {
       text += `\n\nTop post by @${recommendedPost.handle}:`;
     } else {
       text += `. Top post by @${recommendedPost.handle}:`;

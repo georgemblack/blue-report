@@ -64,6 +64,14 @@ func TestCleanWithYouTubeTransformation(t *testing.T) {
 			Input:    "https://youtube.com/watch?v=Cv2UdJhXdQg",
 			Expected: "https://www.youtube.com/watch?v=Cv2UdJhXdQg",
 		},
+		{
+			Input:    "https://youtube.com/watch?v=pUxqVgq_HDQ",
+			Expected: "https://www.youtube.com/watch?v=pUxqVgq_HDQ",
+		},
+		{
+			Input:    "https://youtube.com/watch?v=YkJKBK5j2fM",
+			Expected: "https://www.youtube.com/watch?v=YkJKBK5j2fM",
+		},
 	}
 
 	for _, test := range tests {
