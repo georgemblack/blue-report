@@ -16,6 +16,6 @@ func main() {
 	if err != nil {
 		slog.Error(err.Error())
 	}
-	metadata := app.GetCardMetadata(application.Config.CloudflareAPIToken, application.Config.CloudflareAccountID, os.Args[1])
+	metadata := app.GetCardMetadata(application.Config, os.Args[1])
 	slog.Info(fmt.Sprintf("title: %s, image url: %s", metadata.Title, metadata.ImageURL))
 }

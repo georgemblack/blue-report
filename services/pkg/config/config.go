@@ -24,6 +24,7 @@ type Config struct {
 	CloudflareAPIToken          string
 	CloudflareR2AccessKeyID     string
 	CloudflareR2SecretAccessKey string
+	OpenAIAPIKey                string
 }
 
 func New() (Config, error) {
@@ -57,6 +58,11 @@ func New() (Config, error) {
 		return Config{}, util.WrapErr("failed to get cloudflare r2 secret access key", err)
 	}
 
+	aiAPIKey, err := sm.GetOpenAIAPIKey()
+	if err != nil {
+		return Config{}, util.WrapErr("failed to get openai api key", err)
+	}
+
 	result := Config{
 		BlueskyAPIEndpoint:          util.GetEnvStr("BLUESKY_API_ENDPOINT", "https://public.api.bsky.app"),
 		PublicBucketName:            util.GetEnvStr("S3_BUCKET_NAME", "blue-report-test"),
@@ -73,6 +79,7 @@ func New() (Config, error) {
 		CloudflareAPIToken:          apiToken,
 		CloudflareR2AccessKeyID:     r2AccessKeyID,
 		CloudflareR2SecretAccessKey: r2SecretAccessKey,
+		OpenAIAPIKey:                aiAPIKey,
 	}
 
 	// Marshal to JSON and print if debug is enabled

@@ -56,7 +56,7 @@ func hydrateSiteLink(app App, agg *sites.Aggregation, host string, link sites.Li
 
 	// If either title or thumbnail is missing, fetch from CardyB & store
 	if link.ThumbnailURL == "" || link.Title == "" {
-		metadata := GetCardMetadata(app.Config.CloudflareAPIToken, app.Config.CloudflareAccountID, link.URL)
+		metadata := GetCardMetadata(app.Config, link.URL)
 
 		// Save title
 		if link.Title == "" && metadata.Title != "" {

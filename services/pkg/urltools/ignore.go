@@ -45,6 +45,7 @@ func Ignore(input string) bool {
 		return true
 	}
 
+
 	// Ignore links to the app itself. The purpose of this project is to track external links.
 	if parsed.Hostname() == "bsky.app" || parsed.Hostname() == "go.bsky.app" || strings.HasSuffix(parsed.Hostname(), ".bsky.social") {
 		return true

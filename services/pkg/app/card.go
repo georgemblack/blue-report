@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/georgemblack/blue-report/pkg/config"
+	"github.com/georgemblack/blue-report/pkg/llm"
 	"github.com/georgemblack/blue-report/pkg/rendering"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
@@ -18,26 +20,32 @@ type CardMetadata struct {
 
 // Attempt to fetch the title and image URL for a given URL.
 // First attempt to use Bluesky's CardyB service, followed by Cloudflare's browser rendering APIs.
-func GetCardMetadata(cloudflareToken, cloudflareAccountID, url string) CardMetadata {
+func GetCardMetadata(cfg config.Config, url string) CardMetadata {
 	result := CardMetadata{}
 
-	// CardyB
+	// Bluesky exposes a service named 'CardyB' to parse web pages for OpenGraph data.
+	slog.Info("fetching card metadata from cardyb", "url", url)
 	title, imageURL, err := cardyB(url)
 	if err != nil {
-		slog.Warn(util.WrapErr("failed to get title from cardyb, falling back to browser rendering", err).Error())
+		slog.Info(util.WrapErr("cardyb failed", err).Error(), "url", url)
 	}
 	result.Title = title
 	result.ImageURL = imageURL
 
-	// Cloudflare browser rendering
+	// If CardyB fails, attemp to use Cloudflare's browser rendering APIs as a fallback.
 	if result.Title == "" || result.ImageURL == "" {
-		elements, err := rendering.GetPageElements(cloudflareToken, cloudflareAccountID, []string{"meta[property=\"og:title\"]", "meta[property=\"og:image\"]"}, url)
+		slog.Info("fetching card metadata via browser rendering", "url", url)
+		elements, err := rendering.GetPageElements(cfg.CloudflareAPIToken, cfg.CloudflareAccountID, []string{"meta[property=\"og:title\"]", "meta[property=\"og:image\"]"}, url)
 		if err != nil {
-			slog.Warn(util.WrapErr("failed to get data from browser rendering", err).Error())
+			slog.Warn(util.WrapErr("browser rendering failed", err).Error(), "url", url)
 		}
 
 		titles := elements.GetAttribute("meta[property=\"og:title\"]", "content")
 		images := elements.GetAttribute("meta[property=\"og:image\"]", "content")
+
+		if len(titles) == 0 && len(images) == 0 {
+			slog.Info("no title or image found via browser rendering", "url", url)
+		}
 
 		if len(titles) > 0 {
 			result.Title = titles[0]
@@ -45,6 +53,41 @@ func GetCardMetadata(cloudflareToken, cloudflareAccountID, url string) CardMetad
 		if len(images) > 0 {
 			result.ImageURL = images[0]
 		}
+	}
+
+	// If the mime-type of the resouce a PDF document, use an LLM to generate a title.
+	if result.Title == "" {
+		slog.Info("checking mime-type of resource", "url", url)
+		client := http.Client{
+			Timeout: 3 * time.Second,
+		}
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			slog.Warn(util.WrapErr("failed to create request", err).Error(), "url", url)
+			return result
+		}
+		resp, err := client.Do(req)
+		if err != nil {
+			slog.Warn(util.WrapErr("failed to send request", err).Error(), "url", url)
+			return result
+		}
+		defer resp.Body.Close()
+
+		// Check 'Content-Type' header
+		mimeType := resp.Header.Get("Content-Type")
+
+		if mimeType == "application/pdf" {
+			slog.Info("found pdf document, generating title via llm", "url", url)
+
+			title, err := llm.GetDocumentTitle(cfg.OpenAIAPIKey, resp.Body)
+			if err != nil {
+				slog.Warn(util.WrapErr("llm failed", err).Error(), "url", url)
+				return result
+			}
+
+			result.Title = title
+		}
+
 	}
 
 	return result
@@ -76,27 +119,4 @@ func cardyB(url string) (string, string, error) {
 	time.Sleep(1 * time.Second)
 
 	return cardyB.Title, cardyB.Image, nil
-}
-
-type BrowserRenderingRequest struct {
-	URL      string                            `json:"url"`
-	Elements []BrowserRenderingRequestElements `json:"elements"`
-}
-
-type BrowserRenderingRequestElements struct {
-	Selector string `json:"selector"`
-}
-
-type BrowserRenderingResponse struct {
-	Success bool `json:"success"`
-	Result  []struct {
-		Results []struct {
-			Attributes []struct {
-				Name  string `json:"name"`
-				Value string `json:"value"`
-			} `json:"attributes"`
-			Text string `json:"text"`
-		} `json:"results"`
-		Selector string `json:"selector"`
-	} `json:"result"`
 }

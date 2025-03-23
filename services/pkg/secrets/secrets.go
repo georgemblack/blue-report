@@ -44,6 +44,10 @@ func (s SecretsManager) GetCloudflareR2SecretAccessKey() (string, error) {
 	return s.getSecret("blue-report/cloudflare-r2-secret-access-key")
 }
 
+func (s SecretsManager) GetOpenAIAPIKey() (string, error) {
+	return s.getSecret("blue-report/openai-api-key")
+}
+
 func (s SecretsManager) getSecret(secretName string) (string, error) {
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId: aws.String(secretName),
