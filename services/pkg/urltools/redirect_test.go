@@ -184,3 +184,11 @@ func TestResolveLocation(t *testing.T) {
 		}
 	}
 }
+
+func TestFindRedirectWithExcludedHost(t *testing.T) {
+	result := FindRedirect("https://www.nature.com/some/article")
+	expected := ""
+	if result != expected {
+		t.Errorf("expected '%s', got '%s'", expected, result)
+	}
+}

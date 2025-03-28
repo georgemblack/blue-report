@@ -12,10 +12,22 @@ import (
 
 var redirectStatusCodes = []int{http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect}
 
+// Sites where a redirect should not be followed.
+// i.e. Links to standard nature.com articles redirect to a redirect service, which then redirect back to the article. This is stupid.
+var noRedirectHosts = []string{"www.nature.com"}
+
 // FindRedirect attempts to find the destination URL from a given source URL. If no redirect is found, an empty string is returned.
 // Up to two redirects are followed. (Anything more than that is likely a scummy link.)
 func FindRedirect(input string) string {
 	var result string
+
+	// Check if host should be ignored
+	parsed, err := url.Parse(input)
+	if err == nil {
+		if util.ContainsStr(noRedirectHosts, parsed.Hostname()) {
+			return ""
+		}
+	}
 
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
