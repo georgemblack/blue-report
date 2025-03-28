@@ -32,19 +32,10 @@ func Ignore(input string) bool {
 		return true
 	}
 
-	// Ignore known explicit content
-	if parsed.Hostname() == "beacons.ai" || parsed.Hostname() == "yokubo.tv" {
+	// Ignore known sites that generally share explicit content
+	if parsed.Hostname() == "beacons.ai" || parsed.Hostname() == "yokubo.tv" || parsed.Hostname() == "linktr.ee" {
 		return true
 	}
-
-	// Prevent trend manipulation.
-	// Subpaths of this site are allowed, such as 'https://www.democracydocket.com/some-news-story'.
-	// However, the root domain is posted frequently without referring to a specific story.
-	// The intention of The Blue Report is to showcase specific stories/events.
-	if input == "https://www.democracydocket.com" || input == "https://www.democracydocket.com/" {
-		return true
-	}
-
 
 	// Ignore links to the app itself. The purpose of this project is to track external links.
 	if parsed.Hostname() == "bsky.app" || parsed.Hostname() == "go.bsky.app" || strings.HasSuffix(parsed.Hostname(), ".bsky.social") {
