@@ -3,7 +3,17 @@ package urltools
 import (
 	"net/url"
 	"strings"
+
+	"github.com/georgemblack/blue-report/pkg/util"
 )
+
+var ExplicitContentHosts = []string{
+	"beacons.ai",
+	"yokubo.tv",
+	"linktr.ee",
+	"allmylinks.com",
+	"onlyfans.com",
+}
 
 // Determine whether to ignore a given URL, i.e. exclude it from our data.
 func Ignore(input string) bool {
@@ -32,8 +42,8 @@ func Ignore(input string) bool {
 		return true
 	}
 
-	// Ignore known sites that generally share explicit content
-	if parsed.Hostname() == "beacons.ai" || parsed.Hostname() == "yokubo.tv" || parsed.Hostname() == "linktr.ee" {
+	// Ignore known sites that *generally* share explicit content
+	if util.ContainsStr(ExplicitContentHosts, parsed.Hostname()) {
 		return true
 	}
 
