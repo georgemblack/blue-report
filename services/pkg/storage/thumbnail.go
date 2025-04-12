@@ -58,7 +58,7 @@ func (a AWS) SaveThumbnail(id string, imageURL string) (string, error) {
 		Key:          aws.String(key),
 		Body:         bytes.NewReader(image),
 		ContentType:  aws.String(mimeType),
-		CacheControl: aws.String("max-age=28800"), // 8 hours
+		CacheControl: aws.String("public; max-age=28800"), // 8 hours
 	})
 	if err != nil {
 		return "", util.WrapErr("failed to put object", err)

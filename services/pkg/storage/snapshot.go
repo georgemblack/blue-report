@@ -18,7 +18,7 @@ func (a AWS) PublishLinkSnapshot(snapshot []byte) error {
 		Key:          aws.String("data/top-links.json"),
 		Body:         bytes.NewReader(snapshot),
 		ContentType:  aws.String("application/json"),
-		CacheControl: aws.String("max-age=600"), // 10 minutes
+		CacheControl: aws.String("public; max-age=600"), // 10 minutes
 	})
 	if err != nil {
 		slog.Error(util.WrapErr("failed to put object to r2", err).Error())
@@ -34,7 +34,7 @@ func (a AWS) PublishSiteSnapshot(snapshot []byte) error {
 		Key:          aws.String("data/top-sites.json"),
 		Body:         bytes.NewReader(snapshot),
 		ContentType:  aws.String("application/json"),
-		CacheControl: aws.String("max-age=600"), // 10 minutes
+		CacheControl: aws.String("public; max-age=600"), // 10 minutes
 	})
 	if err != nil {
 		slog.Error(util.WrapErr("failed to put object to r2", err).Error())
