@@ -118,20 +118,22 @@ func (a AWS) RecentFeedEntry() bool {
 
 func (a AWS) PublishFeeds(atom, json string) error {
 	_, err := a.r2.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:      aws.String(a.cfg.PublicBucketName),
-		Key:         aws.String("feeds/top-day.xml"),
-		Body:        strings.NewReader(atom),
-		ContentType: aws.String("application/atom+xml"),
+		Bucket:       aws.String(a.cfg.PublicBucketName),
+		Key:          aws.String("feeds/top-day.xml"),
+		Body:         strings.NewReader(atom),
+		ContentType:  aws.String("application/atom+xml"),
+		CacheControl: aws.String("max-age=600"), // 10 minutes
 	})
 	if err != nil {
 		return util.WrapErr("failed to put atom feed", err)
 	}
 
 	_, err = a.r2.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:      aws.String(a.cfg.PublicBucketName),
-		Key:         aws.String("feeds/top-day.json"),
-		Body:        strings.NewReader(json),
-		ContentType: aws.String("application/feed+json"),
+		Bucket:       aws.String(a.cfg.PublicBucketName),
+		Key:          aws.String("feeds/top-day.json"),
+		Body:         strings.NewReader(json),
+		ContentType:  aws.String("application/feed+json"),
+		CacheControl: aws.String("max-age=600"), // 10 minutes
 	})
 	if err != nil {
 		return util.WrapErr("failed to put json feed", err)

@@ -54,10 +54,11 @@ func (a AWS) SaveThumbnail(id string, imageURL string) (string, error) {
 
 	key := fmt.Sprintf("thumbnails/%s.%s", id, extension(mimeType))
 	_, err = a.r2.PutObject(context.Background(), &s3.PutObjectInput{
-		Bucket:      aws.String(a.cfg.PublicBucketName),
-		Key:         aws.String(key),
-		Body:        bytes.NewReader(image),
-		ContentType: aws.String(mimeType),
+		Bucket:       aws.String(a.cfg.PublicBucketName),
+		Key:          aws.String(key),
+		Body:         bytes.NewReader(image),
+		ContentType:  aws.String(mimeType),
+		CacheControl: aws.String("max-age=28800"), // 8 hours
 	})
 	if err != nil {
 		return "", util.WrapErr("failed to put object", err)
