@@ -3,6 +3,9 @@ import "../styles/about.css";
 
 import Layout from "../layouts/Layout.astro";
 import ContributionButton from "../components/ContributionButton.astro";
+
+export const prerender = true;
+Astro.response.headers.set("Cache-Control", "public, max-age=120");
 ---
 
 <Layout subtitle="About this site">

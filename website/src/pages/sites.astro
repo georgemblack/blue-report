@@ -6,6 +6,8 @@ import Footer from "../components/Footer.astro";
 import { fetchTopSites } from "../util/Data";
 import { formatCount, formatDate } from "../util/Format";
 
+Astro.response.headers.set("Cache-Control", "public, max-age=120");
+
 const snapshot = await fetchTopSites();
 ---
 

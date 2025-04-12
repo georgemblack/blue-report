@@ -6,6 +6,8 @@ import Layout from "../layouts/Layout.astro";
 import LinkReport from "../components/LinkReport.astro";
 import { fetchTopLinks } from "../util/Data";
 
+Astro.response.headers.set("Cache-Control", "public, max-age=120");
+
 const snapshot = await fetchTopLinks();
 ---
 
