@@ -3,6 +3,12 @@
     "main": "./dist/_worker.js/index.js",
     "compatibility_date": "2025-04-11",
     "compatibility_flags": ["nodejs_compat"],
+    "routes": [
+      {
+        "pattern": "theblue.report",
+        "custom_domain": true
+      }
+    ],
     "assets": {
       "binding": "ASSETS",
       "directory": "./dist"
