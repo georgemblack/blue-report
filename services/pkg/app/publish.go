@@ -82,13 +82,6 @@ func PublishLinkSnapshot(snapshot links.Snapshot) error {
 		return util.WrapErr("failed to publish feeds", err)
 	}
 
-	// Trigger Cloudflare Pages deployment to re-build site with fresh data
-	slog.Info("triggering deployment")
-	err = deploy(app.Config.CloudflareDeployHook)
-	if err != nil {
-		return util.WrapErr("failed to deploy", err)
-	}
-
 	duration := time.Since(start)
 	slog.Info("publish complete", "seconds", duration.Seconds())
 	return nil
@@ -115,12 +108,6 @@ func PublishSiteSnapshot(snapshot sites.Snapshot) error {
 
 	if os.Getenv("DEBUG") == "true" {
 		os.WriteFile("dist/sites.json", data, 0644)
-	}
-
-	slog.Info("triggering deployment")
-	err = deploy(app.Config.CloudflareDeployHook)
-	if err != nil {
-		return util.WrapErr("failed to deploy", err)
 	}
 
 	duration := time.Since(start)

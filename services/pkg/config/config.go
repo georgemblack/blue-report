@@ -20,7 +20,6 @@ type Config struct {
 	ValkeyTLSEnabled            bool
 	NoralizationQueueName       string
 	CloudflareAccountID         string
-	CloudflareDeployHook        string
 	CloudflareAPIToken          string
 	CloudflareR2AccessKeyID     string
 	CloudflareR2SecretAccessKey string
@@ -36,11 +35,6 @@ func New() (Config, error) {
 	accountID, err := sm.GetCloudflareAccountID()
 	if err != nil {
 		return Config{}, util.WrapErr("failed to get cloudflare account id", err)
-	}
-
-	deployHook, err := sm.GetDeployHook()
-	if err != nil {
-		return Config{}, util.WrapErr("failed to get deploy hook", err)
 	}
 
 	apiToken, err := sm.GetCloudflareAPIToken()
@@ -75,7 +69,6 @@ func New() (Config, error) {
 		ValkeyTLSEnabled:            util.GetEnvBool("VALKEY_TLS_ENABLED", false),
 		NoralizationQueueName:       util.GetEnvStr("SQS_NORMALIZATION_QUEUE_NAME", "blue-report-normalization-test"),
 		CloudflareAccountID:         accountID,
-		CloudflareDeployHook:        deployHook,
 		CloudflareAPIToken:          apiToken,
 		CloudflareR2AccessKeyID:     r2AccessKeyID,
 		CloudflareR2SecretAccessKey: r2SecretAccessKey,

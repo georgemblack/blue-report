@@ -28,10 +28,6 @@ func (s SecretsManager) GetCloudflareAccountID() (string, error) {
 	return s.getSecret("blue-report/cloudflare-account-id")
 }
 
-func (s SecretsManager) GetDeployHook() (string, error) {
-	return s.getSecret("blue-report/cloudflare-deploy-hook-url")
-}
-
 func (s SecretsManager) GetCloudflareAPIToken() (string, error) {
 	return s.getSecret("blue-report/cloudflare-api-token")
 }
