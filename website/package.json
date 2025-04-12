@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@astrojs/cloudflare": "^12.4.0",
-    "@astrojs/sitemap": "^3.2.1",
-    "astro": "^5.2.5",
+    "@astrojs/sitemap": "3.3.0",
+    "astro": "5.6.1",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0"
   },
