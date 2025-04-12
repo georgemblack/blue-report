@@ -1,5 +1,5 @@
 {
-    "name": "blue-report",
+    "name": "blue-report-web",
     "main": "./dist/_worker.js/index.js",
     "compatibility_date": "2025-04-11",
     "compatibility_flags": ["nodejs_compat"],
