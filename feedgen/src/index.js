@@ -79,11 +79,11 @@ async function handleFeedRequest(url, env) {
     return internalError();
   }
 
-  // Aggregate AT URIs of top posts
+  // Aggregate AT URIs of top post for each link
   const atUris = [];
   for (const link of parsed[dataField]) {
-    for (const post of link.recommended_posts) {
-      atUris.push(post.at_uri);
+    if (link.recommended_posts > 0) {
+      atUris.push(link.recommended_posts[0].at_uri);
     }
   }
 
