@@ -7,7 +7,13 @@
         "pattern": "feedgen.theblue.report",
         "custom_domain": true
       }
-    ],
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BLUE_REPORT",
+      "bucket_name": "blue-report"
+    }
+  ],
 	"observability": {
 		"enabled": true
 	}
