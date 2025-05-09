@@ -14,7 +14,7 @@ export default {
     if (url.pathname === "/.well-known/did.json") {
       response = handleDidRequest();
     } else if (url.pathname === "/xrpc/app.bsky.feed.getFeedSkeleton") {
-      response = await handleFeedRequest(env);
+      response = await handleFeedRequest(url, env);
     } else {
       return notFoundError();
     }
@@ -53,7 +53,14 @@ function handleDidRequest() {
   );
 }
 
-async function handleFeedRequest(env) {
+async function handleFeedRequest(url, env) {
+  // Using the request URL, find the name of the JSON field containing the data we want
+  const dataField = dataFieldName(url);
+  if (!dataField) {
+    console.log({ message: "invalid feed in url" });
+    return notFoundError();
+  }
+
   // Fetch & parse site data from R2
   const object = await env.BLUE_REPORT.get("data/top-links.json");
   if (!object) {
@@ -74,7 +81,7 @@ async function handleFeedRequest(env) {
 
   // Aggregate AT URIs of top posts
   const atUris = [];
-  for (const link of parsed.top_day) {
+  for (const link of parsed[dataField]) {
     for (const post of link.recommended_posts) {
       atUris.push(post.at_uri);
     }
@@ -95,6 +102,37 @@ async function handleFeedRequest(env) {
       },
     }
   );
+}
+
+// AppViews request feeds via the following URL structure:
+//  - https://feedgen.theblue.report/xrpc/app.bsky.feed.getFeedSkeleton?feed=at://${DID}/app.bsky.feed.generator/${ID}
+// Parse the AT URI of the feed, and return the name of the JSON field containing the data we want.
+//  - 'toplinkshour' -> 'top_hour'
+//  - 'toplinksday' -> 'top_day'
+//  - 'toplinksweek' -> 'top_week'
+function dataFieldName(url) {
+  // Check for AT URI of feed in 'feed' query param
+  const atUri = url.searchParams.get("feed");
+  if (!atUri) {
+    return null;
+  }
+
+  // Parse AT URI
+  const parts = atUri.split("/");
+  const name = parts[parts.length - 1];
+  if (!name) {
+    return null;
+  }
+
+  // Check for valid feed name
+  const validNames = ["toplinkshour", "toplinksday", "toplinksweek"];
+  if (!validNames.includes(name)) {
+    return null;
+  }
+
+  // Map feed name to JSON field name
+  const fieldName = name.replace("toplinks", "top_");
+  return fieldName;
 }
 
 function notFoundError() {
