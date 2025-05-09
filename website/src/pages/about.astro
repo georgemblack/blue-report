@@ -28,11 +28,29 @@ Astro.response.headers.set("Cache-Control", "public, max-age=120");
         Buying a coffee helps keep the servers running, and is greatly
         appreciated!
       </p>
-      <h2>Feeds</h2>
+      <h2>Bluesky Feeds</h2>
       <p>
         The <a href="https://bsky.app/profile/theblue.report">@theblue.report</a
-        > account on Bluesky posts links that reach #1 on the report. For feed readers,
-        there is an Atom and JSON feed available:
+        > account on Bluesky hosts custom feeds with the report. Each link in the
+        report is represented the most popular post that shared it.
+      </p>
+      <ul>
+        <li>
+          <a href="https://bsky.app/profile/theblue.report/feed/toplinkshour">
+            Hot Links (previous hour)
+          </a>
+          <a href="https://bsky.app/profile/theblue.report/feed/toplinksday">
+            Top Links (previous day)
+          </a>
+          <a href="https://bsky.app/profile/theblue.report/feed/toplinksweek">
+            Best Links (previous week)
+          </a>
+        </li>
+      </ul>
+      <h2>Atom/JSON Feeds</h2>
+      <p>
+        The Atom/JSON feeds share posts that reach the #1 spot on the report,
+        and embed the most popular posts that shared the given link.
       </p>
       <ul>
         <li>
