@@ -82,7 +82,7 @@ async function handleFeedRequest(url, env) {
   // Aggregate AT URIs of top post for each link
   const atUris = [];
   for (const link of parsed[dataField]) {
-    if (link.recommended_posts > 0) {
+    if (link.recommended_posts.length > 0) {
       atUris.push(link.recommended_posts[0].at_uri);
     }
   }
