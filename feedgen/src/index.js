@@ -18,10 +18,13 @@ export default {
     } else {
       return notFoundError();
     }
-    try {
-      ctx.waitUntil(cache.put(cacheKey, response.clone()));
-    } catch (e) {
-      console.log({ message: "failed to cache response; " + e });
+
+    if (response.status === 200) {
+      try {
+        ctx.waitUntil(cache.put(cacheKey, response.clone()));
+      } catch (e) {
+        console.log({ message: "failed to cache response; " + e });
+      }
     }
 
     return response;
