@@ -89,11 +89,9 @@ async function handleFeedRequest(url, env) {
 
   return new Response(
     JSON.stringify({
-      feed: [
-        atUris.map((atUri) => ({
-          post: atUri,
-        })),
-      ],
+      feed: atUris.map((atUri) => ({
+        post: atUri,
+      })),
     }),
     {
       headers: {
