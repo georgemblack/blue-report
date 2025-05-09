@@ -31,44 +31,48 @@ Astro.response.headers.set("Cache-Control", "public, max-age=120");
       <h2>Bluesky Feeds</h2>
       <p>
         The <a href="https://bsky.app/profile/theblue.report">@theblue.report</a
-        > account on Bluesky hosts custom feeds with the report. Each link in the
-        report is represented the most popular post that shared it.
+        > account on Bluesky hosts custom feeds to view the report. Each link in
+        is represented the most popular post that shared it.
       </p>
       <ul>
         <li>
           <a href="https://bsky.app/profile/theblue.report/feed/toplinkshour">
             Hot Links (previous hour)
           </a>
+        </li>
+        <li>
           <a href="https://bsky.app/profile/theblue.report/feed/toplinksday">
             Top Links (previous day)
           </a>
+        </li>
+        <li>
           <a href="https://bsky.app/profile/theblue.report/feed/toplinksweek">
             Best Links (previous week)
           </a>
         </li>
       </ul>
-      <h2>Atom/JSON Feeds</h2>
-      <p>
-        The Atom/JSON feeds share posts that reach the #1 spot on the report,
-        and embed the most popular posts that shared the given link.
-      </p>
-      <ul>
-        <li>
-          <a href="https://data.theblue.report/feeds/top-day.xml">Atom feed</a>
-        </li>
-        <li>
-          <a href="https://data.theblue.report/feeds/top-day.json">JSON feed</a>
-        </li>
-      </ul>
-      <h2>Contact</h2>
-      <p>
-        For questions or feedback, reach out to <a
-          href="mailto:contact@george.black">contact@george.black</a
-        >.
-      </p>
     </div>
+    <h2>Atom/JSON Feeds</h2>
+    <p>
+      The Atom/JSON feeds share posts that reach the #1, and embed the most
+      popular posts that shared the given link.
+    </p>
+    <ul>
+      <li>
+        <a href="https://data.theblue.report/feeds/top-day.xml">Atom feed</a>
+      </li>
+      <li>
+        <a href="https://data.theblue.report/feeds/top-day.json">JSON feed</a>
+      </li>
+    </ul>
+    <h2>Contact</h2>
+    <p>
+      For questions or feedback, reach out to <a
+        href="mailto:contact@george.black">contact@george.black</a
+      >.
+    </p>
   </main>
-  <footer>
-    <ContributionButton />
-  </footer>
 </Layout>
+<footer>
+  <ContributionButton />
+</footer>
