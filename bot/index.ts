@@ -13,7 +13,6 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-const DYNAMO_FEED_TABLE_NAME = process.env.DYNAMO_FEED_TABLE_NAME;
 const BLUESKY_USERNAME = process.env.BLUESKY_USERNAME;
 const BLUESKY_PASSWORD = process.env.BLUESKY_PASSWORD;
 
@@ -39,10 +38,6 @@ interface FeedItemPost {
 }
 
 const encoder = new TextEncoder();
-
-const dbClient = new DynamoDBClient({ region: "us-west-2" });
-const docClient = DynamoDBDocumentClient.from(dbClient);
-const secretsClient = new SecretsManagerClient({ region: "us-west-2" });
 const atpAgent = new AtpAgent({ service: "https://bsky.social" });
 
 class UnicodeString {
@@ -61,7 +56,7 @@ class UnicodeString {
 }
 
 async function main() {
-  const blueskyPassword = BLUESKY_PASSWORD || (await getBlueskyPassword());
+  const blueskyPassword = BLUESKY_PASSWORD;
   if (!blueskyPassword) {
     console.error("No Bluesky password found");
     return;
@@ -72,77 +67,9 @@ async function main() {
     password: blueskyPassword!,
   });
 
-  // Scan DynamoDB 'feed' table for unpublished entries
-  const paginatedScan = paginateScan(
-    { client: docClient },
-    {
-      TableName: DYNAMO_FEED_TABLE_NAME,
-      FilterExpression: "published = :falseVal",
-      ExpressionAttributeValues: {
-        ":falseVal": false,
-      },
-    }
-  );
-
-  let entries: FeedItem[] = [];
-  for await (const page of paginatedScan) {
-    if (page.Items) {
-      entries.push(...(page.Items as FeedItem[]));
-    }
-  }
-
-  if (entries.length === 0) {
-    console.log("No unpublished feed entries found, exiting");
-    return;
-  } else {
-    console.log(`Found ${entries.length} unpublished feed entries`);
-  }
-
-  // Select the first entry to process. Other entries will be processed in subsequent runs.
-  const entry = entries[0];
-  console.log(`Processing feed entry: '${entry.urlHash}'`);
-
-  // Parse entry contents
-  let entryContent: FeedItemContent;
-  try {
-    entryContent = JSON.parse(entry.content);
-  } catch (error) {
-    console.error(`Error parsing entry content: ${error}`);
-    markAsPublished(entry.urlHash);
-    return;
-  }
-
-  // Select the first recommended post to quote.
-  // If there are no recommended posts, create a post without a quote.
-  let recommendedPost: FeedItemPost | undefined;
-  if (entryContent.recommended_posts.length > 0) {
-    recommendedPost = entryContent.recommended_posts[0];
-  }
-
-  // Find the CID of the given post. Convert AT URI into DID and rkey.
-  // i.e. 'at://did:plc:u5cwb2mwiv2bfq53cjufe6yn/app.bsky.feed.post/3k44deefqdk2g' -> ['did:plc:u5cwb2mwiv2bfq53cjufe6yn', '3k44deefqdk2g']
-  let cid: string | undefined;
-  if (recommendedPost) {
-    const uriParts = recommendedPost?.at_uri.split("/");
-    const repo = uriParts[2];
-    const rkey = uriParts[4];
-    console.log(`Parsed repo: '${repo}', rkey: '${rkey}' from AT URI`);
-
-    // Fetch the 'top post' associated with the entry from Bluesky.
-    // Find the CID of this post, as well as the author's handle.
-    try {
-      const post = await atpAgent.getPost({ repo: repo, rkey: rkey });
-      cid = post.cid;
-    } catch (error) {
-      console.error(`Error fetching post from Bluesky: ${error}`);
-      return;
-    }
-    console.log(`Fetched post CID: '${cid}'`);
-  }
-
   // Generate post content
   let facets: Facet[] = [];
-  let text = `${entryContent.title}`;
+  let text = `The Blue Report`;
   let newPost: Partial<AppBskyFeedPost.Record> = {};
 
   // Add link facet
@@ -154,97 +81,101 @@ async function main() {
     features: [
       {
         $type: "app.bsky.richtext.facet#link",
-        uri: entryContent.url,
+        uri: "https://theblue.report",
       },
     ],
   });
 
-  // Attatch recommended post if it exists
-  if (recommendedPost && cid) {
-    // For visual appeal, add mention on a new line if the title is long.
-    // Otherwise, add it inline.
-    if (text.length > 50) {
-      text += `\n\nTop post by @${recommendedPost.handle}:`;
-    } else {
-      text += `. Top post by @${recommendedPost.handle}:`;
-    }
+  text +=
+    " is a site that rounds up the most popular links on Bluesky. This account hosts feeds to view them in-app:\n\n- ";
 
-    // Find index of '@', start of handle
-    const at = text.indexOf("@");
+  const firstFeed = "Top Links (past day)";
+  const secondFeed = "Trending Links (past hour)";
+  const thirdFeed = "Best Links (past week)";
 
-    // Calculate start & end byte for facet
-    const unicode = new UnicodeString(text);
-    const byteStart = unicode.utf16IndexToUtf8Index(at);
-    const byteEnd = unicode.utf16IndexToUtf8Index(
-      at + recommendedPost.handle.length + 1
-    );
+  text += `${firstFeed}`;
 
-    // Find DID of handle
-    const did = recommendedPost.at_uri.split("/")[2];
-
-    // Add handle facet
-    facets.push({
-      index: {
-        byteStart,
-        byteEnd,
+  facets.push({
+    index: {
+      byteStart: new UnicodeString(text).utf16IndexToUtf8Index(
+        text.length - firstFeed.length
+      ),
+      byteEnd: new UnicodeString(text).utf16IndexToUtf8Index(text.length),
+    },
+    features: [
+      {
+        $type: "app.bsky.richtext.facet#link",
+        uri: "https://bsky.app/profile/theblue.report/feed/toplinksday",
       },
-      features: [
-        {
-          $type: "app.bsky.richtext.facet#mention",
-          did,
-        },
-      ],
-    });
+    ],
+  });
 
-    // Add post as embed
-    newPost.embed = {
-      $type: "app.bsky.embed.record",
-      record: {
-        uri: recommendedPost.at_uri,
-        cid: cid,
+  text += `\n- ${secondFeed}`;
+
+  facets.push({
+    index: {
+      byteStart: new UnicodeString(text).utf16IndexToUtf8Index(
+        text.length - secondFeed.length
+      ),
+      byteEnd: new UnicodeString(text).utf16IndexToUtf8Index(text.length),
+    },
+    features: [
+      {
+        $type: "app.bsky.richtext.facet#link",
+        uri: "https://bsky.app/profile/theblue.report/feed/toplinkshour",
       },
-    };
-  }
+    ],
+  });
+
+  text += `\n- ${thirdFeed}`;
+
+  facets.push({
+    index: {
+      byteStart: new UnicodeString(text).utf16IndexToUtf8Index(
+        text.length - thirdFeed.length
+      ),
+      byteEnd: new UnicodeString(text).utf16IndexToUtf8Index(text.length),
+    },
+    features: [
+      {
+        $type: "app.bsky.richtext.facet#link",
+        uri: "https://bsky.app/profile/theblue.report/feed/toplinksweek",
+      },
+    ],
+  });
+
+  const here = "More info here";
+  text += `\n\nFor the nerds, Atom/JSON feeds are also available! ${here}`;
+
+  facets.push({
+    index: {
+      byteStart: new UnicodeString(text).utf16IndexToUtf8Index(
+        text.length - here.length
+      ),
+      byteEnd: new UnicodeString(text).utf16IndexToUtf8Index(text.length),
+    },
+    features: [
+      {
+        $type: "app.bsky.richtext.facet#link",
+        uri: "https://theblue.report/about",
+      },
+    ],
+  });
+
+  text += `.`;
+
+  newPost.embed = {
+    $type: "app.bsky.embed.record",
+    record: {
+      cid: "bafyreia3jwwvzrqkm32nausivhhe7do7zukub3ht32skf2tvw6iq4e44o4",
+      uri: "at://did:plc:zrcqicmkxum6tir6ahthppif/app.bsky.feed.generator/toplinksday",
+    },
+  };
 
   newPost.text = text;
   newPost.facets = facets;
   await atpAgent.post(newPost);
   console.log(`Post published to Bluesky successfully`);
-
-  // Mark the entry as published
-  await markAsPublished(entry.urlHash);
-}
-
-async function markAsPublished(urlHash: string) {
-  const command = new UpdateCommand({
-    TableName: DYNAMO_FEED_TABLE_NAME,
-    Key: {
-      urlHash,
-    },
-    UpdateExpression: "SET published = :trueVal",
-    ExpressionAttributeValues: {
-      ":trueVal": true,
-    },
-  });
-  return await docClient.send(command);
-}
-
-async function getBlueskyPassword(): Promise<string> {
-  let response;
-
-  try {
-    response = await secretsClient.send(
-      new GetSecretValueCommand({
-        SecretId: "blue-report/bluesky-password",
-        VersionStage: "AWSCURRENT",
-      })
-    );
-  } catch (error) {
-    console.error("Error fetching secret: ", error);
-    return "";
-  }
-
-  return response.SecretString || "";
 }
 
 main();
