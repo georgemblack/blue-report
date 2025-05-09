@@ -1,17 +1,30 @@
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // Serve request from cache if available
+    const cacheKey = new Request(url.toString(), request);
+    const cache = caches.default;
+    let response = await cache.match(cacheKey);
+    if (response) {
+      return response;
+    }
+
+    // Build new response & cache it
     if (url.pathname === "/.well-known/did.json") {
-      return handleDidRequest();
+      response = handleDidRequest();
+    } else if (url.pathname === "/xrpc/app.bsky.feed.getFeedSkeleton") {
+      response = await handleFeedRequest(env);
+    } else {
+      return notFoundError();
     }
-    if (url.pathname === "/xrpc/app.bsky.feed.getFeedSkeleton") {
-      return handleFeedRequest(env);
-    }
-    return notFoundError();
+    ctx.waitUntil(cache.put(cacheKey, response.clone()));
+
+    return response;
   },
 };
 
-async function handleDidRequest() {
+function handleDidRequest() {
   return new Response(
     JSON.stringify({
       "@context": ["https://www.w3.org/ns/did/v1"],
@@ -26,6 +39,7 @@ async function handleDidRequest() {
     }),
     {
       headers: {
+        "Cache-Control": "public; max-age=3600",
         "Content-Type": "application/json",
       },
     }
@@ -66,6 +80,7 @@ async function handleFeedRequest(env) {
     }),
     {
       headers: {
+        "Cache-Control": "public; max-age=600",
         "Content-Type": "application/json",
       },
     }
