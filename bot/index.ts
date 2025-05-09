@@ -1,14 +1,4 @@
 import { AtpAgent, AppBskyFeedPost, AppBskyRichtextFacet } from "@atproto/api";
-import {
-  SecretsManagerClient,
-  GetSecretValueCommand,
-} from "@aws-sdk/client-secrets-manager";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-  DynamoDBDocumentClient,
-  UpdateCommand,
-  paginateScan,
-} from "@aws-sdk/lib-dynamodb";
 import * as dotenv from "dotenv";
 
 dotenv.config();
@@ -174,6 +164,7 @@ async function main() {
 
   newPost.text = text;
   newPost.facets = facets;
+  newPost.langs = ["en"];
   await atpAgent.post(newPost);
   console.log(`Post published to Bluesky successfully`);
 }
