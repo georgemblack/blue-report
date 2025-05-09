@@ -48,20 +48,20 @@ function handleDidRequest() {
 
 async function handleFeedRequest(env) {
   // Fetch & parse site data from R2
-  const data = await env.BLUE_REPORT.get("data/top-links.json");
-  if (!data) {
-    console.log({ message: "failed to fetch data from r2" });
+  const object = await env.BLUE_REPORT.get("data/top-links.json");
+  if (!object) {
+    console.log({ message: "failed to fetch object from r2" });
     return internalError();
   }
   let parsed;
   try {
-    parsed = JSON.parse(data);
+    parsed = JSON.parse(object.body);
   } catch (e) {
-    console.log({ message: "failed to parse data from r2; " + e });
+    console.log({ message: "failed to parse object from r2; " + e });
     return internalError();
   }
   if (!parsed) {
-    console.log({ message: "failed to parse data from r2" });
+    console.log({ message: "failed to parse object from r2" });
     return internalError();
   }
 
