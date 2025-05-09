@@ -55,7 +55,7 @@ async function handleFeedRequest(env) {
   }
   let parsed;
   try {
-    parsed = JSON.parse(object.body);
+    parsed = await object.json();
   } catch (e) {
     console.log({ message: "failed to parse object from r2; " + e });
     return internalError();
