@@ -1,0 +1,14 @@
+{
+	"name": "blue-report-feedgen",
+	"main": "src/index.js",
+	"compatibility_date": "2025-04-11",
+	"routes": [
+      {
+        "pattern": "feedgen.theblue.report",
+        "custom_domain": true
+      }
+    ],
+	"observability": {
+		"enabled": true
+	}
+}

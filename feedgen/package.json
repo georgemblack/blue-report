@@ -1,0 +1,17 @@
+{
+  "name": "winter-cherry-a7dd",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "start": "wrangler dev",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.19",
+    "wrangler": "^3.101.0",
+    "vitest": "~3.0.7"
+  },
+  "packageManager": "yarn@4.9.1"
+}
