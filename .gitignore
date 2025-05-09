@@ -17,6 +17,9 @@ feedgen/.yarn/unplugged
 feedgen/.yarn/build-state.yml
 feedgen/.yarn/install-state.gz
 
+# Wrangler
+feedgen/.wrangler
+
 # Custom
 publish.sh
 bot/index.js
