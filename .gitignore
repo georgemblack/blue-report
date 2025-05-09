@@ -8,10 +8,14 @@ dist
 .env
 
 # Yarn
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
+website/.yarn/cache
+website/.yarn/unplugged
+website/.yarn/build-state.yml
+website/.yarn/install-state.gz
+feedgen/.yarn/cache
+feedgen/.yarn/unplugged
+feedgen/.yarn/build-state.yml
+feedgen/.yarn/install-state.gz
 
 # Custom
 publish.sh
