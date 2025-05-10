@@ -14,7 +14,7 @@ var redirectStatusCodes = []int{http.StatusMovedPermanently, http.StatusFound, h
 
 // Sites where a redirect should not be followed.
 // i.e. Links to standard nature.com articles redirect to a redirect service, which then redirect back to the article. This is stupid.
-var noRedirectHosts = []string{"www.nature.com"}
+var noRedirectHosts = []string{"www.nature.com", "link.springer.com", "www.azcentral.com"}
 
 // FindRedirect attempts to find the destination URL from a given source URL. If no redirect is found, an empty string is returned.
 // Up to two redirects are followed. (Anything more than that is likely a scummy link.)
@@ -47,6 +47,11 @@ func FindRedirect(input string) string {
 	}
 	result = resolveLocation(input, resp.Header.Get("Location"))
 
+	// If the destination URL is a honeypot service (like TollBit), return no redirect.
+	if honeypot(result) {
+		return ""
+	}
+
 	// Check for a second redirect
 	resp, err = client.Get(result)
 	if err != nil {
@@ -56,7 +61,15 @@ func FindRedirect(input string) string {
 	if !util.ContainsInt(redirectStatusCodes, resp.StatusCode) || resp.Header.Get("Location") == "" {
 		return result
 	}
-	return resolveLocation(result, resp.Header.Get("Location"))
+	result = resolveLocation(result, resp.Header.Get("Location"))
+
+	// If the destination URL is a honeypot service (like TollBit), return no redirect.
+	// A honeypot service is most likely detected by the first redirect – but we check again just in case.
+	if honeypot(result) {
+		return ""
+	}
+
+	return result
 }
 
 // Given a URL, and the 'Location' header of its redirect, return the final destination URL. Examples:
@@ -88,4 +101,13 @@ func resolveLocation(originalURL, location string) string {
 		return fmt.Sprintf("%s%s", originalURL, location)
 	}
 	return fmt.Sprintf("%s/%s", originalURL, location)
+}
+
+// Determine if a URL is a honeypot service (i.e. 'tollbit.')
+func honeypot(input string) bool {
+	parsed, err := url.Parse(input)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(parsed.Hostname(), "tollbit.")
 }

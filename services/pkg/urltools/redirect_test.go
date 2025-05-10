@@ -114,6 +114,24 @@ func TestFindRedirectAbsoluteURL(t *testing.T) {
 	}
 }
 
+// Test honeypot services (i.e. 'tollbit.')
+func TestFindRedirectHoneypot(t *testing.T) {
+	ms := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Initial request
+		if r.URL.Path == "/" {
+			w.Header().Set("Location", "https://tollbit.theblue.report")
+			w.WriteHeader(http.StatusTemporaryRedirect)
+		}
+	}))
+	defer ms.Close()
+
+	result := FindRedirect(ms.URL)
+	expected := ""
+	if result != expected {
+		t.Errorf("expected '%s', got '%s'", expected, result)
+	}
+}
+
 func TestResolveLocation(t *testing.T) {
 	tests := []struct {
 		originalURL string
