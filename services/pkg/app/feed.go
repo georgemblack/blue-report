@@ -13,17 +13,16 @@ import (
 )
 
 func generateAtomFeed(stg Storage) (string, error) {
-	feed := feeds.Feed{
-		Id:    "https://theblue.report/",
+	feed := feeds.AtomFeed{
+		Xmlns: "http://www.w3.org/2005/Atom",
 		Title: "The Blue Report",
-		Link: &feeds.Link{
+		Link: &feeds.AtomLink{
 			Href: "https://data.theblue.report/feeds/top-day.xml",
 			Rel:  "self",
 		},
-		Image: &feeds.Image{
-			Url: "https://theblue.report/icons/web-app-manifest-512x512.png",
-		},
-		Updated: time.Now().UTC(),
+		Id:      "https://theblue.report/",
+		Icon:    "https://theblue.report/icons/web-app-manifest-512x512.png",
+		Updated: time.Now().UTC().Format(time.RFC3339),
 	}
 
 	// Fetch all feed entries
@@ -34,20 +33,19 @@ func generateAtomFeed(stg Storage) (string, error) {
 
 	for _, entry := range entries {
 		hostname := urltools.Hostname(entry.Content.URL)
-
-		feed.Add(&feeds.Item{
+		feed.Entries = append(feed.Entries, &feeds.AtomEntry{
 			Id:      entry.Content.URL,
 			Title:   entry.Content.Title,
-			Link:    &feeds.Link{Href: entry.Content.URL},
-			Content: generateFeedContent(entry.Content),
-			Author:  &feeds.Author{Name: hostname},
-			Updated: entry.Timestamp,
+			Links:   []feeds.AtomLink{{Href: entry.Content.URL, Rel: "alternate"}},
+			Content: &feeds.AtomContent{Content: generateFeedContent(entry.Content), Type: "html"},
+			Author:  &feeds.AtomAuthor{AtomPerson: feeds.AtomPerson{Name: hostname}},
+			Updated: entry.Timestamp.Format(time.RFC3339),
 		})
 	}
 
-	atom, err := feed.ToAtom()
+	atom, err := feeds.ToXML(&feed)
 	if err != nil {
-		return "", util.WrapErr("failed to generate atom feed", err)
+		return "", util.WrapErr("failed to marshal atom feed", err)
 	}
 
 	return atom, nil
