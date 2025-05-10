@@ -22,4 +22,3 @@ feedgen/.wrangler
 
 # Custom
 publish.sh
-bot/index.js
