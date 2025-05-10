@@ -49,7 +49,6 @@ func (a AWS) AddFeedEntry(entry FeedEntry) error {
 		Item: map[string]dynamoDBTypes.AttributeValue{
 			"urlHash":   &dynamoDBTypes.AttributeValueMemberS{Value: hashedURL},
 			"timestamp": &dynamoDBTypes.AttributeValueMemberS{Value: entry.Timestamp.Format(time.RFC3339)},
-			"published": &dynamoDBTypes.AttributeValueMemberBOOL{Value: false},
 			"content":   &dynamoDBTypes.AttributeValueMemberS{Value: string(content)},
 		},
 		ConditionExpression: aws.String("attribute_not_exists(urlHash)"), // Do not overwrite existing entries
