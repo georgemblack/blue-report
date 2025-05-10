@@ -20,7 +20,7 @@ func generateAtomFeed(stg Storage) (string, error) {
 			Href: "https://data.theblue.report/feeds/top-day.xml",
 			Rel:  "self",
 		},
-		Id:      "https://theblue.report/",
+		Id:      "https://data.theblue.report/feeds/top-day.xml",
 		Icon:    "https://theblue.report/icons/web-app-manifest-512x512.png",
 		Updated: time.Now().UTC().Format(time.RFC3339),
 	}
