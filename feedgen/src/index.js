@@ -14,7 +14,7 @@ export default {
     if (url.pathname === "/.well-known/did.json") {
       response = handleDidRequest();
     } else if (url.pathname === "/xrpc/app.bsky.feed.getFeedSkeleton") {
-      response = await handleFeedRequest(url, env);
+      response = await handleFeedRequest(env);
     } else {
       return notFoundError();
     }
@@ -53,14 +53,7 @@ function handleDidRequest() {
   );
 }
 
-async function handleFeedRequest(url, env) {
-  // Using the request URL, find the name of the JSON field containing the data we want
-  const dataField = dataFieldName(url);
-  if (!dataField) {
-    console.log({ message: "invalid feed in url" });
-    return notFoundError();
-  }
-
+async function handleFeedRequest(env) {
   // Fetch & parse site data from R2
   const object = await env.BLUE_REPORT.get("data/top-links.json");
   if (!object) {
@@ -79,17 +72,72 @@ async function handleFeedRequest(url, env) {
     return internalError();
   }
 
-  // Aggregate AT URIs of top post for each link
-  const atUris = [];
-  for (const link of parsed[dataField]) {
-    if (link.recommended_posts.length > 0) {
-      atUris.push(link.recommended_posts[0].at_uri);
+  // Aggregate AT URIs for each list (top hour, top day, top week)
+  const atUris = {
+    top_hour: [],
+    top_day: [],
+    top_week: [],
+  };
+
+  for (const field of ["top_hour", "top_day", "top_week"]) {
+    for (const link of parsed[field]) {
+      if (link.recommended_posts.length > 0) {
+        atUris[field].push(link.recommended_posts[0].at_uri);
+      }
+    }
+  }
+
+  // Construct a feed that mixes posts from all three lists.
+  //  - Show 5 top_hour posts that blend into top_day posts
+  //  - Show 10 top_day posts that blend into top_week posts
+  //  - Show 10 top_week posts that blend into top_hour posts
+  const pattern = [
+    ["top_hour", 0],
+    ["top_hour", 1],
+    ["top_hour", 2],
+    ["top_day", 0],
+    ["top_hour", 3],
+    ["top_day", 1],
+    ["top_hour", 4],
+    ["top_day", 2],
+    ["top_day", 3],
+    ["top_day", 4],
+    ["top_day", 5],
+    ["top_day", 6],
+    ["top_week", 0],
+    ["top_day", 7],
+    ["top_week", 1],
+    ["top_day", 8],
+    ["top_week", 2],
+    ["top_day", 9],
+    ["top_week", 3],
+    ["top_week", 4],
+    ["top_week", 5],
+    ["top_week", 6],
+    ["top_week", 7],
+    ["top_week", 8],
+    ["top_week", 9],
+  ];
+  const posts = [];
+  for (const [field, index] of pattern) {
+    if (atUris[field].length > index) {
+      posts.push(atUris[field][index]);
+    }
+  }
+
+  // Remove duplicates from the feed, keeping the first occurrence
+  const seen = new Set();
+  const deduped = [];
+  for (const post of posts) {
+    if (!seen.has(post)) {
+      seen.add(post);
+      deduped.push(post);
     }
   }
 
   return new Response(
     JSON.stringify({
-      feed: atUris.map((atUri) => ({
+      feed: deduped.map((atUri) => ({
         post: atUri,
       })),
     }),
@@ -100,37 +148,6 @@ async function handleFeedRequest(url, env) {
       },
     }
   );
-}
-
-// AppViews request feeds via the following URL structure:
-//  - https://feedgen.theblue.report/xrpc/app.bsky.feed.getFeedSkeleton?feed=at://${DID}/app.bsky.feed.generator/${ID}
-// Parse the AT URI of the feed, and return the name of the JSON field containing the data we want.
-//  - 'toplinkshour' -> 'top_hour'
-//  - 'toplinksday' -> 'top_day'
-//  - 'toplinksweek' -> 'top_week'
-function dataFieldName(url) {
-  // Check for AT URI of feed in 'feed' query param
-  const atUri = url.searchParams.get("feed");
-  if (!atUri) {
-    return null;
-  }
-
-  // Parse AT URI
-  const parts = atUri.split("/");
-  const name = parts[parts.length - 1];
-  if (!name) {
-    return null;
-  }
-
-  // Check for valid feed name
-  const validNames = ["toplinkshour", "toplinksday", "toplinksweek"];
-  if (!validNames.includes(name)) {
-    return null;
-  }
-
-  // Map feed name to JSON field name
-  const fieldName = name.replace("toplinks", "top_");
-  return fieldName;
 }
 
 function notFoundError() {
