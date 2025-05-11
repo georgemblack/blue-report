@@ -90,7 +90,7 @@ async function handleFeedRequest(env) {
   // Construct a feed that mixes posts from all three lists.
   //  - Show 5 top_hour posts that blend into top_day posts
   //  - Show 10 top_day posts that blend into top_week posts
-  //  - Show 10 top_week posts that blend into top_hour posts
+  //  - Show 10 top_week posts
   const pattern = [
     ["top_hour", 0],
     ["top_hour", 1],
@@ -118,17 +118,17 @@ async function handleFeedRequest(env) {
     ["top_week", 8],
     ["top_week", 9],
   ];
-  const posts = [];
+  const feed = [];
   for (const [field, index] of pattern) {
     if (atUris[field].length > index) {
-      posts.push(atUris[field][index]);
+      feed.push(atUris[field][index]);
     }
   }
 
   // Remove duplicates from the feed, keeping the first occurrence
   const seen = new Set();
   const deduped = [];
-  for (const post of posts) {
+  for (const post of feed) {
     if (!seen.has(post)) {
       seen.add(post);
       deduped.push(post);
