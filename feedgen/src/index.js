@@ -14,7 +14,7 @@ export default {
     if (url.pathname === "/.well-known/did.json") {
       response = handleDidRequest();
     } else if (url.pathname === "/xrpc/app.bsky.feed.getFeedSkeleton") {
-      response = await handleFeedRequest(env);
+      response = await handleFeedRequest(url, env);
     } else {
       return notFoundError();
     }
@@ -53,7 +53,7 @@ function handleDidRequest() {
   );
 }
 
-async function handleFeedRequest(env) {
+async function handleFeedRequest(url, env) {
   // Fetch & parse site data from R2
   const object = await env.BLUE_REPORT.get("data/top-links.json");
   if (!object) {
@@ -133,6 +133,12 @@ async function handleFeedRequest(env) {
       seen.add(post);
       deduped.push(post);
     }
+  }
+
+  // If the 'limit' query parameter is present, truncate the feed to that length
+  const limit = parseInt(url.searchParams.get("limit"), 10);
+  if (!isNaN(limit) && limit > 0) {
+    deduped.splice(limit);
   }
 
   return new Response(
