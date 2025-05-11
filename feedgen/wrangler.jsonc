@@ -14,6 +14,10 @@
       "bucket_name": "blue-report"
     }
   ],
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
 	"observability": {
 		"enabled": true
 	}
