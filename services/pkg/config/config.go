@@ -15,7 +15,7 @@ type Config struct {
 	WriteEventsBucketName       string
 	URLMetadataTableName        string // Name of the DynamoDB table used to store titles for each URL
 	URLTranslationsTableName    string // Name of the DynamoDB table used to store redirects for each URL, i.e. 'https://sho.rt/url' -> 'https://long.url.com/some/path'
-	FeedTableName               string // Name of the DynamoDB table used to store items that get posted by the bot, and to the RSS feed
+	FeedTableName               string // Name of the DynamoDB table used to store items that get posted by Atom/JSON feeds
 	ValkeyAddress               string
 	ValkeyTLSEnabled            bool
 	NoralizationQueueName       string

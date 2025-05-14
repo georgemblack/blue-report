@@ -15,7 +15,7 @@ import (
 )
 
 // PublishLinkSnapshot publishes data for the 'top links' report to storage, where it is then read by a static site generator.
-// It also updates the feed of top posts, which is used by the Bluesky bot, as well as the RSS generator.
+// It also updates the feed of top posts, which is used by Atom/JSON generator.
 func PublishLinkSnapshot(snapshot links.Snapshot) error {
 	slog.Info("publishing snapshot")
 	start := time.Now()
