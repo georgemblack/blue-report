@@ -46,7 +46,7 @@ function handleDidRequest() {
     }),
     {
       headers: {
-        "Cache-Control": "public; max-age=3600",
+        "Cache-Control": "public; max-age=28800",
         "Content-Type": "application/json",
       },
     }
