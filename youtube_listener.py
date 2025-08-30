@@ -120,7 +120,7 @@ def on_open(ws):
 
 def connect_with_retry():
     """Connect to WebSocket with exponential backoff retry logic"""
-    max_retries = 10
+    max_retries = 1000
     retry_delay = 1
     max_delay = 300
     
