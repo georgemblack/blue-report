@@ -19,7 +19,7 @@ const (
 	StreamBufferSize = 10000
 	EventBufferSize  = 10000
 	ErrorThreshold   = 10
-	JetstreamURL     = "wss://jetstream2.us-east.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost&wantedCollections=app.bsky.feed.like"
+	JetstreamURL     = "wss://jetstream1.us-west.bsky.network/subscribe?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost&wantedCollections=app.bsky.feed.like"
 )
 
 type Stats struct {
