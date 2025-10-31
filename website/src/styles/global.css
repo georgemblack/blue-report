@@ -202,3 +202,12 @@ section:last-of-type {
   color: var(--faded-text-color-1);
   line-height: 1.75;
 }
+
+.alert {
+  margin: 1em 0;
+  background-color: rgb(121, 97, 0);
+  padding: 1em;
+  border: 1px solid orange;
+  border-radius: 5px;
+  line-height: 150%;
+}
