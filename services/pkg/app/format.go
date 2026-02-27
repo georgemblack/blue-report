@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+var truncatedURLPattern = regexp.MustCompile(`(www\.)?[\w.-]+\.[a-z]{2,}(/[^\s]*)?\w*\.{3}`)
+
 var badPrefixes = []string{
 	"BREAKING:",
 	"Breaking:",
@@ -31,9 +33,6 @@ func formatTitle(title string) string {
 }
 
 func formatPost(text string) string {
-	urlPattern := `(www\.)?[\w.-]+\.[a-z]{2,}(/[^\s]*)?\w*\.{3}`
-	re := regexp.MustCompile(urlPattern)
-
 	// Clean up any newlines or extra whitespace
 	text = strings.ReplaceAll(text, "\n", " ")
 	text = strings.ReplaceAll(text, "\r", " ")
@@ -56,7 +55,7 @@ func formatPost(text string) string {
 	// 	- 'apnews.com/article/trum...
 	// 	- 'www.democracydocket.com/opinion/my-o...'
 	// Use regex to find URLs that match this pattern and remove them.
-	cleaned := re.ReplaceAllString(text, "")
+	cleaned := truncatedURLPattern.ReplaceAllString(text, "")
 	trimmed := strings.TrimSpace(cleaned)
 
 	return trimmed
