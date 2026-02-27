@@ -9,9 +9,9 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^12.4.0",
-    "@astrojs/sitemap": "3.3.0",
-    "astro": "5.6.1",
+    "@astrojs/cloudflare": "^12.6.12",
+    "@astrojs/sitemap": "3.7.0",
+    "astro": "5.18.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0"
   },
