@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/georgemblack/blue-report/pkg/sites"
+	"github.com/georgemblack/blue-report/pkg/storage"
 	"github.com/georgemblack/blue-report/pkg/urltools"
 	"github.com/georgemblack/blue-report/pkg/util"
 )
@@ -96,23 +97,49 @@ func AggregateSites() (sites.Snapshot, error) {
 func aggregateSitesWorker(id int, st Storage, chunks []string, agg *sites.Aggregation, trans map[string]string, wg *sync.WaitGroup, errs chan error) {
 	defer wg.Done()
 
-	for _, chunk := range chunks {
+	if len(chunks) == 0 {
+		return
+	}
+
+	// Prefetch the first chunk
+	type fetchResult struct {
+		records []storage.EventRecord
+		err     error
+	}
+	nextResult := make(chan fetchResult, 1)
+	go func() {
+		records, err := st.ReadEvents(chunks[0], EventBufferSize)
+		nextResult <- fetchResult{records, err}
+	}()
+
+	for i, chunk := range chunks {
 		slog.Debug("processing chunk", "worker", id, "chunk", chunk)
 
-		records, err := st.ReadEvents(chunk, EventBufferSize)
-		if err != nil {
-			errs <- util.WrapErr("failed to read events", err)
+		// Wait for the prefetched result
+		result := <-nextResult
+		if result.err != nil {
+			errs <- util.WrapErr("failed to read events", result.err)
 			return
 		}
 
-		for _, record := range records {
+		// Start prefetching the next chunk while we process this one
+		if i+1 < len(chunks) {
+			nextChunk := chunks[i+1]
+			go func() {
+				records, err := st.ReadEvents(nextChunk, EventBufferSize)
+				nextResult <- fetchResult{records, err}
+			}()
+		}
+
+		for _, record := range result.records {
 			// URLs stored in events should already be filtered and normalized.
 			// However, as rules change, past events may need to be re-processed.
 			// This ensures the most up-to-date rules are applied.
-			if urltools.Ignore(record.URL) {
+			// ProcessURL combines Ignore + Clean + host extraction in a single url.Parse.
+			cleanedURL, host, ignore := urltools.ProcessURL(record.URL)
+			if ignore {
 				continue
 			}
-			cleanedURL := urltools.Clean(record.URL)
 
 			// Determine if there is a known translation (i.e. redirect) for this URL.
 			// If so, use the translated URL instead.
@@ -121,9 +148,9 @@ func aggregateSitesWorker(id int, st Storage, chunks []string, agg *sites.Aggreg
 			}
 
 			// Count the event. This is thread safe.
-			agg.CountEvent(record.Type, cleanedURL, record.DID)
+			agg.CountEvent(record.Type, cleanedURL, host, record.DID)
 		}
 
-		records = nil // Help the garbage collector
+		result.records = nil // Help the garbage collector
 	}
 }

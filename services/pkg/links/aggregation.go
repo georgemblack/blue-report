@@ -1,9 +1,9 @@
 package links
 
 import (
-	"fmt"
 	"hash/fnv"
 	"slices"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,14 +14,19 @@ import (
 const EstimatedTotalEvents = 25000000 // 25 million. Estimate is used to create bloom filter used for duplicate detection.
 const DuplicatePrecision = 0.001      // 0.1% precision for duplicate detection
 const NumShards = 1024                // Number of shards to use for parallel processing
+const NumBloomShards = 64             // Number of shards to spread bloom filter contention
 
 type Aggregation struct {
-	shards           []Shard
-	fingerprints     *bloom.BloomFilter
-	fingerprintsLock sync.Mutex
-	bounds           TimeBounds
-	total            int64 // Number of events processed
-	skipped          int64 // Number of events skipped due to suspected duplicate
+	shards      []Shard
+	bloomShards []BloomShard
+	bounds      TimeBounds
+	total       int64 // Number of events processed
+	skipped     int64 // Number of events skipped due to suspected duplicate
+}
+
+type BloomShard struct {
+	lock   sync.Mutex
+	filter *bloom.BloomFilter
 }
 
 type Shard struct {
@@ -44,13 +49,19 @@ func NewAggregation(bounds TimeBounds) Aggregation {
 		}
 	}
 
+	bloomShards := make([]BloomShard, NumBloomShards)
+	for i := range bloomShards {
+		bloomShards[i] = BloomShard{
+			filter: bloom.NewWithEstimates(EstimatedTotalEvents/NumBloomShards, DuplicatePrecision),
+		}
+	}
+
 	return Aggregation{
-		shards:           shards,
-		fingerprints:     bloom.NewWithEstimates(EstimatedTotalEvents, DuplicatePrecision),
-		fingerprintsLock: sync.Mutex{},
-		bounds:           bounds,
-		total:            0,
-		skipped:          0,
+		shards:      shards,
+		bloomShards: bloomShards,
+		bounds:      bounds,
+		total:       0,
+		skipped:     0,
 	}
 }
 
@@ -79,15 +90,17 @@ func (a *Aggregation) CountEvent(eventType int, linkURL string, post string, did
 
 	// Check for a duplicate url/event/did combination to prevent spam.
 	// i.e. at most, a single user can like, post, and repost a link once.
-	// Ensure only one worker is able to update 'fingerprints' at a given moment.
-	a.fingerprintsLock.Lock()
-	fingerprint := fmt.Sprintf("%s%d%s", linkURL, eventType, did)
-	if a.fingerprints.TestAndAddString(fingerprint) {
-		a.skipped++
-		a.fingerprintsLock.Unlock()
+	// String concatenation is faster than fmt.Sprintf for this use case.
+	fingerprint := linkURL + strconv.Itoa(eventType) + did
+	bloomShard := a.getBloomShard(fingerprint)
+
+	bloomShard.lock.Lock()
+	if bloomShard.filter.TestAndAddString(fingerprint) {
+		atomic.AddInt64(&a.skipped, 1)
+		bloomShard.lock.Unlock()
 		return
 	}
-	a.fingerprintsLock.Unlock()
+	bloomShard.lock.Unlock()
 
 	// Find the shard associated with the given URL
 	shard := a.getShard(linkURL)
@@ -208,8 +221,16 @@ func (a *Aggregation) toKV() []kv {
 	return kvs
 }
 
-func (a *Aggregation) getShard(url string) *Shard {
-	hash := fnv.New32a()
-	hash.Write([]byte(url))
-	return &a.shards[hash.Sum32()%NumShards]
+func (a *Aggregation) getShard(key string) *Shard {
+	return &a.shards[fnv32(key)%NumShards]
+}
+
+func (a *Aggregation) getBloomShard(key string) *BloomShard {
+	return &a.bloomShards[fnv32(key)%NumBloomShards]
+}
+
+func fnv32(s string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
 }

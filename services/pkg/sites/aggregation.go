@@ -1,12 +1,10 @@
 package sites
 
 import (
-	"fmt"
 	"hash/fnv"
 	"log/slog"
-	"net/url"
 	"slices"
-	"strings"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -16,13 +14,18 @@ import (
 const EstimatedTotalEvents = 110000000 // 110 million. Estimate is used to create bloom filter used for duplicate detection.
 const DuplicatePrecision = 0.001       // 0.1% precision for duplicate detection
 const NumShards = 512                  // Number of shards to use for parallel processing
+const NumBloomShards = 64              // Number of shards to spread bloom filter contention
 
 type Aggregation struct {
-	shards           []Shard
-	fingerprints     *bloom.BloomFilter
-	fingerprintsLock sync.Mutex
-	total            int64 // Number of events processed
-	skipped          int64 // Number of events skipped due to suspected duplicate
+	shards      []Shard
+	bloomShards []BloomShard
+	total       int64 // Number of events processed
+	skipped     int64 // Number of events skipped due to suspected duplicate
+}
+
+type BloomShard struct {
+	lock   sync.Mutex
+	filter *bloom.BloomFilter
 }
 
 type Shard struct {
@@ -39,11 +42,18 @@ func NewAggregation() Aggregation {
 		}
 	}
 
+	bloomShards := make([]BloomShard, NumBloomShards)
+	for i := range bloomShards {
+		bloomShards[i] = BloomShard{
+			filter: bloom.NewWithEstimates(EstimatedTotalEvents/NumBloomShards, DuplicatePrecision),
+		}
+	}
+
 	return Aggregation{
-		shards:       shards,
-		fingerprints: bloom.NewWithEstimates(EstimatedTotalEvents, DuplicatePrecision),
-		total:        0,
-		skipped:      0,
+		shards:      shards,
+		bloomShards: bloomShards,
+		total:       0,
+		skipped:     0,
 	}
 }
 
@@ -64,32 +74,24 @@ func (a *Aggregation) Skipped() int64 {
 	return a.skipped
 }
 
-func (a *Aggregation) CountEvent(eventType int, linkURL string, did string) {
-	// Fetch the domain from the URL
-	url, err := url.Parse(linkURL)
-	if err != nil {
-		slog.Debug("failed to parse url when counting event", "url", linkURL)
-		return
-	}
-	host := url.Hostname()
-
-	// Trim 'www.' prefix if it exists
-	host = strings.TrimPrefix(host, "www.")
-
+func (a *Aggregation) CountEvent(eventType int, linkURL string, host string, did string) {
 	if host == "" {
-		slog.Debug("empty host when parsing url", "url", linkURL)
+		slog.Debug("empty host when counting event", "url", linkURL)
 		return
 	}
 
-	// Use bloom filter to detect duplicates.
-	a.fingerprintsLock.Lock()
-	fingerprint := fmt.Sprintf("%s%d%s", linkURL, eventType, did)
-	if a.fingerprints.TestAndAddString(fingerprint) {
-		a.skipped++
-		a.fingerprintsLock.Unlock()
+	// Use sharded bloom filter to detect duplicates.
+	// String concatenation is faster than fmt.Sprintf for this use case.
+	fingerprint := linkURL + strconv.Itoa(eventType) + did
+	bloomShard := a.getBloomShard(fingerprint)
+
+	bloomShard.lock.Lock()
+	if bloomShard.filter.TestAndAddString(fingerprint) {
+		atomic.AddInt64(&a.skipped, 1)
+		bloomShard.lock.Unlock()
 		return
 	}
-	a.fingerprintsLock.Unlock()
+	bloomShard.lock.Unlock()
 
 	// Find the shard associated with the given host
 	shard := a.getShard(host)
@@ -145,8 +147,16 @@ func (a *Aggregation) TopSites(n int) []string {
 	return sites
 }
 
-func (a *Aggregation) getShard(url string) *Shard {
-	hash := fnv.New32a()
-	hash.Write([]byte(url))
-	return &a.shards[hash.Sum32()%NumShards]
+func (a *Aggregation) getShard(key string) *Shard {
+	return &a.shards[fnv32(key)%NumShards]
+}
+
+func (a *Aggregation) getBloomShard(key string) *BloomShard {
+	return &a.bloomShards[fnv32(key)%NumBloomShards]
+}
+
+func fnv32(s string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return h.Sum32()
 }

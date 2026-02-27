@@ -3,52 +3,60 @@ package urltools
 import (
 	"net/url"
 	"strings"
-
-	"github.com/georgemblack/blue-report/pkg/util"
 )
 
-var ExplicitContentHosts = []string{
-	"beacons.ai",
-	"yokubo.tv",
-	"linktr.ee",
-	"allmylinks.com",
-	"onlyfans.com",
+var explicitContentHosts = map[string]bool{
+	"beacons.ai":      true,
+	"yokubo.tv":       true,
+	"linktr.ee":       true,
+	"allmylinks.com":  true,
+	"onlyfans.com":   true,
 }
 
-// Determine whether to ignore a given URL, i.e. exclude it from our data.
+// Ignore determines whether to ignore a given URL, i.e. exclude it from our data.
 func Ignore(input string) bool {
+	return shouldIgnore(input)
+}
+
+func shouldIgnore(input string) bool {
 	if input == "" {
 		return true
 	}
 
-	// Ignore URLs that can't be properly parsed
 	parsed, err := url.Parse(input)
 	if err != nil {
 		return true
 	}
 
+	return shouldIgnoreParsed(input, parsed)
+}
+
+// shouldIgnoreParsed performs ignore checks using an already-parsed URL.
+func shouldIgnoreParsed(input string, parsed *url.URL) bool {
 	// Ignore insecure URLs
 	if parsed.Scheme != "https" {
 		return true
 	}
 
+	hostname := parsed.Hostname()
+
 	// Ignore known image hosts
-	if parsed.Hostname() == "media.tenor.com" {
+	if hostname == "media.tenor.com" {
 		return true
 	}
 
 	// Ignore known bots
-	if parsed.Hostname() == "mesonet.agron.iastate.edu" {
+	if hostname == "mesonet.agron.iastate.edu" {
 		return true
 	}
 
 	// Ignore known sites that *generally* share explicit content
-	if util.ContainsStr(ExplicitContentHosts, parsed.Hostname()) {
+	if explicitContentHosts[hostname] {
 		return true
 	}
 
 	// Ignore links to the app itself. The purpose of this project is to track external links.
-	if parsed.Hostname() == "bsky.app" || parsed.Hostname() == "go.bsky.app" || strings.HasSuffix(parsed.Hostname(), ".bsky.social") {
+	if hostname == "bsky.app" || hostname == "go.bsky.app" || strings.HasSuffix(hostname, ".bsky.social") {
 		return true
 	}
 
