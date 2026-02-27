@@ -1,4 +1,4 @@
-# The Blue Report Aggregation Services
+# The Blue Report Services
 
 This directory contains two services used to power the site:
 
