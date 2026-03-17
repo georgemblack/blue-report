@@ -23,6 +23,10 @@ importers:
       date-fns-tz:
         specifier: ^3.2.0
         version: 3.2.0(date-fns@4.1.0)
+    devDependencies:
+      wrangler:
+        specifier: ^4.74.0
+        version: 4.74.0
 
 packages:
 

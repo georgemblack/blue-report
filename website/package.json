@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "deploy": "wrangler deploy",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -17,5 +18,8 @@
   },
   "volta": {
     "node": "24.14.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.74.0"
   }
 }
