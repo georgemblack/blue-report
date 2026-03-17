@@ -13,5 +13,8 @@
     "vitest": "~4.1.0",
     "wrangler": "^4"
   },
-  "packageManager": "yarn@4.9.1"
+  "packageManager": "yarn@4.9.1",
+  "volta": {
+    "node": "24.14.0"
+  }
 }
