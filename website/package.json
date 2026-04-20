@@ -10,9 +10,9 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^13.1.8",
+    "@astrojs/cloudflare": "^13.1.10",
     "@astrojs/sitemap": "3.7.2",
-    "astro": "6.1.5",
+    "astro": "6.1.8",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0"
   },
@@ -20,6 +20,6 @@
     "node": "24.14.0"
   },
   "devDependencies": {
-    "wrangler": "^4.81.1"
+    "wrangler": "^4.83.0"
   }
 }
