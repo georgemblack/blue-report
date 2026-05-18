@@ -16,7 +16,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.9.0
 	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/valkey-io/valkey-go v1.0.74
+	github.com/valkey-io/valkey-go v1.0.75
 	github.com/vmihailenco/msgpack/v5 v5.4.1
 	go.uber.org/mock v0.6.0
 )
@@ -38,5 +38,5 @@ require (
 	github.com/bits-and-blooms/bitset v1.24.2 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.mongodb.org/mongo-driver v1.17.4 // indirect
-	golang.org/x/sys v0.39.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 )
