@@ -10,16 +10,16 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^13.5.4",
-    "@astrojs/sitemap": "3.7.2",
-    "astro": "6.3.7",
-    "date-fns": "^4.3.0",
+    "@astrojs/cloudflare": "^13.6.0",
+    "@astrojs/sitemap": "3.7.3",
+    "astro": "6.4.2",
+    "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0"
   },
   "volta": {
     "node": "24.14.0"
   },
   "devDependencies": {
-    "wrangler": "^4.94.0"
+    "wrangler": "^4.96.0"
   }
 }
