@@ -12,7 +12,7 @@
   "dependencies": {
     "@astrojs/cloudflare": "^13.7.0",
     "@astrojs/sitemap": "3.7.3",
-    "astro": "6.4.6",
+    "astro": "6.4.8",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0"
   },
@@ -20,6 +20,6 @@
     "node": "24.14.0"
   },
   "devDependencies": {
-    "wrangler": "^4.100.0"
+    "wrangler": "^4.103.0"
   }
 }
