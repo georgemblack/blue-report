@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.42.3
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.44.0
 	github.com/aws/aws-sdk-go-v2/service/sso v1.31.3
-	github.com/aws/smithy-go v1.27.2
+	github.com/aws/smithy-go v1.27.3
 	github.com/bits-and-blooms/bloom/v3 v3.7.1
 	github.com/deckarep/golang-set/v2 v2.9.0
 	github.com/gorilla/feeds v1.2.0
