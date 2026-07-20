@@ -4,14 +4,14 @@ go 1.26
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.42.1
-	github.com/aws/aws-sdk-go-v2/config v1.32.29
-	github.com/aws/aws-sdk-go-v2/credentials v1.19.28
-	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.60.0
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.105.0
-	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.43.0
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.45.0
-	github.com/aws/aws-sdk-go-v2/service/sso v1.32.0
-	github.com/aws/smithy-go v1.27.3
+	github.com/aws/aws-sdk-go-v2/config v1.32.30
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.29
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.60.1
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.105.2
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.43.1
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.45.1
+	github.com/aws/aws-sdk-go-v2/service/sso v1.32.1
+	github.com/aws/smithy-go v1.27.4
 	github.com/bits-and-blooms/bloom/v3 v3.7.1
 	github.com/deckarep/golang-set/v2 v2.9.0
 	github.com/gorilla/feeds v1.2.0
@@ -32,9 +32,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.12.7 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.30 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.19.31 // indirect
-	github.com/aws/aws-sdk-go-v2/service/signin v1.4.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.37.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.44.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/signin v1.4.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.37.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.44.1 // indirect
 	github.com/bits-and-blooms/bitset v1.24.2 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.mongodb.org/mongo-driver v1.17.4 // indirect
