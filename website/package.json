@@ -20,6 +20,6 @@
     "node": "24.14.0"
   },
   "devDependencies": {
-    "wrangler": "^4.116.0"
+    "wrangler": "^4.118.0"
   }
 }
