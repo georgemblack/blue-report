@@ -2,6 +2,8 @@
 	"name": "blue-report-feedgen",
 	"main": "src/index.js",
 	"compatibility_date": "2025-04-11",
+	"workers_dev": false,
+	"preview_urls": false,
 	"routes": [
       {
         "pattern": "feedgen.theblue.report",

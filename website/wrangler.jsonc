@@ -1,6 +1,8 @@
 {
     "name": "blue-report",
     "compatibility_date": "2025-04-11",
+    "workers_dev": false,
+    "preview_urls": false,
     "compatibility_flags": ["nodejs_compat"],
     "routes": [
       {
