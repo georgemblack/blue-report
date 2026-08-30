@@ -4,6 +4,9 @@
     "workers_dev": false,
     "preview_urls": false,
     "compatibility_flags": ["nodejs_compat"],
+    "cache": {
+      "enabled": true
+    },
     "routes": [
       {
         "pattern": "theblue.report",

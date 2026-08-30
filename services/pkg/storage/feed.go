@@ -121,7 +121,7 @@ func (a AWS) PublishFeeds(atom, json string) error {
 		Key:          aws.String("feeds/top-day.xml"),
 		Body:         strings.NewReader(atom),
 		ContentType:  aws.String("application/atom+xml"),
-		CacheControl: aws.String("public; max-age=600"), // 10 minutes
+		CacheControl: aws.String("public, max-age=600"), // 10 minutes
 	})
 	if err != nil {
 		return util.WrapErr("failed to put atom feed", err)
@@ -132,7 +132,7 @@ func (a AWS) PublishFeeds(atom, json string) error {
 		Key:          aws.String("feeds/top-day.json"),
 		Body:         strings.NewReader(json),
 		ContentType:  aws.String("application/feed+json"),
-		CacheControl: aws.String("public; max-age=600"), // 10 minutes
+		CacheControl: aws.String("public, max-age=600"), // 10 minutes
 	})
 	if err != nil {
 		return util.WrapErr("failed to put json feed", err)

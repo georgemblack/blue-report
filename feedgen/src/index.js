@@ -46,7 +46,7 @@ function handleDidRequest() {
     }),
     {
       headers: {
-        "Cache-Control": "public; max-age=28800",
+        "Cache-Control": "public, max-age=28800",
         "Content-Type": "application/json",
       },
     }
@@ -149,7 +149,7 @@ async function handleFeedRequest(url, env) {
     }),
     {
       headers: {
-        "Cache-Control": "public; max-age=600",
+        "Cache-Control": "public, max-age=600",
         "Content-Type": "application/json",
       },
     }

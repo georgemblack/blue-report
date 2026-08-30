@@ -8,6 +8,7 @@ import cloudflare from "@astrojs/cloudflare";
 export default defineConfig({
   output: "server",
   site: "https://theblue.report",
+  session: false,
   integrations: [sitemap()],
   adapter: cloudflare(),
 });
