@@ -173,14 +173,13 @@ func TestNewest(t *testing.T) {
 
 // Runs real Jetstream messages through the parser and the processor.
 func TestWithJetstreamFixtures(t *testing.T) {
-	parser := jetstream.NewParser()
 	p := NewProcessor()
 	for _, name := range []string{"post-embed-only.json", "post-facet-only.json", "post-no-url.json", "post-quote.json", "like.json"} {
 		data, err := os.ReadFile(filepath.Join("..", "jetstream", "testdata", name))
 		if err != nil {
 			t.Fatal(err)
 		}
-		m, ok, err := parser.Parse(data)
+		m, ok, err := jetstream.Parse(data)
 		if err != nil || !ok {
 			t.Fatalf("%s: ok=%v err=%v", name, ok, err)
 		}

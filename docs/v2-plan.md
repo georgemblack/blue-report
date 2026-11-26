@@ -29,7 +29,6 @@ October 2026 at full prices: Fargate intake about $14.70, ElastiCache about $9.5
 - **Events record processing time** (`time.Now()`) rather than Bluesky event time.
 - **The CardyB URL isn't escaped** (`pkg/app/card.go`): `"…?url=" + url`. Links containing `&` or `#` get cut short.
 - **Losing the cache loses data.** If Valkey is wiped, likes on posts made before the wipe are never counted.
-- **The "@theblue.report account is excluded" rule** from `RANKING.md` doesn't appear to be implemented in v1. v2 should implement it (it needs the account's DID).
 
 ## 3. Decisions (settled)
 
@@ -101,7 +100,7 @@ One Go binary. Its goroutines:
 
 ### 5.2 `reader`
 - Holds the Jetstream WebSocket connection: `wantedCollections` = post, repost, like.
-- Parses messages and drops everything except `kind=commit`, `operation=create`. For posts, keeps only English (`langs` contains `en`). Drops events from the excluded account (@theblue.report).
+- Parses messages and drops everything except `kind=commit`, `operation=create`. For posts, keeps only English (`langs` contains `en`). (The "@theblue.report account is excluded" rule in `RANKING.md` has been dropped; it was never implemented in v1 either.)
 - Sends parsed events to the state actor through a buffered channel.
 - On disconnect, reconnects with `cursor` set to the newest `time_us` it has seen. It may switch Jetstream servers; small overlaps are acceptable.
 - Touches no shared state.
@@ -343,7 +342,6 @@ Keep the newest feed entry's time in memory (loaded at startup), so the 12-hour 
 | IPv6-only networking (saves about $3.65/month)? | IPv4 for now; check whether Jetstream, CardyB, the Bluesky API and Cloudflare support IPv6. |
 | Redirect candidate threshold? | A final URL with ≥ 1,000 user entries in the ranking state that isn't already checked. Configurable. |
 | Publish links without a title? | Yes, with the fallback title. |
-| The excluded account's DID (@theblue.report)? | Look it up and make it configurable. |
 | Where the code lives in this repo? | A new top-level `backend/` directory (Go module `github.com/georgemblack/blue-report/backend`) with `backend/infra/` for Terraform. Leave `services/` and `infra/` untouched. |
 
 ## 14. Out of scope

@@ -18,9 +18,9 @@ func fixture(t *testing.T, name string) []byte {
 	return data
 }
 
-func mustParse(t *testing.T, p *Parser, data []byte) Message {
+func mustParse(t *testing.T, data []byte) Message {
 	t.Helper()
-	msg, ok, err := p.Parse(data)
+	msg, ok, err := Parse(data)
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
@@ -30,9 +30,9 @@ func mustParse(t *testing.T, p *Parser, data []byte) Message {
 	return msg
 }
 
-func mustDrop(t *testing.T, p *Parser, data []byte) {
+func mustDrop(t *testing.T, data []byte) {
 	t.Helper()
-	msg, ok, err := p.Parse(data)
+	msg, ok, err := Parse(data)
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
@@ -42,7 +42,7 @@ func mustDrop(t *testing.T, p *Parser, data []byte) {
 }
 
 func TestPostWithLinkCard(t *testing.T) {
-	got := mustParse(t, NewParser(), fixture(t, "post-embed-only.json"))
+	got := mustParse(t, fixture(t, "post-embed-only.json"))
 	want := Message{
 		TimeUS:     1734489196802654,
 		DID:        testDID,
@@ -57,7 +57,7 @@ func TestPostWithLinkCard(t *testing.T) {
 }
 
 func TestPostWithLinkInText(t *testing.T) {
-	got := mustParse(t, NewParser(), fixture(t, "post-facet-only.json"))
+	got := mustParse(t, fixture(t, "post-facet-only.json"))
 	if got.Kind != KindPost || got.URL != "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge" {
 		t.Fatalf("got %+v", got)
 	}
@@ -65,14 +65,14 @@ func TestPostWithLinkInText(t *testing.T) {
 
 // Posts without links are kept; deciding what to do with them is up to the caller.
 func TestPostWithNoLink(t *testing.T) {
-	got := mustParse(t, NewParser(), fixture(t, "post-no-url.json"))
+	got := mustParse(t, fixture(t, "post-no-url.json"))
 	if got.Kind != KindPost || got.URL != "" {
 		t.Fatalf("got %+v", got)
 	}
 }
 
 func TestQuote(t *testing.T) {
-	got := mustParse(t, NewParser(), fixture(t, "post-quote.json"))
+	got := mustParse(t, fixture(t, "post-quote.json"))
 	want := Message{
 		TimeUS:     1736019398417668,
 		DID:        testDID,
@@ -91,14 +91,14 @@ func TestQuoteWithMedia(t *testing.T) {
 			"embed":{"$type":"app.bsky.embed.recordWithMedia",
 				"media":{"$type":"app.bsky.embed.images","images":[]},
 				"record":{"record":{"cid":"c","uri":"at://did:plc:b/app.bsky.feed.post/p1"}}}}}}`)
-	got := mustParse(t, NewParser(), data)
+	got := mustParse(t, data)
 	if got.Kind != KindQuote || got.SubjectURI != "at://did:plc:b/app.bsky.feed.post/p1" {
 		t.Fatalf("got %+v", got)
 	}
 }
 
 func TestLike(t *testing.T) {
-	got := mustParse(t, NewParser(), fixture(t, "like.json"))
+	got := mustParse(t, fixture(t, "like.json"))
 	want := Message{
 		TimeUS:     1736019684902212,
 		DID:        testDID,
@@ -114,7 +114,7 @@ func TestLike(t *testing.T) {
 func TestRepost(t *testing.T) {
 	data := []byte(`{"did":"did:plc:a","time_us":7,"kind":"commit","commit":{"operation":"create","collection":"app.bsky.feed.repost","rkey":"r2",
 		"record":{"$type":"app.bsky.feed.repost","subject":{"cid":"c","uri":"at://did:plc:b/app.bsky.feed.post/p1"}}}}`)
-	got := mustParse(t, NewParser(), data)
+	got := mustParse(t, data)
 	want := Message{TimeUS: 7, DID: "did:plc:a", RKey: "r2", Kind: KindRepost, SubjectURI: "at://did:plc:b/app.bsky.feed.post/p1"}
 	if got != want {
 		t.Fatalf("got  %+v\nwant %+v", got, want)
@@ -142,34 +142,25 @@ func TestDropped(t *testing.T) {
 	}
 	for name, data := range tests {
 		t.Run(name, func(t *testing.T) {
-			mustDrop(t, NewParser(), []byte(data))
+			mustDrop(t, []byte(data))
 		})
 	}
 
 	t.Run("v1 invalid fixture", func(t *testing.T) {
-		mustDrop(t, NewParser(), fixture(t, "invalid-event.json"))
+		mustDrop(t, fixture(t, "invalid-event.json"))
 	})
-}
-
-func TestExcludedAccount(t *testing.T) {
-	p := NewParser(testDID)
-	for _, name := range []string{"post-embed-only.json", "post-quote.json", "like.json"} {
-		mustDrop(t, p, fixture(t, name))
-	}
-	// Other users are unaffected.
-	mustParse(t, NewParser("did:plc:someone-else"), fixture(t, "like.json"))
 }
 
 func TestMalformedRecord(t *testing.T) {
 	data := []byte(`{"did":"did:plc:a","time_us":1,"kind":"commit","commit":{"operation":"create","collection":"app.bsky.feed.like","rkey":"r",
 		"record":{"$type":"app.bsky.feed.like","subject":"not-an-object"}}}`)
-	if _, ok, err := NewParser().Parse(data); err == nil || ok {
+	if _, ok, err := Parse(data); err == nil || ok {
 		t.Fatalf("got ok=%v err=%v, want an error", ok, err)
 	}
 }
 
 func TestInvalidJSON(t *testing.T) {
-	_, ok, err := NewParser().Parse([]byte(`{"did":`))
+	_, ok, err := Parse([]byte(`{"did":`))
 	if err == nil || ok {
 		t.Fatalf("got ok=%v err=%v, want an error", ok, err)
 	}

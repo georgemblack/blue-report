@@ -55,27 +55,11 @@ var Collections = []string{
 	"app.bsky.feed.like",
 }
 
-// Parser filters and parses Jetstream messages.
-type Parser struct {
-	excluded map[string]bool
-}
-
-// NewParser returns a parser that drops everything made by the given users
-// (by DID). Interactions with their posts are dropped too, because their
-// posts never reach the post cache.
-func NewParser(excludedDIDs ...string) *Parser {
-	p := &Parser{excluded: make(map[string]bool)}
-	for _, did := range excludedDIDs {
-		p.excluded[did] = true
-	}
-	return p
-}
-
 // Parse returns the interaction in a Jetstream message. ok is false when the
 // message isn't one we count: anything other than a newly created post,
-// repost or like, a post not marked as English, or a message from an
-// excluded user. An error means the message wasn't valid JSON.
-func (p *Parser) Parse(data []byte) (msg Message, ok bool, err error) {
+// repost or like, or a post not marked as English. An error means the
+// message wasn't valid JSON.
+func Parse(data []byte) (msg Message, ok bool, err error) {
 	var raw rawEvent
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return Message{}, false, fmt.Errorf("parsing jetstream message: %w", err)
@@ -84,7 +68,7 @@ func (p *Parser) Parse(data []byte) (msg Message, ok bool, err error) {
 	if raw.Kind != "commit" || raw.Commit.Operation != "create" {
 		return Message{}, false, nil
 	}
-	if raw.DID == "" || raw.Commit.RKey == "" || p.excluded[raw.DID] {
+	if raw.DID == "" || raw.Commit.RKey == "" {
 		return Message{}, false, nil
 	}
 
