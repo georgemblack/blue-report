@@ -1,0 +1,113 @@
+package urltools
+
+import (
+	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
+	"slices"
+)
+
+var redirectStatusCodes = []int{http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect}
+
+// Sites where a redirect should not be followed.
+// i.e. Links to standard nature.com articles redirect to a redirect service, which then redirect back to the article. This is stupid.
+var noRedirectHosts = []string{"www.nature.com", "link.springer.com", "www.azcentral.com"}
+
+// FindRedirect attempts to find the destination URL from a given source URL. If no redirect is found, an empty string is returned.
+// Up to two redirects are followed. (Anything more than that is likely a scummy link.)
+func FindRedirect(input string) string {
+	var result string
+
+	// Check if host should be ignored
+	parsed, err := url.Parse(input)
+	if err == nil {
+		if slices.Contains(noRedirectHosts, parsed.Hostname()) {
+			return ""
+		}
+	}
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Timeout: 1 * time.Second,
+	}
+
+	// Check for a first redirect
+	resp, err := client.Get(input)
+	if err != nil {
+		// A valid website could be blocking us. Assume no redirect.
+		return ""
+	}
+	if !slices.Contains(redirectStatusCodes, resp.StatusCode) || resp.Header.Get("Location") == "" {
+		return ""
+	}
+	result = resolveLocation(input, resp.Header.Get("Location"))
+
+	// If the destination URL is a honeypot service (like TollBit), return no redirect.
+	if honeypot(result) {
+		return ""
+	}
+
+	// Check for a second redirect
+	resp, err = client.Get(result)
+	if err != nil {
+		// A valid website could be blocking us. Return the inital result.
+		return result
+	}
+	if !slices.Contains(redirectStatusCodes, resp.StatusCode) || resp.Header.Get("Location") == "" {
+		return result
+	}
+	result = resolveLocation(result, resp.Header.Get("Location"))
+
+	// If the destination URL is a honeypot service (like TollBit), return no redirect.
+	// A honeypot service is most likely detected by the first redirect – but we check again just in case.
+	if honeypot(result) {
+		return ""
+	}
+
+	return result
+}
+
+// Given a URL, and the 'Location' header of its redirect, return the final destination URL. Examples:
+//   - Absolute URIs: 'https://theblue.report', 'https://theblue.report/something' -> 'https://theblue.report/something'
+//   - Absolute Path: 'https://theblue.report', '/something' -> 'https://theblue.report/something'
+//   - Relative Path: 'https://theblue.report/something', 'else' -> 'https://theblue.report/something/else'
+func resolveLocation(originalURL, location string) string {
+	orig, err := url.Parse(originalURL)
+	if err != nil {
+		return originalURL
+	}
+	loc, err := url.Parse(location)
+	if err != nil {
+		return originalURL
+	}
+
+	if loc.IsAbs() {
+		return loc.String()
+	}
+
+	// If the location is prefixed with a '/', it is an absolute path
+	if strings.HasPrefix(location, "/") {
+		orig.Path = location
+		return orig.String()
+	}
+
+	// Otherwise, assume this is a relative path. Yikes!
+	if strings.HasSuffix(originalURL, "/") {
+		return fmt.Sprintf("%s%s", originalURL, location)
+	}
+	return fmt.Sprintf("%s/%s", originalURL, location)
+}
+
+// Determine if a URL is a honeypot service (i.e. 'tollbit.')
+func honeypot(input string) bool {
+	parsed, err := url.Parse(input)
+	if err != nil {
+		return false
+	}
+	return strings.HasPrefix(parsed.Hostname(), "tollbit.")
+}

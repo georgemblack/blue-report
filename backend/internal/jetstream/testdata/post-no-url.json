@@ -1,0 +1,18 @@
+{
+  "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
+  "time_us": 1734491192590932,
+  "kind": "commit",
+  "commit": {
+    "rev": "3ldketqaofm2o",
+    "operation": "create",
+    "collection": "app.bsky.feed.post",
+    "rkey": "3ldketq4zfk2l",
+    "record": {
+      "$type": "app.bsky.feed.post",
+      "createdAt": "2024-12-18T03:06:32.262Z",
+      "langs": ["en"],
+      "text": "Test post – no URLs"
+    },
+    "cid": "bafyreia55w2wonj3fyokyytgbqfyzqyhhlhtye2gpcogdna56n3s6rsg6i"
+  }
+}

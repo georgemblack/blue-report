@@ -1,0 +1,29 @@
+{
+  "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
+  "time_us": 1735507512895621,
+  "kind": "commit",
+  "commit": {
+    "rev": "3lehxegtwwf2a",
+    "operation": "create",
+    "collection": "app.bsky.feed.post",
+    "rkey": "3lehxegpi522h",
+    "record": {
+      "$type": "app.bsky.feed.post",
+      "createdAt": "2024-12-29T21:25:12.571Z",
+      "facets": [
+        {
+          "features": [
+            {
+              "$type": "app.bsky.richtext.facet#link",
+              "uri": "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge"
+            }
+          ],
+          "index": { "byteEnd": 55, "byteStart": 25 }
+        }
+      ],
+      "langs": ["en"],
+      "text": "Test post – no embed\n\ntylervigen.com/the-mystery-..."
+    },
+    "cid": "bafyreig3mrjwh66rbiuvlpynrzmw3y72q2qrkvhocqpxf2a3ausdcmi36e"
+  }
+}
