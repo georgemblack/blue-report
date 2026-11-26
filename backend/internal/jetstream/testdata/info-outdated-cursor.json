@@ -1,8 +1,0 @@
-{
-  "$type": "message",
-  "payload": {
-    "$type": "network.bsky.jetstream.subscribeEvents#info",
-    "message": "requested timestamp cursor below retention floor; starting at seq 28581894555",
-    "name": "OutdatedCursor"
-  }
-}

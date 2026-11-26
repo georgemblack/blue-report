@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/georgemblack/blue-report/backend/internal/event"
-	"github.com/georgemblack/blue-report/backend/internal/jetstream"
 	"github.com/georgemblack/blue-report/backend/internal/postcache"
 	"github.com/georgemblack/blue-report/backend/internal/ranking"
+	"github.com/georgemblack/blue-report/backend/internal/stream"
 	"github.com/georgemblack/blue-report/backend/internal/translations"
 	"github.com/georgemblack/blue-report/backend/internal/urltools"
 )
@@ -48,14 +48,14 @@ func NewProcessor() *Processor {
 
 // Handle applies one interaction. It returns true if the interaction was
 // recorded, or false if it was skipped (see Stats for the reasons).
-func (p *Processor) Handle(m jetstream.Message) bool {
+func (p *Processor) Handle(m stream.Message) bool {
 	at := time.UnixMicro(m.TimeUS)
 	p.newestUS = max(p.newestUS, m.TimeUS)
 
 	// Work out which link this interaction is about, as cleaned when the
 	// post was first seen. That's the version that's stored.
 	var cleaned string
-	if m.Kind == jetstream.KindPost {
+	if m.Kind == stream.KindPost {
 		if m.URL == "" {
 			p.stats.NoLink++
 			return false
@@ -79,7 +79,7 @@ func (p *Processor) Handle(m jetstream.Message) bool {
 
 	// Only a post's own link is cached. Quotes are credited to the quoted
 	// post's link, but likes of a quote aren't counted (as in v1).
-	if m.Kind == jetstream.KindPost {
+	if m.Kind == stream.KindPost {
 		p.posts.Put(m.SubjectURI, cleaned, at)
 	}
 
@@ -123,24 +123,24 @@ func (p *Processor) Stats() Stats {
 	return p.stats
 }
 
-func (p *Processor) count(k jetstream.Kind) {
+func (p *Processor) count(k stream.Kind) {
 	switch k {
-	case jetstream.KindPost:
+	case stream.KindPost:
 		p.stats.Posts++
-	case jetstream.KindQuote:
+	case stream.KindQuote:
 		p.stats.Quotes++
-	case jetstream.KindRepost:
+	case stream.KindRepost:
 		p.stats.Reposts++
-	case jetstream.KindLike:
+	case stream.KindLike:
 		p.stats.Likes++
 	}
 }
 
-func eventType(k jetstream.Kind) event.Type {
+func eventType(k stream.Kind) event.Type {
 	switch k {
-	case jetstream.KindRepost:
+	case stream.KindRepost:
 		return event.Repost
-	case jetstream.KindLike:
+	case stream.KindLike:
 		return event.Like
 	default:
 		return event.Post // posts and quotes

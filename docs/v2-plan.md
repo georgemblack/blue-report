@@ -100,6 +100,7 @@ One Go binary. Its goroutines:
 - Serves `/health` (optional; useful for ECS health checks).
 
 ### 5.2 `reader`
+- Uses Bluesky's official Go client, `github.com/bluesky-social/jetstream`, which handles the connection, reconnecting, failing over to the second host, compression and decoding. Resumes by time (`CursorTime`), so either host works.
 - Holds the Jetstream v2 WebSocket connection: `/xrpc/network.bsky.jetstream.subscribeEvents` with `collections` = post, repost, like and `kinds=commit`. No authentication is needed for the live stream.
 - Each v2 message is `{"$type":"message","payload":{…}}`. Commit payloads are flat: `did`, `seq`, `time`, `operation`, `collection`, `rkey`, `record`. There's no `time_us`, `kind` or `commit` wrapper as in v1.
 - Parses messages and drops everything except `kind=commit`, `operation=create`. For posts, keeps only English (`langs` contains `en`). (The "@theblue.report account is excluded" rule in `RANKING.md` has been dropped; it was never implemented in v1 either.)
