@@ -3,8 +3,10 @@
 //
 // Configuration (environment variables):
 //
-//	BLUE_REPORT_DATA_DIR  folder used as the event store (default "local-data")
-//	LOG_FORMAT            "json" (default) or "text"
+//	BLUE_REPORT_DATA_DIR     folder used as the event store (default "local-data")
+//	BLUE_REPORT_PUBLISH_DIR  folder published files go to, standing in for R2
+//	                         (default "local-data/published")
+//	LOG_FORMAT               "json" (default) or "text"
 package main
 
 import (
@@ -18,6 +20,7 @@ import (
 
 	"github.com/georgemblack/blue-report/backend/internal/event"
 	"github.com/georgemblack/blue-report/backend/internal/eventlog"
+	"github.com/georgemblack/blue-report/backend/internal/publish"
 	"github.com/georgemblack/blue-report/backend/internal/state"
 	"github.com/georgemblack/blue-report/backend/internal/store"
 	"github.com/georgemblack/blue-report/backend/internal/stream"
@@ -30,6 +33,9 @@ const (
 	// Room for a few seconds of events while the actor is busy (for example
 	// computing the rankings).
 	eventsBuffer = 100_000
+
+	// How often to publish top-links.json.
+	publishInterval = 5 * time.Minute
 
 	// How many event files to download and decode at once during the
 	// startup rebuild.
@@ -93,6 +99,17 @@ func run(logger *slog.Logger) error {
 	}
 	go actor.Run(messages, batches)
 
+	// Publish once the state is rebuilt, whether or not intake has caught up
+	// with Jetstream yet.
+	published := store.NewLocal(envOr("BLUE_REPORT_PUBLISH_DIR", "local-data/published"))
+	publishCtx, stopPublishing := context.WithCancel(ctx)
+	defer stopPublishing()
+	publisherDone := make(chan struct{})
+	go func() {
+		publish.NewPublisher(actor, published, publishInterval, logger).Run(publishCtx)
+		close(publisherDone)
+	}()
+
 	// Read until a shutdown signal (or a fatal stream error).
 	readErr := stream.NewReader(logger).Run(ctx, cursor, messages)
 	if errors.Is(readErr, context.Canceled) {
@@ -100,6 +117,9 @@ func run(logger *slog.Logger) error {
 	}
 	stopSignals() // a second Ctrl-C now exits immediately
 	logger.Info("shutting down: saving remaining events")
+	// Stop publishing whatever stopped the reader (a signal or a fatal error).
+	stopPublishing()
+	<-publisherDone
 
 	// Shutdown order: the actor handles what's left and hands its last
 	// batch to the writer, then closes batches; the writer saves everything

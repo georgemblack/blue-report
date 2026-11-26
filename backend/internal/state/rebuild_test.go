@@ -85,7 +85,7 @@ func TestRebuildMatchesLiveState(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if err := s.Put(ctx, eventlog.Key(maxT), data); err != nil {
+				if err := s.Put(ctx, eventlog.Key(maxT), data, store.Meta{}); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -159,9 +159,9 @@ func TestRebuildIgnoresDuplicates(t *testing.T) {
 	// Save everything, then save the last half again in a second file.
 	data, maxT, _ := eventlog.Encode(events)
 	now := time.UnixMicro(maxT)
-	_ = s.Put(ctx, eventlog.Key(maxT), data)
+	_ = s.Put(ctx, eventlog.Key(maxT), data, store.Meta{})
 	dup, _, _ := eventlog.Encode(events[len(events)/2:])
-	_ = s.Put(ctx, eventlog.Key(maxT-1), dup)
+	_ = s.Put(ctx, eventlog.Key(maxT-1), dup, store.Meta{})
 
 	rebuilt := NewActor(slowConfig(), discard)
 	if _, err := rebuilt.Rebuild(ctx, s, now, 2); err != nil {

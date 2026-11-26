@@ -65,7 +65,7 @@ func (w *Writer) Run(ctx context.Context, batches <-chan []event.Event) error {
 func (w *Writer) put(ctx context.Context, key string, data []byte) error {
 	wait := w.retryMin
 	for {
-		err := w.store.Put(ctx, key, data)
+		err := w.store.Put(ctx, key, data, store.Meta{ContentType: "application/vnd.apache.parquet"})
 		if err == nil {
 			return nil
 		}

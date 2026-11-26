@@ -138,7 +138,7 @@ func TestResumePoint(t *testing.T) {
 		base - 1_000_000,         // hour 15, older
 	}
 	for _, ts := range times {
-		if err := s.Put(ctx, Key(ts), []byte("x")); err != nil {
+		if err := s.Put(ctx, Key(ts), []byte("x"), store.Meta{}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -194,14 +194,14 @@ type flakyStore struct {
 	tries int
 }
 
-func (f *flakyStore) Put(ctx context.Context, key string, body []byte) error {
+func (f *flakyStore) Put(ctx context.Context, key string, body []byte, meta store.Meta) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.tries++
 	if f.tries <= f.fails {
 		return errors.New("s3 is down")
 	}
-	return f.Store.Put(ctx, key, body)
+	return f.Store.Put(ctx, key, body, meta)
 }
 
 func TestWriterRetries(t *testing.T) {
@@ -253,7 +253,7 @@ func TestFilesSince(t *testing.T) {
 	hour := int64(3600 * 1_000_000)
 	times := []int64{base - 50*hour, base - 26*hour, base - 2*hour, base}
 	for _, ts := range times {
-		if err := s.Put(ctx, Key(ts), []byte("x")); err != nil {
+		if err := s.Put(ctx, Key(ts), []byte("x"), store.Meta{}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -277,7 +277,7 @@ func TestReadFiles(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if err := s.Put(ctx, Key(maxT), data); err != nil {
+		if err := s.Put(ctx, Key(maxT), data, store.Meta{}); err != nil {
 			t.Fatal(err)
 		}
 		keys = append(keys, Key(maxT))
@@ -303,7 +303,7 @@ func TestReadFiles(t *testing.T) {
 
 func TestReadFilesErrors(t *testing.T) {
 	s := store.NewLocal(t.TempDir())
-	if err := s.Put(ctx, "events/bad.parquet", []byte("not parquet")); err != nil {
+	if err := s.Put(ctx, "events/bad.parquet", []byte("not parquet"), store.Meta{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := ReadFiles(ctx, s, []string{"events/bad.parquet"}, 2, func(string, []event.Event) error { return nil }); err == nil {
@@ -315,7 +315,7 @@ func TestReadFilesErrors(t *testing.T) {
 
 	// An error from fn stops reading.
 	data, maxT, _ := Encode(sampleEvents())
-	_ = s.Put(ctx, Key(maxT), data)
+	_ = s.Put(ctx, Key(maxT), data, store.Meta{})
 	boom := errors.New("boom")
 	if err := ReadFiles(ctx, s, []string{Key(maxT), Key(maxT), Key(maxT)}, 2, func(string, []event.Event) error { return boom }); !errors.Is(err, boom) {
 		t.Fatalf("fn error: err = %v", err)

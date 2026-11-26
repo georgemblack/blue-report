@@ -28,7 +28,7 @@ func (l *Local) path(key string) (string, error) {
 	return filepath.Join(l.dir, filepath.FromSlash(key)), nil
 }
 
-func (l *Local) Put(ctx context.Context, key string, body []byte) error {
+func (l *Local) Put(ctx context.Context, key string, body []byte, _ Meta) error {
 	path, err := l.path(key)
 	if err != nil {
 		return err

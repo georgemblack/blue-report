@@ -8,7 +8,7 @@ The rebuild described in [docs/v2-plan.md](../docs/v2-plan.md). It's separate fr
 LOG_FORMAT=text go run ./cmd/intake
 ```
 
-This reads live Jetstream and saves events as Parquet files under `local-data/` (git-ignored), which stands in for the S3 bucket. Set `BLUE_REPORT_DATA_DIR` to use another folder. Ctrl-C saves any remaining events before exiting; the next run resumes from the newest saved file.
+This reads live Jetstream and saves events as Parquet files under `local-data/` (git-ignored), which stands in for the S3 bucket. Every 5 minutes it publishes `top-links.json` to `local-data/published/data/`, which stands in for R2. Set `BLUE_REPORT_DATA_DIR` and `BLUE_REPORT_PUBLISH_DIR` to use other folders. Ctrl-C saves any remaining events before exiting; the next run resumes from the newest saved file.
 
 To look at the files with [DuckDB](https://duckdb.org):
 
@@ -24,6 +24,7 @@ ORDER BY time_us DESC LIMIT 20;
 - `internal/event`: interaction types (post, repost, like), the stored event row, and time helpers.
 - `internal/eventlog`: event files: Parquet encoding, file names, finding the resume point, and the writer.
 - `internal/hash`: turns strings into 64-bit keys for the in-memory maps.
+- `internal/publish`: builds `top-links.json` (same shape as v1) from the rankings and uploads it on a timer.
 - `internal/postcache`: maps recently active posts to the link they shared, so likes, reposts and quotes can be credited to that link.
 - `internal/ranking`: who interacted with each link and when; ranks links over the last hour, day and week.
 - `internal/state`: the state actor, the one goroutine that owns the post cache, ranking, translations and write buffer.

@@ -13,7 +13,7 @@ var ctx = context.Background()
 
 func TestPutGet(t *testing.T) {
 	s := NewLocal(t.TempDir())
-	if err := s.Put(ctx, "events/date=2026-11-26/hour=15/123.parquet", []byte("hello")); err != nil {
+	if err := s.Put(ctx, "events/date=2026-11-26/hour=15/123.parquet", []byte("hello"), Meta{}); err != nil {
 		t.Fatal(err)
 	}
 	got, err := s.Get(ctx, "events/date=2026-11-26/hour=15/123.parquet")
@@ -22,7 +22,7 @@ func TestPutGet(t *testing.T) {
 	}
 
 	// Overwriting replaces the file.
-	if err := s.Put(ctx, "events/date=2026-11-26/hour=15/123.parquet", []byte("bye")); err != nil {
+	if err := s.Put(ctx, "events/date=2026-11-26/hour=15/123.parquet", []byte("bye"), Meta{}); err != nil {
 		t.Fatal(err)
 	}
 	if got, _ := s.Get(ctx, "events/date=2026-11-26/hour=15/123.parquet"); string(got) != "bye" {
@@ -46,7 +46,7 @@ func TestList(t *testing.T) {
 		"data/top-links.json",
 	}
 	for _, k := range keys {
-		if err := s.Put(ctx, k, []byte(k)); err != nil {
+		if err := s.Put(ctx, k, []byte(k), Meta{}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -75,7 +75,7 @@ func TestListEmptyStore(t *testing.T) {
 func TestListSkipsTemporaryFiles(t *testing.T) {
 	dir := t.TempDir()
 	s := NewLocal(dir)
-	if err := s.Put(ctx, "events/a.parquet", []byte("x")); err != nil {
+	if err := s.Put(ctx, "events/a.parquet", []byte("x"), Meta{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "events", ".tmp-123"), []byte("partial"), 0o644); err != nil {
@@ -89,7 +89,7 @@ func TestListSkipsTemporaryFiles(t *testing.T) {
 func TestInvalidKeys(t *testing.T) {
 	s := NewLocal(t.TempDir())
 	for _, key := range []string{"", "/abs", "../escape", "a/../../b"} {
-		if err := s.Put(ctx, key, nil); err == nil {
+		if err := s.Put(ctx, key, nil, Meta{}); err == nil {
 			t.Errorf("Put(%q) succeeded, want error", key)
 		}
 	}

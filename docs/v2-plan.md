@@ -10,7 +10,7 @@ Read [event-schema.md](event-schema.md) alongside this. It defines the v1 and v2
 
 1. **Cost.** Cheap to run long-term. The current backend costs about **$35/month** at full prices. The target is under **$10–15/month**.
 2. **Simplicity.** Few moving parts and few AWS services, easy to run without ongoing attention.
-3. **Freshness.** Rankings computed continuously and published about every minute, instead of hourly.
+3. **Freshness.** Rankings computed continuously and published every few minutes (every 5 to start), instead of hourly.
 
 ## 2. The current system (v1) in brief
 
@@ -38,7 +38,7 @@ October 2026 at full prices: Fargate intake about $14.70, ElastiCache about $9.5
 | D2 | **On startup, rebuild memory from S3** by replaying recent Parquet events. |
 | D3 | **The newest `time_us` in S3 is the resume point.** No separate cursor file. Files are named after their newest `time_us`. On shutdown, intake writes pending events to S3 before exiting. |
 | D4 | **ECS Fargate** for compute. Spot or on-demand is still open. |
-| D5 | **Real-time ranking** inside intake, published to R2 about every minute. |
+| D5 | **Real-time ranking** inside intake, published to R2 every 5 minutes to start (can be tightened later). |
 | D6 | **Parquet** for event storage. The schema is in [event-schema.md](event-schema.md). |
 | D7 | **Build fresh, run in parallel, then switch over.** v2 has **completely separate AWS infrastructure**: nothing shared with v1. |
 | D8 | **One container**: a single Go program with several goroutines (section 5). |
@@ -129,12 +129,12 @@ Rule: **no network or disk work inside the actor.** Everything slow happens in o
 - Limits how many batches can wait. If S3 stays down past the limit, stop reading from Jetstream rather than run out of memory, and replay later from the resume point. (Open: whether to apply that back-pressure or drop data.)
 
 ### 5.5 `publisher`
-- Every **~60 seconds**, sends `Top` to the actor and receives the result. Then, outside the actor:
+- Every **5 minutes** (to start; can be tightened later), sends `Top` to the actor and receives the result. Then, outside the actor:
   - fills in titles, thumbnails and recommended posts from the hydrator's metadata cache
   - builds `top-links.json` (same shape as v1; see section 10) and uploads it to R2
   - passes the current top links to the hydrator, and redirect candidates to the resolver
 - Every publish, also checks the feed rule (section 10.2) and republishes the Atom and JSON feeds when it changes.
-- **Doesn't publish until the startup rebuild is done and the reader has caught up**, meaning the newest `time_us` is within about 60 s of the clock.
+- **Starts once the startup rebuild is done**, and publishes straight away. It doesn't wait for the reader to catch up with Jetstream (decided for simplicity: after a long gap, the first few publishes may show slightly older rankings).
 
 ### 5.6 `resolver` (worker pool, about 4)
 - Takes redirect candidates. It first checks DynamoDB: skip if a translation or a "no redirect" record exists.
@@ -218,7 +218,7 @@ Final URLs already sent to the resolver, so they aren't sent again. Expiry isn't
    - If the bucket is empty (first run), start from live (no cursor).
    - If the resume point is older than Jetstream's replay window (about 36 hours), v2 still connects: it sends an `#info` message named `OutdatedCursor` and starts at the oldest event it has. Log it as a gap.
 
-**"Now" for windows:** use the newest event time seen, not the clock, so windows stay correct while catching up. Publishing is held back until caught up anyway.
+**"Now" for windows:** use the newest event time seen, not the clock, so windows stay correct while catching up. Publishing doesn't wait to catch up, so right after a long gap the published rankings may briefly lag.
 
 ## 8. Per-event flow (in the state actor)
 
@@ -251,7 +251,7 @@ Note: posts are looked up by their **address (AT URI)**, not by CID as in v1. Li
 ### 9.3 Cloudflare R2: published output
 | Key | Content | Cache-Control |
 |---|---|---|
-| `data/top-links.json` | Rankings (section 10.1) | short, e.g. `max-age=60` |
+| `data/top-links.json` | Rankings (section 10.1) | matches the publish interval: `max-age=300` |
 | `feeds/top-day.xml` | Atom feed | `max-age=600` |
 | `feeds/top-day.json` | JSON Feed | `max-age=600` |
 | `thumbnails/<url hash>.<ext>` | Thumbnail images | `max-age=28800` |
