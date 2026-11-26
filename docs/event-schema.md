@@ -79,7 +79,7 @@ Carol quotes Alice's post. It's stored as a post (`type` 0), with Alice's link a
 
 | Column | Parquet type | Meaning |
 |---|---|---|
-| `time_us` | INT64 | **When the event happened on Bluesky**, as Jetstream reports it: microseconds since the Unix epoch, UTC. |
+| `time_us` | INT64 | **When the event happened on Bluesky**, as Jetstream reports it (when Jetstream received it, usually within a second of the user's action): microseconds since the Unix epoch, UTC. Jetstream v2 sends this as an RFC 3339 `time` string; it's converted to microseconds. |
 | `type` | INT8 | `0` = post (including quote posts), `1` = repost, `2` = like. Same numbers as v1. |
 | `did` | STRING | The user who made the post, repost or like. |
 | `rkey` | STRING | The record key of **this user's own** post, repost or like. Together, `did` + `type` + `rkey` identify one Bluesky record. |

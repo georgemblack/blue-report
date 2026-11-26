@@ -44,7 +44,7 @@ October 2026 at full prices: Fargate intake about $14.70, ElastiCache about $9.5
 | D8 | **One container**: a single Go program with several goroutines (section 5). |
 | D9 | **State has a single owner**: one goroutine owns all ranking and cache state, and others talk to it through channels (the actor pattern). |
 | D10 | **Event schema:** `time_us`, `type` (0 = post including quotes, 1 = repost, 2 = like), `did`, `rkey`, `subject_uri`, `url`. |
-| D11 | **Use Jetstream event time** (`time_us`) everywhere, never processing time. |
+| D11 | **Use Jetstream event time** everywhere, never processing time. Jetstream v2 sends it as `time` (RFC 3339); we store it as `time_us` (microseconds). |
 | D12 | **Normalize when reading.** S3 stores the cleaned URL before translation. Translations are applied in memory, and applied again to history on every rebuild. |
 | D13 | **Deletes are ignored**, as in v1 (`RANKING.md`: removals aren't counted). |
 | D14 | **Keep DynamoDB** for small lookup data: translations, titles, feed. |
@@ -52,6 +52,7 @@ October 2026 at full prices: Fargate intake about $14.70, ElastiCache about $9.5
 | D16 | **Drop OpenAI**: no LLM-generated titles. |
 | D17 | **Backfill is out of scope** for now. Converting v1 JSON to v2 Parquet will be planned separately. |
 | D18 | **Same AWS region as v1:** us-west-2. |
+| D19 | **Jetstream v2** (`jetstream.us-west.bsky.network` / `jetstream.us-east.bsky.network`), not v1. v1 still runs but v2 is recommended for new projects. Docs: https://bsky.network/docs/jetstream/ |
 
 ## 4. Architecture overview
 
@@ -99,10 +100,11 @@ One Go binary. Its goroutines:
 - Serves `/health` (optional; useful for ECS health checks).
 
 ### 5.2 `reader`
-- Holds the Jetstream WebSocket connection: `wantedCollections` = post, repost, like.
+- Holds the Jetstream v2 WebSocket connection: `/xrpc/network.bsky.jetstream.subscribeEvents` with `collections` = post, repost, like and `kinds=commit`. No authentication is needed for the live stream.
+- Each v2 message is `{"$type":"message","payload":{…}}`. Commit payloads are flat: `did`, `seq`, `time`, `operation`, `collection`, `rkey`, `record`. There's no `time_us`, `kind` or `commit` wrapper as in v1.
 - Parses messages and drops everything except `kind=commit`, `operation=create`. For posts, keeps only English (`langs` contains `en`). (The "@theblue.report account is excluded" rule in `RANKING.md` has been dropped; it was never implemented in v1 either.)
 - Sends parsed events to the state actor through a buffered channel.
-- On disconnect, reconnects with `cursor` set to the newest `time_us` it has seen. It may switch Jetstream servers; small overlaps are acceptable.
+- On disconnect, reconnects with `cursor` set to the newest `time_us` it has seen. v2 accepts a microsecond timestamp as the cursor and starts at the first event at or after it, so expect a small overlap (delivery is at-least-once anyway). It may switch Jetstream servers. (v2 also has a `seq` number per event; we resume by time so the S3 file names can stay the resume point.)
 - Touches no shared state.
 
 ### 5.3 `state actor`: the only owner of state
@@ -213,7 +215,7 @@ Final URLs already sent to the resolver, so they aren't sent again. Expiry isn't
 3. Rows are read in a streaming fashion so the full 7 days is never in memory at once.
 4. **Edge cases:**
    - If the bucket is empty (first run), start from live (no cursor).
-   - If the resume point is older than Jetstream's replay window, connect without a cursor and log the gap.
+   - If the resume point is older than Jetstream's replay window (about 36 hours), v2 still connects: it sends an `#info` message named `OutdatedCursor` and starts at the oldest event it has. Log it as a gap.
 
 **"Now" for windows:** use the newest event time seen, not the clock, so windows stay correct while catching up. Publishing is held back until caught up anyway.
 
@@ -323,7 +325,7 @@ Keep the newest feed entry's time in memory (loaded at startup), so the 12-hour 
 1. Distinct `(url, did, type)` combinations and distinct links in a week of real data. This sets ranking memory.
 2. Startup rebuild time for 7 days at the chosen CPU.
 3. `Top` computation time at full size.
-4. Jetstream's replay window (how far back `cursor` works).
+4. ~~Jetstream's replay window~~ Known: about 36 hours on Bluesky's v2 servers (a 30-hour-old cursor worked in testing; 72 hours returned `OutdatedCursor`).
 
 **Parallel-run validation:**
 - Compare v2's `top-links.json` with v1's over several days. Expect differences: v1 undercounts the hour and day rankings (section 2) and publishes hourly.

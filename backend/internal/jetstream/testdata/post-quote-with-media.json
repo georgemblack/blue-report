@@ -1,0 +1,37 @@
+{
+  "$type": "message",
+  "payload": {
+    "$type": "network.bsky.jetstream.subscribeEvents#commit",
+    "cid": "bafyreiexamplequotemediacid",
+    "collection": "app.bsky.feed.post",
+    "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
+    "operation": "create",
+    "record": {
+      "$type": "app.bsky.feed.post",
+      "createdAt": "2025-01-04T19:43:20.000Z",
+      "embed": {
+        "$type": "app.bsky.embed.recordWithMedia",
+        "media": {
+          "$type": "app.bsky.embed.images",
+          "images": []
+        },
+        "record": {
+          "$type": "app.bsky.embed.record",
+          "record": {
+            "cid": "bafyreihhlj7nktvq3h6issjqxor5ldy7yq64qv5wk5jawqeorfhn65evoe",
+            "uri": "at://did:plc:ruzlll5u7u7pfxybmppqyxbx/app.bsky.feed.post/3lewu3lbitc2v"
+          }
+        }
+      },
+      "langs": [
+        "en"
+      ],
+      "text": "Quote post with an image"
+    },
+    "rev": "3lewug3aaaa2l",
+    "rkey": "3lewug3bbbb2l",
+    "seq": 28000000007,
+    "time": "2025-01-04T19:43:20.000000Z",
+    "witnessedAt": "2025-01-04T19:43:20.000000Z"
+  }
+}

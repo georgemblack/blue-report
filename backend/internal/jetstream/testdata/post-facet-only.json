@@ -1,12 +1,11 @@
 {
-  "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
-  "time_us": 1735507512895621,
-  "kind": "commit",
-  "commit": {
-    "rev": "3lehxegtwwf2a",
-    "operation": "create",
+  "$type": "message",
+  "payload": {
+    "$type": "network.bsky.jetstream.subscribeEvents#commit",
+    "cid": "bafyreig3mrjwh66rbiuvlpynrzmw3y72q2qrkvhocqpxf2a3ausdcmi36e",
     "collection": "app.bsky.feed.post",
-    "rkey": "3lehxegpi522h",
+    "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
+    "operation": "create",
     "record": {
       "$type": "app.bsky.feed.post",
       "createdAt": "2024-12-29T21:25:12.571Z",
@@ -18,12 +17,21 @@
               "uri": "https://tylervigen.com/the-mystery-of-the-bloomfield-bridge"
             }
           ],
-          "index": { "byteEnd": 55, "byteStart": 25 }
+          "index": {
+            "byteEnd": 55,
+            "byteStart": 25
+          }
         }
       ],
-      "langs": ["en"],
+      "langs": [
+        "en"
+      ],
       "text": "Test post – no embed\n\ntylervigen.com/the-mystery-..."
     },
-    "cid": "bafyreig3mrjwh66rbiuvlpynrzmw3y72q2qrkvhocqpxf2a3ausdcmi36e"
+    "rev": "3lehxegtwwf2a",
+    "rkey": "3lehxegpi522h",
+    "seq": 28000000002,
+    "time": "2024-12-29T21:25:12.895621Z",
+    "witnessedAt": "2024-12-29T21:25:12.895621Z"
   }
 }

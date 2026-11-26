@@ -1,11 +1,14 @@
-// Package jetstream turns raw Bluesky Jetstream messages into the few kinds
-// of interaction we care about: posts, quote posts, reposts and likes.
+// Package jetstream turns raw Bluesky Jetstream v2 messages into the few
+// kinds of interaction we care about: posts, quote posts, reposts and likes.
+//
+// Format reference: https://bsky.network/docs/jetstream/
 package jetstream
 
 import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"time"
 )
 
 // Kind is the kind of interaction a message describes.
@@ -34,7 +37,8 @@ func (k Kind) String() string {
 
 // Message is a parsed interaction.
 type Message struct {
-	TimeUS int64  // when it happened on Bluesky, in microseconds since the Unix epoch
+	Seq    int64  // Jetstream's sequence number for the event
+	TimeUS int64  // when Jetstream saw it, in microseconds since the Unix epoch
 	DID    string // the user who made it
 	RKey   string // the record key of the user's own post, repost or like
 	Kind   Kind
@@ -48,34 +52,48 @@ type Message struct {
 	URL string
 }
 
-// Collections are the record types to ask Jetstream for.
-var Collections = []string{
-	"app.bsky.feed.post",
-	"app.bsky.feed.repost",
-	"app.bsky.feed.like",
+// Info is a notice from Jetstream rather than an event. For example, name
+// "OutdatedCursor" means the requested cursor was older than Jetstream keeps,
+// so some events were missed. Parse returns it as an error so it gets logged.
+type Info struct {
+	Name    string
+	Message string
+}
+
+func (i *Info) Error() string {
+	return fmt.Sprintf("jetstream info %s: %s", i.Name, i.Message)
 }
 
 // Parse returns the interaction in a Jetstream message. ok is false when the
 // message isn't one we count: anything other than a newly created post,
 // repost or like, or a post not marked as English. An error means the
-// message wasn't valid JSON.
+// message couldn't be read, or was an Info notice.
 func Parse(data []byte) (msg Message, ok bool, err error) {
-	var raw rawEvent
-	if err := json.Unmarshal(data, &raw); err != nil {
+	var frame rawFrame
+	if err := json.Unmarshal(data, &frame); err != nil {
 		return Message{}, false, fmt.Errorf("parsing jetstream message: %w", err)
 	}
-
-	if raw.Kind != "commit" || raw.Commit.Operation != "create" {
-		return Message{}, false, nil
+	if frame.Type != "message" {
+		return Message{}, false, fmt.Errorf("unexpected jetstream frame type %q", frame.Type)
 	}
-	if raw.DID == "" || raw.Commit.RKey == "" {
+
+	ev := frame.Payload
+	switch ev.Type {
+	case "network.bsky.jetstream.subscribeEvents#commit":
+	case "network.bsky.jetstream.subscribeEvents#info":
+		return Message{}, false, &Info{Name: ev.Name, Message: ev.Message}
+	default:
+		return Message{}, false, nil // identity, account and sync events
+	}
+
+	if ev.Operation != "create" || ev.DID == "" || ev.RKey == "" {
 		return Message{}, false, nil
 	}
 
 	// Check the collection before decoding the record, since records from
 	// other collections have different shapes.
 	var kind Kind
-	switch raw.Commit.Collection {
+	switch ev.Collection {
 	case "app.bsky.feed.post":
 		kind = KindPost
 	case "app.bsky.feed.repost":
@@ -86,12 +104,17 @@ func Parse(data []byte) (msg Message, ok bool, err error) {
 		return Message{}, false, nil
 	}
 
-	var record rawRecord
-	if err := json.Unmarshal(raw.Commit.Record, &record); err != nil {
-		return Message{}, false, fmt.Errorf("parsing %s record: %w", raw.Commit.Collection, err)
+	t, err := time.Parse(time.RFC3339Nano, ev.Time)
+	if err != nil {
+		return Message{}, false, fmt.Errorf("parsing jetstream event time: %w", err)
 	}
 
-	msg = Message{TimeUS: raw.TimeUS, DID: raw.DID, RKey: raw.Commit.RKey, Kind: kind}
+	var record rawRecord
+	if err := json.Unmarshal(ev.Record, &record); err != nil {
+		return Message{}, false, fmt.Errorf("parsing %s record: %w", ev.Collection, err)
+	}
+
+	msg = Message{Seq: ev.Seq, TimeUS: t.UnixMicro(), DID: ev.DID, RKey: ev.RKey, Kind: kind}
 
 	if kind != KindPost {
 		if record.Subject.URI == "" {
@@ -109,22 +132,33 @@ func Parse(data []byte) (msg Message, ok bool, err error) {
 		msg.SubjectURI = quoted
 		return msg, true, nil
 	}
-	msg.SubjectURI = fmt.Sprintf("at://%s/app.bsky.feed.post/%s", raw.DID, raw.Commit.RKey)
+	msg.SubjectURI = fmt.Sprintf("at://%s/app.bsky.feed.post/%s", ev.DID, ev.RKey)
 	msg.URL = record.link()
 	return msg, true, nil
 }
 
 // The parts of a Jetstream message we read. Everything else is ignored.
-type rawEvent struct {
-	DID    string `json:"did"`
-	TimeUS int64  `json:"time_us"`
-	Kind   string `json:"kind"`
-	Commit struct {
-		Operation  string          `json:"operation"`
-		Collection string          `json:"collection"`
-		RKey       string          `json:"rkey"`
-		Record     json.RawMessage `json:"record"`
-	} `json:"commit"`
+// Each message is a frame with the event under "payload".
+type rawFrame struct {
+	Type    string     `json:"$type"`
+	Payload rawPayload `json:"payload"`
+}
+
+type rawPayload struct {
+	Type string `json:"$type"`
+
+	// Commit events
+	DID        string          `json:"did"`
+	Seq        int64           `json:"seq"`
+	Time       string          `json:"time"` // RFC 3339, when Jetstream saw the event
+	Operation  string          `json:"operation"`
+	Collection string          `json:"collection"`
+	RKey       string          `json:"rkey"`
+	Record     json.RawMessage `json:"record"`
+
+	// Info notices
+	Name    string `json:"name"`
+	Message string `json:"message"`
 }
 
 type rawRecord struct {

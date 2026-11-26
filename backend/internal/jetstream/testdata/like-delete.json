@@ -1,0 +1,14 @@
+{
+  "$type": "message",
+  "payload": {
+    "$type": "network.bsky.jetstream.subscribeEvents#commit",
+    "collection": "app.bsky.feed.like",
+    "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
+    "operation": "delete",
+    "rev": "3lewuh4aaaa2l",
+    "rkey": "3lewuee7bpy2l",
+    "seq": 28000000008,
+    "time": "2025-01-04T19:45:00.000000Z",
+    "witnessedAt": "2025-01-04T19:45:00.000000Z"
+  }
+}

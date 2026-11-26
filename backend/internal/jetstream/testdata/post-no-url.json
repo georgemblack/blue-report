@@ -1,18 +1,23 @@
 {
-  "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
-  "time_us": 1734491192590932,
-  "kind": "commit",
-  "commit": {
-    "rev": "3ldketqaofm2o",
-    "operation": "create",
+  "$type": "message",
+  "payload": {
+    "$type": "network.bsky.jetstream.subscribeEvents#commit",
+    "cid": "bafyreia55w2wonj3fyokyytgbqfyzqyhhlhtye2gpcogdna56n3s6rsg6i",
     "collection": "app.bsky.feed.post",
-    "rkey": "3ldketq4zfk2l",
+    "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
+    "operation": "create",
     "record": {
       "$type": "app.bsky.feed.post",
       "createdAt": "2024-12-18T03:06:32.262Z",
-      "langs": ["en"],
+      "langs": [
+        "en"
+      ],
       "text": "Test post – no URLs"
     },
-    "cid": "bafyreia55w2wonj3fyokyytgbqfyzqyhhlhtye2gpcogdna56n3s6rsg6i"
+    "rev": "3ldketqaofm2o",
+    "rkey": "3ldketq4zfk2l",
+    "seq": 28000000003,
+    "time": "2024-12-18T03:06:32.590932Z",
+    "witnessedAt": "2024-12-18T03:06:32.590932Z"
   }
 }

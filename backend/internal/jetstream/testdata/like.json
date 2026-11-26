@@ -1,12 +1,11 @@
 {
-  "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
-  "time_us": 1736019684902212,
-  "kind": "commit",
-  "commit": {
-    "rev": "3lewuee7fmy2l",
-    "operation": "create",
+  "$type": "message",
+  "payload": {
+    "$type": "network.bsky.jetstream.subscribeEvents#commit",
+    "cid": "bafyreid34vz635zphlowcfuu5xm6vqeihp5kravvdftra2tnq3goy3jrke",
     "collection": "app.bsky.feed.like",
-    "rkey": "3lewuee7bpy2l",
+    "did": "did:plc:ruzlll5u7u7pfxybmppqyxbx",
+    "operation": "create",
     "record": {
       "$type": "app.bsky.feed.like",
       "createdAt": "2025-01-04T19:41:24.624Z",
@@ -15,6 +14,10 @@
         "uri": "at://did:plc:ruzlll5u7u7pfxybmppqyxbx/app.bsky.feed.post/3lewu3lbitc2v"
       }
     },
-    "cid": "bafyreid34vz635zphlowcfuu5xm6vqeihp5kravvdftra2tnq3goy3jrke"
+    "rev": "3lewuee7fmy2l",
+    "rkey": "3lewuee7bpy2l",
+    "seq": 28000000005,
+    "time": "2025-01-04T19:41:24.902212Z",
+    "witnessedAt": "2025-01-04T19:41:24.902212Z"
   }
 }
