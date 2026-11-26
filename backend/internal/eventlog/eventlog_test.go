@@ -247,3 +247,77 @@ func TestWriterGivesUpWhenCancelled(t *testing.T) {
 func bytesReader(b []byte) *bytes.Reader { return bytes.NewReader(b) }
 
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
+
+func TestFilesSince(t *testing.T) {
+	s := store.NewLocal(t.TempDir())
+	hour := int64(3600 * 1_000_000)
+	times := []int64{base - 50*hour, base - 26*hour, base - 2*hour, base}
+	for _, ts := range times {
+		if err := s.Put(ctx, Key(ts), []byte("x")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// From 30 hours before base: skips the 50-hour-old file, crosses into yesterday.
+	got, err := FilesSince(ctx, s, time.UnixMicro(base-30*hour), time.UnixMicro(base))
+	want := []string{Key(base - 26*hour), Key(base - 2*hour), Key(base)}
+	if err != nil || fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("FilesSince = %v, %v; want %v", got, err, want)
+	}
+}
+
+func TestReadFiles(t *testing.T) {
+	s := store.NewLocal(t.TempDir())
+	var keys []string
+	for i := range 20 {
+		events := sampleEvents()
+		for j := range events {
+			events[j].TimeUS += int64(i) * 60_000_000
+		}
+		data, maxT, err := Encode(events)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := s.Put(ctx, Key(maxT), data); err != nil {
+			t.Fatal(err)
+		}
+		keys = append(keys, Key(maxT))
+	}
+
+	seen := map[string]int{}
+	err := ReadFiles(ctx, s, keys, 4, func(key string, events []event.Event) error {
+		seen[key] = len(events) // no lock needed: fn is called one at a time
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(seen) != 20 {
+		t.Fatalf("read %d files, want 20", len(seen))
+	}
+	for k, n := range seen {
+		if n != 3 {
+			t.Fatalf("%s had %d events, want 3", k, n)
+		}
+	}
+}
+
+func TestReadFilesErrors(t *testing.T) {
+	s := store.NewLocal(t.TempDir())
+	if err := s.Put(ctx, "events/bad.parquet", []byte("not parquet")); err != nil {
+		t.Fatal(err)
+	}
+	if err := ReadFiles(ctx, s, []string{"events/bad.parquet"}, 2, func(string, []event.Event) error { return nil }); err == nil {
+		t.Fatal("corrupt file: want an error")
+	}
+	if err := ReadFiles(ctx, s, []string{"events/missing.parquet"}, 2, func(string, []event.Event) error { return nil }); !errors.Is(err, store.ErrNotFound) {
+		t.Fatalf("missing file: err = %v", err)
+	}
+
+	// An error from fn stops reading.
+	data, maxT, _ := Encode(sampleEvents())
+	_ = s.Put(ctx, Key(maxT), data)
+	boom := errors.New("boom")
+	if err := ReadFiles(ctx, s, []string{Key(maxT), Key(maxT), Key(maxT)}, 2, func(string, []event.Event) error { return boom }); !errors.Is(err, boom) {
+		t.Fatalf("fn error: err = %v", err)
+	}
+}

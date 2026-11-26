@@ -97,6 +97,43 @@ func (p *Processor) Handle(m stream.Message) bool {
 	return true
 }
 
+// Restore applies events read back from storage at startup, to rebuild the
+// ranking and post cache. now is the newest stored event time: events more
+// than a week older are skipped, and only the last 12 hours fill the post
+// cache. Restored events aren't buffered again, since they're already
+// stored.
+//
+// Rows can come in any order, and duplicates are harmless: the ranking and
+// post cache both keep the latest time.
+func (p *Processor) Restore(events []event.Event, now time.Time) (restored int) {
+	// Compare in whole seconds, as the ranking and post cache do, so events
+	// right at a cutoff are treated the same as during live processing.
+	nowS := event.Seconds(now)
+	weekStartS := event.Seconds(now.Add(-ranking.Week))
+	ttlS := uint32(PostTTL / time.Second)
+	for _, e := range events {
+		at := time.UnixMicro(e.TimeUS)
+		atS := event.Seconds(at)
+		if atS < weekStartS {
+			continue
+		}
+		final, ok := p.translations.Final(e.URL)
+		if !ok {
+			continue
+		}
+		p.ranking.Record(final, e.DID, e.SubjectURI, e.Type, at)
+
+		// Any interaction with a post shows it was active then, which is
+		// what keeps a post cached during live processing too.
+		if atS > nowS || nowS-atS <= ttlS {
+			p.posts.Put(e.SubjectURI, e.URL, at)
+		}
+		p.newestUS = max(p.newestUS, e.TimeUS)
+		restored++
+	}
+	return restored
+}
+
 // TakeBuffer returns the events recorded since the last call, and starts a
 // new buffer. The caller owns the returned slice.
 func (p *Processor) TakeBuffer() []event.Event {

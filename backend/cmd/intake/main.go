@@ -31,6 +31,10 @@ const (
 	// computing the rankings).
 	eventsBuffer = 100_000
 
+	// How many event files to download and decode at once during the
+	// startup rebuild.
+	rebuildWorkers = 8
+
 	// How many batches can wait for the writer before the actor has to wait.
 	batchesBuffer = 4
 
@@ -77,7 +81,16 @@ func run(logger *slog.Logger) error {
 	writerDone := make(chan error, 1)
 	go func() { writerDone <- writer.Run(writeCtx, batches) }()
 
+	// Rebuild the rankings and post cache from the last week of saved
+	// events before reading anything new.
 	actor := state.NewActor(state.DefaultConfig(), logger)
+	if cursor > 0 {
+		stats, err := actor.Rebuild(ctx, events, time.UnixMicro(cursor), rebuildWorkers)
+		if err != nil {
+			return err
+		}
+		logger.Info("rebuilt state from saved events", "files", stats.Files, "events", stats.Events, "restored", stats.Restored, "took", stats.Took.Round(time.Millisecond).String())
+	}
 	go actor.Run(messages, batches)
 
 	// Read until a shutdown signal (or a fatal stream error).
