@@ -14,7 +14,7 @@ const (
 	articleURL = "https://www.nytimes.com/2026/11/26/example.html"
 )
 
-var start = time.Date(2026, 11, 26, 15, 0, 0, 0, time.UTC)
+var start0 = time.Date(2026, 11, 26, 15, 0, 0, 0, time.UTC)
 
 func us(t time.Time) int64 { return t.UnixMicro() }
 
@@ -50,10 +50,10 @@ func weekCounts(t *testing.T, p *Processor, url string) ranking.Counts {
 
 func TestPostAndInteractions(t *testing.T) {
 	p := NewProcessor()
-	mustHandle(t, p, alicePosts(start), true)
-	mustHandle(t, p, interaction(stream.KindLike, "did:plc:bob", "l1", alicePost, start.Add(time.Minute)), true)
-	mustHandle(t, p, interaction(stream.KindRepost, "did:plc:carol", "r1", alicePost, start.Add(2*time.Minute)), true)
-	mustHandle(t, p, interaction(stream.KindQuote, "did:plc:dan", "q1", alicePost, start.Add(3*time.Minute)), true)
+	mustHandle(t, p, alicePosts(start0), true)
+	mustHandle(t, p, interaction(stream.KindLike, "did:plc:bob", "l1", alicePost, start0.Add(time.Minute)), true)
+	mustHandle(t, p, interaction(stream.KindRepost, "did:plc:carol", "r1", alicePost, start0.Add(2*time.Minute)), true)
+	mustHandle(t, p, interaction(stream.KindQuote, "did:plc:dan", "q1", alicePost, start0.Add(3*time.Minute)), true)
 
 	if got, want := weekCounts(t, p, articleURL), (ranking.Counts{Posts: 2, Reposts: 1, Likes: 1}); got != want {
 		t.Fatalf("counts = %+v, want %+v", got, want)
@@ -61,10 +61,10 @@ func TestPostAndInteractions(t *testing.T) {
 
 	got := p.TakeBuffer()
 	want := []event.Event{
-		{TimeUS: us(start), Type: event.Post, DID: "did:plc:alice", RKey: "3kabc", SubjectURI: alicePost, URL: articleURL},
-		{TimeUS: us(start.Add(time.Minute)), Type: event.Like, DID: "did:plc:bob", RKey: "l1", SubjectURI: alicePost, URL: articleURL},
-		{TimeUS: us(start.Add(2 * time.Minute)), Type: event.Repost, DID: "did:plc:carol", RKey: "r1", SubjectURI: alicePost, URL: articleURL},
-		{TimeUS: us(start.Add(3 * time.Minute)), Type: event.Post, DID: "did:plc:dan", RKey: "q1", SubjectURI: alicePost, URL: articleURL},
+		{TimeUS: us(start0), Type: event.Post, DID: "did:plc:alice", RKey: "3kabc", SubjectURI: alicePost, URL: articleURL},
+		{TimeUS: us(start0.Add(time.Minute)), Type: event.Like, DID: "did:plc:bob", RKey: "l1", SubjectURI: alicePost, URL: articleURL},
+		{TimeUS: us(start0.Add(2 * time.Minute)), Type: event.Repost, DID: "did:plc:carol", RKey: "r1", SubjectURI: alicePost, URL: articleURL},
+		{TimeUS: us(start0.Add(3 * time.Minute)), Type: event.Post, DID: "did:plc:dan", RKey: "q1", SubjectURI: alicePost, URL: articleURL},
 	}
 	if len(got) != len(want) {
 		t.Fatalf("buffer has %d events, want %d: %+v", len(got), len(want), got)
@@ -84,13 +84,13 @@ func TestSkipped(t *testing.T) {
 	p := NewProcessor()
 
 	// A like of a post we never saw.
-	mustHandle(t, p, interaction(stream.KindLike, "did:plc:bob", "l1", alicePost, start), false)
+	mustHandle(t, p, interaction(stream.KindLike, "did:plc:bob", "l1", alicePost, start0), false)
 	// A post without a link.
-	mustHandle(t, p, stream.Message{TimeUS: us(start), DID: "did:plc:a", RKey: "p1", Kind: stream.KindPost, SubjectURI: "at://did:plc:a/app.bsky.feed.post/p1"}, false)
+	mustHandle(t, p, stream.Message{TimeUS: us(start0), DID: "did:plc:a", RKey: "p1", Kind: stream.KindPost, SubjectURI: "at://did:plc:a/app.bsky.feed.post/p1"}, false)
 	// A post with an ignored link, and then a like of it.
 	ignored := "at://did:plc:a/app.bsky.feed.post/p2"
-	mustHandle(t, p, stream.Message{TimeUS: us(start), DID: "did:plc:a", RKey: "p2", Kind: stream.KindPost, SubjectURI: ignored, URL: "https://media.tenor.com/x.gif"}, false)
-	mustHandle(t, p, interaction(stream.KindLike, "did:plc:bob", "l2", ignored, start), false)
+	mustHandle(t, p, stream.Message{TimeUS: us(start0), DID: "did:plc:a", RKey: "p2", Kind: stream.KindPost, SubjectURI: ignored, URL: "https://media.tenor.com/x.gif"}, false)
+	mustHandle(t, p, interaction(stream.KindLike, "did:plc:bob", "l2", ignored, start0), false)
 
 	if s := p.Stats(); s != (Stats{NoLink: 1, Ignored: 1, NotCached: 2}) {
 		t.Fatalf("Stats() = %+v", s)
@@ -102,13 +102,13 @@ func TestSkipped(t *testing.T) {
 
 func TestCacheExpiry(t *testing.T) {
 	p := NewProcessor()
-	mustHandle(t, p, alicePosts(start), true)
+	mustHandle(t, p, alicePosts(start0), true)
 
 	// Activity every 11 hours keeps the post cached…
-	mustHandle(t, p, interaction(stream.KindLike, "did:plc:b", "l1", alicePost, start.Add(11*time.Hour)), true)
-	mustHandle(t, p, interaction(stream.KindLike, "did:plc:c", "l2", alicePost, start.Add(22*time.Hour)), true)
+	mustHandle(t, p, interaction(stream.KindLike, "did:plc:b", "l1", alicePost, start0.Add(11*time.Hour)), true)
+	mustHandle(t, p, interaction(stream.KindLike, "did:plc:c", "l2", alicePost, start0.Add(22*time.Hour)), true)
 	// …until 12 hours pass with none.
-	mustHandle(t, p, interaction(stream.KindLike, "did:plc:d", "l3", alicePost, start.Add(34*time.Hour+time.Second)), false)
+	mustHandle(t, p, interaction(stream.KindLike, "did:plc:d", "l3", alicePost, start0.Add(34*time.Hour+time.Second)), false)
 }
 
 func TestTranslation(t *testing.T) {
@@ -116,8 +116,8 @@ func TestTranslation(t *testing.T) {
 	p.translations.Add("https://nyti.ms/abc", articleURL)
 
 	short := "at://did:plc:a/app.bsky.feed.post/p1"
-	mustHandle(t, p, stream.Message{TimeUS: us(start), DID: "did:plc:a", RKey: "p1", Kind: stream.KindPost, SubjectURI: short, URL: "https://nyti.ms/abc"}, true)
-	mustHandle(t, p, alicePosts(start), true)
+	mustHandle(t, p, stream.Message{TimeUS: us(start0), DID: "did:plc:a", RKey: "p1", Kind: stream.KindPost, SubjectURI: short, URL: "https://nyti.ms/abc"}, true)
+	mustHandle(t, p, alicePosts(start0), true)
 
 	// Both posts count toward the final link.
 	if got := weekCounts(t, p, articleURL); got.Posts != 2 {
@@ -133,10 +133,10 @@ func TestTranslation(t *testing.T) {
 func TestTranslationAddedLater(t *testing.T) {
 	p := NewProcessor()
 	short := "at://did:plc:a/app.bsky.feed.post/p1"
-	mustHandle(t, p, stream.Message{TimeUS: us(start), DID: "did:plc:a", RKey: "p1", Kind: stream.KindPost, SubjectURI: short, URL: "https://nyti.ms/abc"}, true)
+	mustHandle(t, p, stream.Message{TimeUS: us(start0), DID: "did:plc:a", RKey: "p1", Kind: stream.KindPost, SubjectURI: short, URL: "https://nyti.ms/abc"}, true)
 
 	p.translations.Add("https://nyti.ms/abc", articleURL)
-	mustHandle(t, p, interaction(stream.KindLike, "did:plc:b", "l1", short, start.Add(time.Minute)), true)
+	mustHandle(t, p, interaction(stream.KindLike, "did:plc:b", "l1", short, start0.Add(time.Minute)), true)
 
 	if got := weekCounts(t, p, articleURL); got.Likes != 1 {
 		t.Fatalf("likes = %d, want 1", got.Likes)
@@ -145,9 +145,9 @@ func TestTranslationAddedLater(t *testing.T) {
 
 func TestTakeBufferStartsNewBuffer(t *testing.T) {
 	p := NewProcessor()
-	mustHandle(t, p, alicePosts(start), true)
+	mustHandle(t, p, alicePosts(start0), true)
 	first := p.TakeBuffer()
-	mustHandle(t, p, interaction(stream.KindLike, "did:plc:b", "l1", alicePost, start), true)
+	mustHandle(t, p, interaction(stream.KindLike, "did:plc:b", "l1", alicePost, start0), true)
 
 	if len(first) != 1 || p.BufferLen() != 1 {
 		t.Fatalf("first=%d current=%d, want 1 and 1", len(first), p.BufferLen())
@@ -162,9 +162,9 @@ func TestNewest(t *testing.T) {
 	if !p.Newest().IsZero() {
 		t.Fatal("Newest() should be zero before any events")
 	}
-	p.Handle(alicePosts(start.Add(time.Hour)))
-	p.Handle(interaction(stream.KindLike, "did:plc:b", "l1", "at://unknown", start)) // older, and skipped
-	if !p.Newest().Equal(start.Add(time.Hour)) {
+	p.Handle(alicePosts(start0.Add(time.Hour)))
+	p.Handle(interaction(stream.KindLike, "did:plc:b", "l1", "at://unknown", start0)) // older, and skipped
+	if !p.Newest().Equal(start0.Add(time.Hour)) {
 		t.Fatalf("Newest() = %v", p.Newest())
 	}
 }

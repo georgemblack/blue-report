@@ -307,6 +307,18 @@ func TestMergeNoOps(t *testing.T) {
 	}
 }
 
+func TestRemove(t *testing.T) {
+	r := New()
+	r.Record(nytURL, "did:plc:a", alicePost, event.Like, ago(time.Minute))
+	r.Record(bbcURL, "did:plc:a", bobPost, event.Like, ago(time.Minute))
+	r.Remove(nytURL)
+	r.Remove("https://never-seen.com") // no-op
+
+	res := r.Top(now, 10)
+	absent(t, res.Week, nytURL)
+	find(t, res.Week, bbcURL)
+}
+
 func TestSweep(t *testing.T) {
 	r := New()
 	// nytURL has one old and one recent user; bbcURL is entirely old.

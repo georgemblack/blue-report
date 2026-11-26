@@ -112,6 +112,12 @@ func (r *Ranking) Merge(src, dst string) {
 	delete(r.links, srcKey)
 }
 
+// Remove forgets everything recorded for a link. It's used when we learn a
+// link redirects somewhere on the ignore list.
+func (r *Ranking) Remove(url string) {
+	delete(r.links, hash.String(url))
+}
+
 // Sweep forgets interactions older than the cutoff (normally now minus a
 // week), and removes links with nothing left.
 func (r *Ranking) Sweep(cutoff time.Time) {

@@ -119,8 +119,34 @@ func (p *Processor) Newest() time.Time {
 	return time.UnixMicro(p.newestUS)
 }
 
+// Merge records that source redirects to destination, and moves everything
+// ranked under source to where it now ends up. If that's a link on the
+// ignore list, source is dropped from the ranking instead.
+func (p *Processor) Merge(source, destination string) {
+	p.translations.Add(source, destination)
+	final, ok := p.translations.Final(source)
+	if !ok {
+		p.ranking.Remove(source)
+		return
+	}
+	p.ranking.Merge(source, final)
+}
+
 func (p *Processor) Stats() Stats {
 	return p.stats
+}
+
+func (s Stats) recorded() int { return s.Posts + s.Quotes + s.Reposts + s.Likes }
+func (s Stats) skipped() int  { return s.NoLink + s.Ignored + s.NotCached }
+
+// sub returns the change in counts since an earlier Stats.
+func (s Stats) sub(earlier Stats) Stats {
+	return Stats{
+		Posts: s.Posts - earlier.Posts, Quotes: s.Quotes - earlier.Quotes,
+		Reposts: s.Reposts - earlier.Reposts, Likes: s.Likes - earlier.Likes,
+		NoLink: s.NoLink - earlier.NoLink, Ignored: s.Ignored - earlier.Ignored,
+		NotCached: s.NotCached - earlier.NotCached,
+	}
 }
 
 func (p *Processor) count(k stream.Kind) {
