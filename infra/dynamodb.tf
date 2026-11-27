@@ -75,3 +75,22 @@ resource "aws_dynamodb_table" "feed_test" {
     type = "S"
   }
 }
+
+# v2: what the engine's redirect resolver found for each popular link: where
+# it redirects to, or that it doesn't. Items expire after 10 days.
+resource "aws_dynamodb_table" "redirects" {
+  name         = "blue-report-redirects"
+  hash_key     = "urlHash"
+  billing_mode = "PAY_PER_REQUEST"
+
+  attribute {
+    name = "urlHash"
+    type = "S"
+  }
+
+  # DynamoDB deletes items once the time in expiresAt has passed.
+  ttl {
+    attribute_name = "expiresAt"
+    enabled        = true
+  }
+}

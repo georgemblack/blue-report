@@ -27,6 +27,11 @@ type Processor struct {
 	buffer       []event.Event
 	newestUS     int64 // newest event time seen, in microseconds
 	stats        Stats
+
+	// When a link reaches popularMinUsers user entries, popular is called
+	// with it, so its redirects can be checked. nil means no one is told.
+	popularMinUsers int
+	popular         func(url string)
 }
 
 // Stats counts what happened to incoming interactions since startup.
@@ -34,7 +39,7 @@ type Stats struct {
 	Posts, Quotes, Reposts, Likes int // recorded, by kind
 
 	NoLink    int // posts without a link
-	Ignored   int // links on the ignore list, or that redirect to one
+	Ignored   int // links on the ignore list
 	NotCached int // quotes, reposts and likes of posts not in the cache
 }
 
@@ -70,9 +75,7 @@ func (p *Processor) Handle(m stream.Message) bool {
 		cleaned = url
 	}
 
-	// Rank under the link it finally redirects to.
-	final, ok := p.translations.Final(cleaned)
-	if !ok {
+	if urltools.Ignore(cleaned) {
 		p.stats.Ignored++
 		return false
 	}
@@ -84,7 +87,7 @@ func (p *Processor) Handle(m stream.Message) bool {
 	}
 
 	typ := eventType(m.Kind)
-	p.ranking.Record(final, m.DID, m.SubjectURI, typ, at)
+	p.record(cleaned, m.DID, m.SubjectURI, typ, at)
 	p.buffer = append(p.buffer, event.Event{
 		TimeUS:     m.TimeUS,
 		Type:       typ,
@@ -117,11 +120,11 @@ func (p *Processor) Restore(events []event.Event, now time.Time) (restored int) 
 		if atS < weekStartS {
 			continue
 		}
-		final, ok := p.translations.Final(e.URL)
-		if !ok {
+		// The ignore list may have grown since the event was saved.
+		if urltools.Ignore(e.URL) {
 			continue
 		}
-		p.ranking.Record(final, e.DID, e.SubjectURI, e.Type, at)
+		p.record(e.URL, e.DID, e.SubjectURI, e.Type, at)
 
 		// Any interaction with a post shows it was active then, which is
 		// what keeps a post cached during live processing too.
@@ -156,17 +159,21 @@ func (p *Processor) Newest() time.Time {
 	return time.UnixMicro(p.newestUS)
 }
 
+// record ranks an interaction under the link it redirects to (if known),
+// and reports the link when it first becomes popular.
+func (p *Processor) record(url, did, subjectURI string, typ event.Type, at time.Time) {
+	final := p.translations.Get(url)
+	users, added := p.ranking.Record(final, did, subjectURI, typ, at)
+	if added && users == p.popularMinUsers && p.popular != nil {
+		p.popular(final)
+	}
+}
+
 // Merge records that source redirects to destination, and moves everything
-// ranked under source to where it now ends up. If that's a link on the
-// ignore list, source is dropped from the ranking instead.
+// ranked under source to destination.
 func (p *Processor) Merge(source, destination string) {
 	p.translations.Add(source, destination)
-	final, ok := p.translations.Final(source)
-	if !ok {
-		p.ranking.Remove(source)
-		return
-	}
-	p.ranking.Merge(source, final)
+	p.ranking.Merge(source, destination)
 }
 
 func (p *Processor) Stats() Stats {

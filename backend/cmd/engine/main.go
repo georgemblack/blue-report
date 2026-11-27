@@ -1,6 +1,8 @@
 // Command engine reads Bluesky's Jetstream, keeps the rankings in memory,
 // saves every counted event as Parquet files, and publishes top-links.json
-// with each link's title, thumbnail and recommended posts.
+// with each link's title, thumbnail and recommended posts. Popular links are
+// checked for redirects, so short links count toward the article they lead
+// to.
 //
 // Configuration comes from environment variables; see internal/config. With
 // none set, it runs locally, using folders under local-data/ in place of S3
@@ -21,6 +23,7 @@ import (
 	"github.com/georgemblack/blue-report/backend/internal/eventlog"
 	"github.com/georgemblack/blue-report/backend/internal/hydrate"
 	"github.com/georgemblack/blue-report/backend/internal/publish"
+	"github.com/georgemblack/blue-report/backend/internal/resolve"
 	"github.com/georgemblack/blue-report/backend/internal/state"
 	"github.com/georgemblack/blue-report/backend/internal/stream"
 )
@@ -80,7 +83,8 @@ func run(cfg config.Config, logger *slog.Logger) error {
 		return err
 	}
 	titles, titlesWhere := titleStore(awsCfg, cfg)
-	logger.Info("starting engine", "commit", commit, "events", eventsWhere, "publish", publishWhere, "titles", titlesWhere)
+	redirects, redirectsWhere := redirectStore(awsCfg, cfg)
+	logger.Info("starting engine", "commit", commit, "events", eventsWhere, "publish", publishWhere, "titles", titlesWhere, "redirects", redirectsWhere)
 
 	cursor, err := eventlog.ResumePoint(ctx, events, time.Now(), resumeLookback)
 	if err != nil {
@@ -104,9 +108,14 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	writerDone := make(chan error, 1)
 	go func() { writerDone <- writer.Run(writeCtx, batches) }()
 
-	// Rebuild the rankings and post cache from the last week of saved
-	// events before reading anything new.
+	// Check popular links for redirects. The resolver stops with the
+	// reader; any links still waiting are checked again after a restart.
 	actor := state.NewActor(state.DefaultConfig(), logger)
+	go resolve.New(redirects, actor, logger).Run(ctx, actor.Popular())
+
+	// Rebuild the rankings and post cache from the last week of saved
+	// events before reading anything new. Links that are already popular
+	// are sent to the resolver again along the way.
 	if cursor > 0 {
 		stats, err := actor.Rebuild(ctx, events, time.UnixMicro(cursor), rebuildWorkers)
 		if err != nil {

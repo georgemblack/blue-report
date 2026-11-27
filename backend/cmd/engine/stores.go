@@ -12,6 +12,7 @@ import (
 
 	"github.com/georgemblack/blue-report/backend/internal/config"
 	"github.com/georgemblack/blue-report/backend/internal/hydrate"
+	"github.com/georgemblack/blue-report/backend/internal/resolve"
 	"github.com/georgemblack/blue-report/backend/internal/store"
 )
 
@@ -75,4 +76,13 @@ func titleStore(awsCfg aws.Config, cfg config.Config) (hydrate.Titles, string) {
 		return hydrate.NewMemoryTitles(), "memory"
 	}
 	return hydrate.NewDynamoTitles(dynamodb.NewFromConfig(awsCfg), cfg.MetadataTable), "dynamodb:" + cfg.MetadataTable
+}
+
+// redirectStore returns where the redirect resolver saves what it finds:
+// DynamoDB if a table is configured, otherwise memory.
+func redirectStore(awsCfg aws.Config, cfg config.Config) (resolve.Store, string) {
+	if cfg.RedirectsTable == "" {
+		return resolve.NewMemoryStore(), "memory"
+	}
+	return resolve.NewDynamoStore(dynamodb.NewFromConfig(awsCfg), cfg.RedirectsTable), "dynamodb:" + cfg.RedirectsTable
 }

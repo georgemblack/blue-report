@@ -31,6 +31,10 @@ type Config struct {
 	// (blue-report-url-metadata). Without it, titles are only kept in memory.
 	MetadataTable string
 
+	// The DynamoDB table where the redirect resolver saves what it finds
+	// (blue-report-redirects). Without it, redirects are only kept in memory.
+	RedirectsTable string
+
 	LogFormat string // "json" (default) or "text"
 }
 
@@ -52,6 +56,7 @@ func Load(getenv func(string) string) (Config, error) {
 		R2AccessKeyID:     getenv("R2_ACCESS_KEY_ID"),
 		R2SecretAccessKey: getenv("R2_SECRET_ACCESS_KEY"),
 		MetadataTable:     getenv("METADATA_TABLE"),
+		RedirectsTable:    getenv("REDIRECTS_TABLE"),
 		LogFormat:         or("LOG_FORMAT", "json"),
 	}
 

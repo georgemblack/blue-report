@@ -307,18 +307,6 @@ func TestMergeNoOps(t *testing.T) {
 	}
 }
 
-func TestRemove(t *testing.T) {
-	r := New()
-	r.Record(nytURL, "did:plc:a", alicePost, event.Like, ago(time.Minute))
-	r.Record(bbcURL, "did:plc:a", bobPost, event.Like, ago(time.Minute))
-	r.Remove(nytURL)
-	r.Remove("https://never-seen.com") // no-op
-
-	res := r.Top(now, 10)
-	absent(t, res.Week, nytURL)
-	find(t, res.Week, bbcURL)
-}
-
 func TestSweep(t *testing.T) {
 	r := New()
 	// nytURL has one old and one recent user; bbcURL is entirely old.
@@ -346,20 +334,19 @@ func TestSweepKeepsEntriesAtCutoff(t *testing.T) {
 	}
 }
 
-func TestPopular(t *testing.T) {
+func TestRecordReportsNewUsers(t *testing.T) {
 	r := New()
-	for i := range 3 {
-		r.Record(nytURL, fmt.Sprintf("did:plc:u%d", i), alicePost, event.Like, ago(time.Minute))
+	check := func(did string, typ event.Type, wantUsers int, wantAdded bool) {
+		t.Helper()
+		users, added := r.Record(nytURL, did, alicePost, typ, ago(time.Minute))
+		if users != wantUsers || added != wantAdded {
+			t.Fatalf("Record = %d, %v; want %d, %v", users, added, wantUsers, wantAdded)
+		}
 	}
-	r.Record(bbcURL, "did:plc:u0", bobPost, event.Like, ago(time.Minute))
-	r.Record(bbcURL, "did:plc:u0", bobPost, event.Repost, ago(time.Minute))
-
-	if got := r.Popular(3); fmt.Sprint(got) != fmt.Sprint([]string{nytURL}) {
-		t.Fatalf("Popular(3) = %v", got)
-	}
-	if got := r.Popular(2); fmt.Sprint(got) != fmt.Sprint([]string{bbcURL, nytURL}) {
-		t.Fatalf("Popular(2) = %v", got)
-	}
+	check("did:plc:a", event.Like, 1, true)
+	check("did:plc:a", event.Like, 1, false) // the same like again
+	check("did:plc:a", event.Repost, 2, true)
+	check("did:plc:b", event.Like, 3, true)
 }
 
 func TestUserKeyKeepsTypesApart(t *testing.T) {

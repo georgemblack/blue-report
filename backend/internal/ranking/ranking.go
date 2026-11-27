@@ -63,12 +63,16 @@ func New() *Ranking {
 // Record notes that a user interacted with a link at the given time.
 // subjectURI is the address of the post that shared the link: the post
 // itself for a post, or the post being quoted, reposted or liked.
-func (r *Ranking) Record(url, did, subjectURI string, typ event.Type, at time.Time) {
+//
+// It returns the link's number of user entries, and whether this call added
+// a new one.
+func (r *Ranking) Record(url, did, subjectURI string, typ event.Type, at time.Time) (users int, added bool) {
 	t := event.Seconds(at)
 	l := r.getOrCreate(url)
 
 	key := userKey(did, typ)
-	if t > l.users[key] {
+	old, found := l.users[key]
+	if t > old {
 		l.users[key] = t
 	}
 
@@ -78,6 +82,7 @@ func (r *Ranking) Record(url, did, subjectURI string, typ event.Type, at time.Ti
 	p.count++
 	p.lastSeen = max(p.lastSeen, t)
 	l.posts[postKey] = p
+	return len(l.users), !found
 }
 
 // Merge folds everything recorded for src into dst, then removes src. It's
@@ -112,12 +117,6 @@ func (r *Ranking) Merge(src, dst string) {
 	delete(r.links, srcKey)
 }
 
-// Remove forgets everything recorded for a link. It's used when we learn a
-// link redirects somewhere on the ignore list.
-func (r *Ranking) Remove(url string) {
-	delete(r.links, hash.String(url))
-}
-
 // Sweep forgets interactions older than the cutoff (normally now minus a
 // week), and removes links with nothing left.
 func (r *Ranking) Sweep(cutoff time.Time) {
@@ -137,20 +136,6 @@ func (r *Ranking) Sweep(cutoff time.Time) {
 			delete(r.links, linkKey)
 		}
 	}
-}
-
-// Popular returns the URLs of links with at least minUsers user entries
-// (one entry per user and interaction type). These are worth checking for
-// redirects, since a short link with many interactions is likely to matter.
-func (r *Ranking) Popular(minUsers int) []string {
-	var urls []string
-	for _, l := range r.links {
-		if len(l.users) >= minUsers {
-			urls = append(urls, l.url)
-		}
-	}
-	slices.Sort(urls)
-	return urls
 }
 
 // Stats describes the size of the ranking state, for logging.

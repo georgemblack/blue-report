@@ -21,6 +21,7 @@ type Config struct {
 
 	TopN             int // links per list in a Top result
 	RedirectMinUsers int // user entries a link needs before it's checked for redirects
+	MaxPopular       int // popular links that can wait for the resolver
 }
 
 func DefaultConfig() Config {
@@ -31,6 +32,7 @@ func DefaultConfig() Config {
 		StatsInterval:    time.Minute,
 		TopN:             10,
 		RedirectMinUsers: 1000,
+		MaxPopular:       10_000,
 	}
 }
 
@@ -40,9 +42,8 @@ var ErrStopped = errors.New("state: actor has stopped")
 // TopResult is a snapshot of the rankings, copied out of the actor's state
 // so it can be used from any goroutine.
 type TopResult struct {
-	Now        time.Time      // newest event time: "now" for the ranking windows
-	Ranking    ranking.Result // top links for the hour, day and week
-	Candidates []string       // popular links to check for redirects, each sent only once
+	Now     time.Time      // newest event time: "now" for the ranking windows
+	Ranking ranking.Result // top links for the hour, day and week
 }
 
 type topRequest struct {
@@ -54,7 +55,7 @@ type mergeRequest struct {
 }
 
 // Actor is the only goroutine that touches the state: the post cache,
-// ranking, translations, checked links and event buffer. Other goroutines
+// ranking, translations and event buffer. Other goroutines
 // send it messages. It does no network or disk work, so nothing slow can
 // hold up event processing.
 type Actor struct {
@@ -65,8 +66,7 @@ type Actor struct {
 	topRequests chan topRequest
 	merges      chan mergeRequest
 	stopped     chan struct{} // closed when Run returns
-
-	checked map[string]bool // links already sent for redirect checks
+	popular     chan string   // links that just became popular, for the resolver
 
 	// For the stats line.
 	lastStats   Stats
@@ -75,14 +75,34 @@ type Actor struct {
 }
 
 func NewActor(cfg Config, logger *slog.Logger) *Actor {
-	return &Actor{
+	a := &Actor{
 		cfg:         cfg,
 		logger:      logger,
 		proc:        NewProcessor(),
 		topRequests: make(chan topRequest),
 		merges:      make(chan mergeRequest),
 		stopped:     make(chan struct{}),
-		checked:     make(map[string]bool),
+		popular:     make(chan string, cfg.MaxPopular),
+	}
+	a.proc.popularMinUsers = cfg.RedirectMinUsers
+	a.proc.popular = a.sendPopular
+	return a
+}
+
+// Popular returns the links to check for redirects: each link is sent when
+// it reaches RedirectMinUsers user entries. During the startup rebuild,
+// every link that's already popular is sent again.
+func (a *Actor) Popular() <-chan string {
+	return a.popular
+}
+
+// sendPopular hands a link to the resolver without waiting, so the actor
+// never stops for it. If the resolver is far behind, the link is skipped.
+func (a *Actor) sendPopular(url string) {
+	select {
+	case a.popular <- url:
+	default:
+		a.logger.Warn("too many links waiting for the resolver; skipping", "url", url)
 	}
 }
 
@@ -176,19 +196,12 @@ func (a *Actor) top() TopResult {
 	start := time.Now()
 	now := a.proc.Newest()
 	res := TopResult{Now: now, Ranking: a.proc.ranking.Top(now, a.cfg.TopN)}
-	for _, url := range a.proc.ranking.Popular(a.cfg.RedirectMinUsers) {
-		if !a.checked[url] {
-			a.checked[url] = true
-			res.Candidates = append(res.Candidates, url)
-		}
-	}
 	a.lastTopTook = time.Since(start)
 	return res
 }
 
 // sweep forgets posts and interactions too old to matter, measured from
-// the newest event time. The checked set is cleared so long-lived links
-// can be checked again.
+// the newest event time.
 func (a *Actor) sweep() {
 	now := a.proc.Newest()
 	if now.IsZero() {
@@ -197,7 +210,6 @@ func (a *Actor) sweep() {
 	start := time.Now()
 	removedPosts := a.proc.posts.Sweep(now.Add(-PostTTL))
 	a.proc.ranking.Sweep(now.Add(-ranking.Week))
-	clear(a.checked)
 	a.logger.Info("swept state", "removed_posts", removedPosts, "took_ms", time.Since(start).Milliseconds())
 }
 

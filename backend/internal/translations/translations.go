@@ -4,48 +4,27 @@
 // Not safe for use by more than one goroutine; the state actor owns it.
 package translations
 
-import "github.com/georgemblack/blue-report/backend/internal/urltools"
-
-// MaxHops limits how many redirects Final follows, so a loop of
-// translations (a → b → a) can't go on forever.
-const MaxHops = 5
-
 type Translations struct {
-	destinations map[string]string // cleaned source URL → destination URL
+	destinations map[string]string // cleaned source URL → cleaned destination URL
 }
 
 func New() *Translations {
 	return &Translations{destinations: make(map[string]string)}
 }
 
-// Add records that source redirects to destination.
+// Add records that source redirects to destination. The destination is
+// where the redirects finally end, so there's only ever one lookup.
 func (t *Translations) Add(source, destination string) {
 	t.destinations[source] = destination
 }
 
-// Final follows translations from a cleaned URL to the link it ends up at.
-// Each destination is cleaned again, since cleaning rules may have changed
-// since it was saved. ok is false if any link along the way should be
-// ignored, in which case the event shouldn't be counted.
-func (t *Translations) Final(url string) (final string, ok bool) {
-	if urltools.Ignore(url) {
-		return "", false
+// Get returns where a link redirects to, or the link itself if it isn't
+// known to redirect.
+func (t *Translations) Get(url string) string {
+	if destination, ok := t.destinations[url]; ok {
+		return destination
 	}
-	for range MaxHops {
-		next, found := t.destinations[url]
-		if !found {
-			break
-		}
-		next = urltools.Clean(next)
-		if next == url {
-			break
-		}
-		if urltools.Ignore(next) {
-			return "", false
-		}
-		url = next
-	}
-	return url, true
+	return url
 }
 
 // Len returns the number of translations.

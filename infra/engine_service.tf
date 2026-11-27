@@ -32,6 +32,8 @@ resource "aws_ecs_task_definition" "engine" {
         { name = "PUBLISH_PREFIX", value = "engine/" },
         # v1's table of link titles, shared so neither looks a page up twice.
         { name = "METADATA_TABLE", value = aws_dynamodb_table.url_metadata.name },
+        # Where the redirect resolver saves what it finds.
+        { name = "REDIRECTS_TABLE", value = aws_dynamodb_table.redirects.name },
         # Make Go's garbage collector work harder as memory nears the
         # task's limit, instead of the task being killed (~85% of 2 GB).
         { name = "GOMEMLIMIT", value = "1740MiB" },

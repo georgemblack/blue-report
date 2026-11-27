@@ -85,7 +85,7 @@ func (p *Publisher) Publish(ctx context.Context) error {
 	}
 	p.logger.Info("published top links",
 		"hour", len(res.Ranking.Hour), "day", len(res.Ranking.Day), "week", len(res.Ranking.Week),
-		"redirect_candidates", len(res.Candidates), "bytes", len(data),
+		"bytes", len(data),
 		"took_ms", p.now().Sub(start).Milliseconds())
 	return nil
 }

@@ -129,35 +129,32 @@ func TestActorRanksEvents(t *testing.T) {
 	}
 }
 
-func TestActorRedirectThreshold(t *testing.T) {
+// A link is sent to the resolver once, at the moment it reaches the
+// threshold, and not again while it stays above it.
+func TestActorSendsPopularLinks(t *testing.T) {
 	cfg := slowConfig()
-	cfg.RedirectMinUsers = 4
-	h := start(t, cfg)
-	h.events <- alicePosts(start0)
-	for _, m := range likes(2, alicePost, start0) {
-		h.events <- m
-	}
-	// A post and two likes are 3 user entries: below the threshold of 4.
-	res := h.waitTop(t, func(r TopResult) bool { return weekLikes(r, articleURL) == 2 })
-	if len(res.Candidates) != 0 {
-		t.Fatalf("candidates = %v, want none", res.Candidates)
-	}
-}
-
-func TestActorRedirectCandidates(t *testing.T) {
-	cfg := slowConfig()
-	cfg.RedirectMinUsers = 2
+	cfg.RedirectMinUsers = 3
 	h := start(t, cfg)
 	h.events <- alicePosts(start0)
 	h.events <- likes(1, alicePost, start0)[0]
-
-	// A post and a like reach the threshold of 2, so the link is sent once.
-	res := h.waitTop(t, func(r TopResult) bool { return len(r.Candidates) > 0 })
-	if fmt.Sprint(res.Candidates) != fmt.Sprint([]string{articleURL}) {
-		t.Fatalf("candidates = %v", res.Candidates)
+	h.waitTop(t, func(r TopResult) bool { return weekLikes(r, articleURL) == 1 })
+	select {
+	case url := <-h.actor.Popular():
+		t.Fatalf("sent %q below the threshold", url)
+	default:
 	}
-	if res := h.top(t); len(res.Candidates) != 0 {
-		t.Fatalf("second Top repeated candidates: %v", res.Candidates)
+
+	for _, m := range likes(3, alicePost, start0) {
+		h.events <- m // the first like is a repeat; the others add users
+	}
+	h.waitTop(t, func(r TopResult) bool { return weekLikes(r, articleURL) == 3 })
+	if url := <-h.actor.Popular(); url != articleURL {
+		t.Fatalf("sent %q", url)
+	}
+	select {
+	case url := <-h.actor.Popular():
+		t.Fatalf("sent %q twice", url)
+	default:
 	}
 }
 
@@ -178,21 +175,6 @@ func TestActorMerge(t *testing.T) {
 	// Later likes of the short-link post are credited to the destination too.
 	h.events <- likes(1, short, start0.Add(time.Minute))[0]
 	h.waitTop(t, func(r TopResult) bool { return weekLikes(r, articleURL) == 1 })
-}
-
-func TestActorMergeToIgnoredLinkDropsIt(t *testing.T) {
-	h := start(t, slowConfig())
-	short := "at://did:plc:a/app.bsky.feed.post/p1"
-	h.events <- stream.Message{TimeUS: us(start0), DID: "did:plc:a", RKey: "p1", Kind: stream.KindPost, SubjectURI: short, URL: "https://short.link/x"}
-	if err := h.actor.Merge(context.Background(), "https://short.link/x", "https://media.tenor.com/funny.gif"); err != nil {
-		t.Fatal(err)
-	}
-	// Send a marker event and wait for it, so we know the earlier messages were handled.
-	h.events <- alicePosts(start0)
-	res := h.waitTop(t, func(r TopResult) bool { return len(r.Ranking.Week) > 0 })
-	if len(res.Ranking.Week) != 1 || res.Ranking.Week[0].URL != articleURL {
-		t.Fatalf("week ranking = %+v, want only the marker link", res.Ranking.Week)
-	}
 }
 
 func TestActorFlushesWhenBufferIsFull(t *testing.T) {
@@ -292,7 +274,6 @@ func TestActorSweep(t *testing.T) {
 	old := "at://did:plc:old/app.bsky.feed.post/1"
 	a.proc.Handle(stream.Message{TimeUS: us(start0), DID: "did:plc:old", RKey: "1", Kind: stream.KindPost, SubjectURI: old, URL: "https://old.com"})
 	a.proc.Handle(alicePosts(start0.Add(8 * 24 * time.Hour))) // moves "now" forward 8 days
-	a.checked["https://old.com"] = true
 
 	a.sweep()
 
@@ -301,9 +282,6 @@ func TestActorSweep(t *testing.T) {
 	}
 	if s := a.proc.ranking.Stats(); s.Links != 1 {
 		t.Errorf("ranking has %d links, want 1", s.Links)
-	}
-	if len(a.checked) != 0 {
-		t.Errorf("checked set not cleared: %v", a.checked)
 	}
 }
 

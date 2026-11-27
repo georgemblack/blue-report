@@ -42,6 +42,7 @@ func FindRedirect(input string) string {
 		// A valid website could be blocking us. Assume no redirect.
 		return ""
 	}
+	resp.Body.Close()
 	if !slices.Contains(redirectStatusCodes, resp.StatusCode) || resp.Header.Get("Location") == "" {
 		return ""
 	}
@@ -58,6 +59,7 @@ func FindRedirect(input string) string {
 		// A valid website could be blocking us. Return the inital result.
 		return result
 	}
+	resp.Body.Close()
 	if !slices.Contains(redirectStatusCodes, resp.StatusCode) || resp.Header.Get("Location") == "" {
 		return result
 	}

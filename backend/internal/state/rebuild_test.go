@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"testing"
 	"time"
 
@@ -170,6 +171,46 @@ func TestRebuildIgnoresDuplicates(t *testing.T) {
 	want, got := live.ranking.Top(now, 1000), rebuilt.proc.ranking.Top(now, 1000)
 	if counts(got.Week) != counts(want.Week) || counts(got.Hour) != counts(want.Hour) {
 		t.Fatalf("rankings differ with duplicate events:\nlive:\n%s\nrebuilt:\n%s", counts(want.Week), counts(got.Week))
+	}
+}
+
+// Links that were popular before a restart are sent to the resolver again
+// during the rebuild, once each, even with duplicate events.
+func TestRebuildSendsPopularLinks(t *testing.T) {
+	ctx := context.Background()
+	cfg := slowConfig()
+	cfg.RedirectMinUsers = 20
+
+	var want []string
+	live := NewProcessor()
+	live.popularMinUsers = cfg.RedirectMinUsers
+	live.popular = func(url string) { want = append(want, url) }
+	for _, m := range simulate(7, 2_000, start0, 2*24*time.Hour) {
+		live.Handle(m)
+	}
+	if len(want) == 0 {
+		t.Fatal("no popular links; the test isn't exercising anything")
+	}
+
+	events := live.TakeBuffer()
+	s := store.NewLocal(t.TempDir())
+	data, maxT, _ := eventlog.Encode(events)
+	_ = s.Put(ctx, eventlog.Key(maxT), data, store.Meta{})
+	dup, _, _ := eventlog.Encode(events[len(events)/2:])
+	_ = s.Put(ctx, eventlog.Key(maxT-1), dup, store.Meta{})
+
+	rebuilt := NewActor(cfg, discard)
+	if _, err := rebuilt.Rebuild(ctx, s, time.UnixMicro(maxT), 2); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for len(rebuilt.Popular()) > 0 {
+		got = append(got, <-rebuilt.Popular())
+	}
+	slices.Sort(want)
+	slices.Sort(got)
+	if !slices.Equal(got, want) {
+		t.Fatalf("sent %v, want %v", got, want)
 	}
 }
 

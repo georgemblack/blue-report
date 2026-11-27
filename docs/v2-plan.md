@@ -86,11 +86,10 @@ One Go binary. Its goroutines:
 ### 5.1 `main` (supervisor)
 - **Startup, in order:**
   1. Load config.
-  2. Load all translations from DynamoDB (paging through every result).
-  3. Find the resume point: list the newest `events/date=…/hour=…/` folders and take the largest file name.
-  4. Rebuild state from S3 (section 7).
-  5. Start the goroutines.
-  6. Connect the reader to Jetstream with `cursor=<resume point>`.
+  2. Find the resume point: list the newest `events/date=…/hour=…/` folders and take the largest file name.
+  3. Start the resolver, then rebuild state from S3 (section 7).
+  4. Start the other goroutines.
+  5. Connect the reader to Jetstream with `cursor=<resume point>`.
 - **Shutdown** (SIGTERM; ECS `stopTimeout` = 120 s):
   1. Stop the reader.
   2. Let the state actor finish everything queued.
@@ -109,16 +108,15 @@ One Go binary. Its goroutines:
 - Touches no shared state.
 
 ### 5.3 `state actor`: the only owner of state
-A `for { select { … } }` loop. It owns the **post cache**, **ranking state**, **translations**, **checked-links set** and **event buffer** (section 6). Messages it handles:
+A `for { select { … } }` loop. It owns the **post cache**, **ranking state**, **translations** and **event buffer** (section 6). Messages it handles:
 
 | Message / timer | What it does |
 |---|---|
-| Event from the reader | Per-event flow (section 8). |
-| `Top` request (from the publisher) | Computes the top N for hour, day and week, plus recommended-post candidates and redirect candidates. Replies with a small copied result. |
+| Event from the reader | Per-event flow (section 8). When a link reaches 1,000 user entries, it's handed to the resolver through a buffered channel, without waiting (skipped and logged if the channel is full). |
+| `Top` request (from the publisher) | Computes the top N for hour, day and week, plus recommended-post candidates. Replies with a small copied result. |
 | `Merge(src, dst)` (from the resolver) | Adds the translation and merges link `src` into `dst` in the ranking state (section 6.2). |
 | Write timer / buffer full | Hands the buffer to the writer (handing over ownership) and starts a new one. |
 | Sweep timer (~10 min) | Sweeps the post cache and ranking state. |
-| Translations reload (optional) | Replaces the translations map. |
 
 Rule: **no network or disk work inside the actor.** Everything slow happens in other goroutines using results the actor sends out.
 
@@ -132,20 +130,16 @@ Rule: **no network or disk work inside the actor.** Everything slow happens in o
 - Every **5 minutes** (to start; can be tightened later), sends `Top` to the actor and receives the result. Then, outside the actor:
   - calls the hydrator to fill in titles, thumbnails and recommended posts (section 5.7), and waits for it
   - builds `top-links.json` (same shape as v1; see section 10) and uploads it to R2
-  - passes redirect candidates to the resolver
 - Every publish, also checks the feed rule (section 10.2) and republishes the Atom and JSON feeds when it changes.
 - **Starts once the startup rebuild is done**, and publishes straight away. It doesn't wait for the reader to catch up with Jetstream (decided for simplicity: after a long gap, the first few publishes may show slightly older rankings).
 
-### 5.6 `resolver` (worker pool, about 4)
-- Takes redirect candidates. It first checks DynamoDB: skip if a translation or a "no redirect" record exists.
-- Otherwise:
-  - Apple News URLs: Cloudflare browser rendering, taking the first non-Apple `<a href>` (as v1 does).
-  - Everything else: follow HTTP redirects (reuse v1's `urltools.FindRedirect`).
-- Cleans the destination, then saves to DynamoDB:
-  - a redirect: `{source, destination, expires_at = now + 90d}`
-  - no redirect: `{source, no_redirect: true, expires_at = now + 7d}`
-- On a redirect, sends `Merge(source, destination)` to the actor.
-- Strict timeouts on every request.
+### 5.6 `resolver` (one goroutine)
+- Takes links from the actor as they become popular, one at a time.
+- First checks DynamoDB (`blue-report-redirects`). A saved answer that hasn't expired is used as is.
+- Otherwise follows HTTP redirects (v1's `urltools.FindRedirect`, 1-second timeouts), cleans the destination, and saves the answer for **10 days**: the destination, or empty for "doesn't redirect".
+- On a redirect, sends `Merge(source, destination)` to the actor. The destination is where the redirects finally end, so the actor never follows chains.
+- Apple News URLs are skipped until browser rendering is added back (section 16).
+- DynamoDB is the resolver's only memory. After a restart, the rebuild hands every popular link to the resolver again, and it answers from DynamoDB.
 
 ### 5.7 `hydrator` (part of the publisher)
 **Decided:** hydration runs inside the publisher, before each upload, one link after another. There's no worker pool or shared cache. At a 5-minute interval the extra time is small, and every published link is hydrated. No time limits or concurrency for now; add them if hydration turns out to slow publishing down. Code: `backend/internal/hydrate`.
@@ -201,17 +195,14 @@ func userKey(didHash uint64, typ uint8) uint64 { return didHash&^3 | uint64(typ)
 - **Memory:** to be measured (section 12). Optional: store users in a small slice until a link passes about 16 users, then switch to a map. Most links get very few interactions, so this saves a lot.
 
 ### 6.3 Translations: cleaned URL → destination
-Loaded from DynamoDB at startup. Added to by `Merge`. `final(url)` follows the chain with a limit of 5 hops, cleaning and checking `Ignore` after each hop. If the destination is ignored, the event is dropped.
+Starts empty and is filled by `Merge`. One lookup per event: if the link has a destination, the event is ranked under it. Chains aren't followed, and destinations aren't checked against `Ignore`.
 
-### 6.4 Checked-links set
-Final URLs already sent to the resolver, so they aren't sent again. Expiry isn't critical; it can be cleared on sweep.
-
-### 6.5 Event buffer
+### 6.4 Event buffer
 `[]Event` rows waiting to be written. The whole buffer is handed to the writer, and the actor starts a new one.
 
 ## 7. Startup rebuild
 
-1. **Ranking state:** read the last 7 days of Parquet (`time_us, type, did, url, subject_uri`). For each row: `url → final(url)`, skipping ignored ones, then `Record`. Because `Record` keeps the latest time, row order doesn't matter, and duplicates are harmless.
+1. **Ranking state:** read the last 7 days of Parquet (`time_us, type, did, url, subject_uri`). For each row, skipping ignored ones, `Record`. Translations are empty at this point, so links that crossed 1,000 user entries are handed to the resolver, which answers from DynamoDB and sends the `Merge`s. Because `Record` keeps the latest time, row order doesn't matter, and duplicates are harmless.
 2. **Post cache:** from the same rows, for `time_us` within the last 12 h, set `postCache[hash(subject_uri)] = {url, max(time)}`. Every row (post, like, repost or quote) is evidence that its subject post was active, which matches Valkey's refresh behavior.
 3. Rows are read in a streaming fashion so the full 7 days is never in memory at once.
 4. **Edge cases:**
@@ -228,7 +219,7 @@ Final URLs already sent to the resolver, so they aren't sent again. Expiry isn't
    - `cleaned = Clean(link)`, then `postCache.Put(postURI, cleaned)`.
 2. **Quote post:** look up `postCache.Get(quotedURI)`. Skip if it's missing.
 3. **Like or repost:** look up `postCache.Get(subjectURI)`. Skip if it's missing.
-4. **Ranking:** `ranking.Record(final(cleaned), did, type, eventTime)`, and add one to `posts[subject]`.
+4. **Ranking:** `ranking.Record(translate(cleaned), did, type, eventTime)`, and add one to `posts[subject]`. If that adds the link's 1,000th user entry, hand it to the resolver.
 5. **Buffer:** append `{time_us, type, did, rkey, subject_uri, url: cleaned}`. For a post, `subject_uri` is the post itself; for a quote, the quoted post; for a like or repost, the post liked or reposted.
 
 Note: posts are looked up by their **address (AT URI)**, not by CID as in v1. Likes, reposts and quotes include both.
@@ -241,10 +232,10 @@ Note: posts are looked up by their **address (AT URI)**, not by CID as in v1. Li
 - Encryption: SSE-S3. Block all public access.
 - **Lifecycle:** keep at least 7 days for rebuilds. Retention beyond that is open (section 13); the default is to keep everything, moving to cheaper storage after 30 days.
 
-### 9.2 DynamoDB (all `PAY_PER_REQUEST`, TTL attribute `expires_at`)
+### 9.2 DynamoDB (all `PAY_PER_REQUEST`)
 | Table | Key | Attributes | Used by |
 |---|---|---|---|
-| `…-url-translations` | `source_url` | `destination` (empty if no redirect), `no_redirect`, `checked_at`, `expires_at` | resolver writes; startup reads all of it (paging through results) |
+| `blue-report-redirects` | `urlHash` (FNV-64a of the URL) | `url`, `destination` (empty if no redirect), `expiresAt` (TTL, +10d) | resolver |
 | `blue-report-url-metadata` (v1's table, shared) | `urlHash` | `url`, `title` | hydrator |
 | `…-feed` | `url_hash` | `timestamp`, `content` (JSON), `expires_at` (+90d) | publisher |
 
@@ -356,7 +347,7 @@ The engine publishes to v1's R2 bucket under `engine/` (`PUBLISH_PREFIX`), so v1
 | Event retention beyond 7 days? | Keep everything; Intelligent-Tiering, then Glacier IR after 30 days. |
 | What if S3 writes keep failing? | Stop reading Jetstream once the waiting-batch limit is hit; resume from the resume point. |
 | IPv6-only networking (saves about $3.65/month)? | IPv4 for now; check whether Jetstream, CardyB, the Bluesky API and Cloudflare support IPv6. |
-| Redirect candidate threshold? | A final URL with ≥ 1,000 user entries in the ranking state that isn't already checked. Configurable. |
+| Redirect candidate threshold? | **Decided:** a link is checked when it reaches 1,000 user entries in the ranking state. |
 | Publish links without a title? | Yes, with the fallback title. |
 | Where the code lives in this repo? | A new top-level `backend/` directory (Go module `github.com/georgemblack/blue-report/backend`). Leave `services/` untouched. Terraform goes in the existing `infra/` project, alongside v1 (decided). |
 
@@ -384,7 +375,7 @@ Each phase should end with working, tested code.
    - "old like plus recent like counts in the hour window"
 4. **Rebuild.** Startup rebuild from Parquet. Test: process events live, then rebuild from the written files, and check the state matches.
 5. **Publishing.** Publisher producing `top-links.json` (without titles at first), the readiness gate, and the R2 upload.
-6. **Redirects.** Resolver, translations table, the `Merge` path, and paged loading at startup.
+6. **Redirects.** Resolver, redirects table and the `Merge` path.
 7. **Metadata.** Hydrator (titles, thumbnails, recommended posts with caching) and the feed.
 8. **Infrastructure.** Terraform, deploy, alarms and budget. Run the section 12 measurements and adjust task size.
 9. **Parallel run.** Run alongside v1, compare outputs, fix differences.
