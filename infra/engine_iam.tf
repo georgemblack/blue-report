@@ -66,6 +66,7 @@ resource "aws_iam_role_policy" "engine_execution" {
         Resource = [
           aws_ssm_parameter.r2_access_key_id.arn,
           aws_ssm_parameter.r2_secret_access_key.arn,
+          aws_ssm_parameter.cloudflare_account_id.arn,
         ]
       },
     ]

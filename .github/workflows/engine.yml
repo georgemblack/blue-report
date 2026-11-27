@@ -1,0 +1,72 @@
+# Builds and deploys the v2 engine (backend/) on every push to master that
+# changes it: run the tests, build the image, push it to ECR tagged with the
+# commit hash and as "latest", then redeploy the ECS service (which runs
+# "latest").
+name: engine
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "backend/**"
+      - ".github/workflows/engine.yml"
+
+# One deploy at a time; a newer push waits rather than cancelling one
+# that's halfway through.
+concurrency:
+  group: engine-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write # to sign in to AWS with GitHub's OIDC token
+
+env:
+  AWS_REGION: us-west-2
+  AWS_ROLE: arn:aws:iam::242201310196:role/blue-report-github-deploy
+  REPOSITORY: blue-report-registry
+  CLUSTER: blue-report
+  SERVICE: engine
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Test
+        run: go test -race ./...
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build and push image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.REPOSITORY }}
+        run: |
+          docker buildx build \
+            --platform linux/arm64 \
+            --tag "$IMAGE:${GITHUB_SHA::12}" \
+            --tag "$IMAGE:latest" \
+            --push \
+            .
+
+      - name: Deploy
+        run: |
+          aws ecs update-service --cluster "$CLUSTER" --service "$SERVICE" --force-new-deployment > /dev/null
+          aws ecs wait services-stable --cluster "$CLUSTER" --services "$SERVICE"

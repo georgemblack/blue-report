@@ -1,0 +1,4 @@
+# Keep local data and editor files out of the image build.
+local-data/
+.git
+*.md

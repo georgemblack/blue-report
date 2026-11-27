@@ -1,12 +1,9 @@
-// Command intake reads Bluesky's Jetstream, keeps the rankings in memory and
-// saves every counted event as Parquet files.
+// Command engine reads Bluesky's Jetstream, keeps the rankings in memory,
+// saves every counted event as Parquet files, and publishes top-links.json.
 //
-// Configuration (environment variables):
-//
-//	BLUE_REPORT_DATA_DIR     folder used as the event store (default "local-data")
-//	BLUE_REPORT_PUBLISH_DIR  folder published files go to, standing in for R2
-//	                         (default "local-data/published")
-//	LOG_FORMAT               "json" (default) or "text"
+// Configuration comes from environment variables; see internal/config. With
+// none set, it runs locally, using folders under local-data/ in place of S3
+// and R2.
 package main
 
 import (
@@ -18,11 +15,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/georgemblack/blue-report/backend/internal/config"
 	"github.com/georgemblack/blue-report/backend/internal/event"
 	"github.com/georgemblack/blue-report/backend/internal/eventlog"
 	"github.com/georgemblack/blue-report/backend/internal/publish"
 	"github.com/georgemblack/blue-report/backend/internal/state"
-	"github.com/georgemblack/blue-report/backend/internal/store"
 	"github.com/georgemblack/blue-report/backend/internal/stream"
 )
 
@@ -50,30 +47,42 @@ const (
 )
 
 func main() {
-	logger := newLogger()
-	if err := run(logger); err != nil {
-		logger.Error("intake failed", "error", err)
+	cfg, err := config.Load(os.Getenv)
+	if err != nil {
+		slog.Error("invalid configuration", "error", err)
 		os.Exit(1)
 	}
-	logger.Info("intake stopped")
+	logger := newLogger(cfg.LogFormat)
+	if err := run(cfg, logger); err != nil {
+		logger.Error("engine failed", "error", err)
+		os.Exit(1)
+	}
+	logger.Info("engine stopped")
 }
 
-func run(logger *slog.Logger) error {
+func run(cfg config.Config, logger *slog.Logger) error {
 	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSignals()
 
-	dir := envOr("BLUE_REPORT_DATA_DIR", "local-data")
-	events := store.NewLocal(dir)
+	events, eventsWhere, err := eventStore(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	published, publishWhere, err := publishStore(ctx, cfg)
+	if err != nil {
+		return err
+	}
+	logger.Info("starting engine", "events", eventsWhere, "publish", publishWhere)
 
 	cursor, err := eventlog.ResumePoint(ctx, events, time.Now(), resumeLookback)
 	if err != nil {
 		return err
 	}
 	if cursor == 0 {
-		logger.Info("no saved events found; starting from now", "data_dir", dir)
+		logger.Info("no saved events found; starting from now")
 	} else {
 		resumeAt := time.UnixMicro(cursor)
-		logger.Info("resuming from newest saved event", "data_dir", dir, "resume_at", resumeAt.UTC(), "behind", time.Since(resumeAt).Round(time.Second).String())
+		logger.Info("resuming from newest saved event", "resume_at", resumeAt.UTC(), "behind", time.Since(resumeAt).Round(time.Second).String())
 	}
 
 	messages := make(chan stream.Message, eventsBuffer)
@@ -99,9 +108,8 @@ func run(logger *slog.Logger) error {
 	}
 	go actor.Run(messages, batches)
 
-	// Publish once the state is rebuilt, whether or not intake has caught up
-	// with Jetstream yet.
-	published := store.NewLocal(envOr("BLUE_REPORT_PUBLISH_DIR", "local-data/published"))
+	// Publish once the state is rebuilt, whether or not the engine has
+	// caught up with Jetstream yet.
 	publishCtx, stopPublishing := context.WithCancel(ctx)
 	defer stopPublishing()
 	publisherDone := make(chan struct{})
@@ -133,16 +141,9 @@ func run(logger *slog.Logger) error {
 	return readErr
 }
 
-func newLogger() *slog.Logger {
-	if os.Getenv("LOG_FORMAT") == "text" {
+func newLogger(format string) *slog.Logger {
+	if format == "text" {
 		return slog.New(slog.NewTextHandler(os.Stdout, nil))
 	}
 	return slog.New(slog.NewJSONHandler(os.Stdout, nil))
-}
-
-func envOr(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
 }

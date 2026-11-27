@@ -1,8 +1,15 @@
-# v2: container images for the back-end (built from backend/). Tags can't be
-# overwritten, so each tag always means one build (e.g. a git commit hash).
+# v2: container images for the back-end (built from backend/). Each build is
+# tagged with its git commit hash, and those tags can't be overwritten, so a
+# hash always means one build. The one exception is "latest", which CI moves
+# to each new build; the ECS task definition runs "latest".
 resource "aws_ecr_repository" "registry" {
   name                 = "blue-report-registry"
-  image_tag_mutability = "IMMUTABLE"
+  image_tag_mutability = "IMMUTABLE_WITH_EXCLUSION"
+
+  image_tag_mutability_exclusion_filter {
+    filter      = "latest"
+    filter_type = "WILDCARD"
+  }
 
   # Free check for known vulnerabilities; results show in the console.
   image_scanning_configuration {

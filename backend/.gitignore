@@ -1,2 +1,2 @@
-# Local stand-in for the S3 bucket (BLUE_REPORT_DATA_DIR)
+# Local stand-in for the S3 bucket (DATA_DIR)
 /local-data/

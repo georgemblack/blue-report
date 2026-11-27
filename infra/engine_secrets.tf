@@ -33,3 +33,16 @@ resource "aws_ssm_parameter" "r2_secret_access_key" {
     ignore_changes = [value]
   }
 }
+
+# v2: Cloudflare account ID, part of R2's address. It isn't really a secret,
+# but this repo is public, so it's kept out of the code. Set it the same way,
+# copying from v1's blue-report/cloudflare-account-id.
+resource "aws_ssm_parameter" "cloudflare_account_id" {
+  name  = "/blue-report-engine/cloudflare-account-id"
+  type  = "SecureString"
+  value = "placeholder"
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+}

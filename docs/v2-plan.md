@@ -305,14 +305,18 @@ Keep the newest feed entry's time in memory (loaded at startup), so the 12-hour 
 - **Networking:** public subnet with a public IP (no NAT gateway, as in v1). IPv6-only is open.
 - **Budget alert** in AWS Budgets.
 
-### 11.1 Pending setup (to do before v2 runs in AWS)
+### 11.1 Deploying
 
-**Applied 2026-11-26** (AWS provider upgraded from 6.57.1 to 6.74.0 first, with no changes to v1): events bucket (`events_bucket.tf`), ECR repository (`container_registry.tf`), security group (`security_group.tf`), log group (`logs.tf`), IAM roles (`engine_iam.tf`), SSM parameters (`engine_secrets.tf`). The same apply also created v1's ECR lifecycle policy (keep the last 20 images), which had been in v1's code but never applied.
+- **Every push to master that changes `backend/`** runs `.github/workflows/engine.yml`: tests, then builds the image (cross-compiled for ARM64) and pushes it to `blue-report-registry` tagged with the commit hash and as `latest`, then redeploys the `engine` ECS service and waits for it to settle.
+- The task definition always runs `latest`, so code changes don't touch Terraform. Terraform owns the task definition itself (size, environment, secrets); changing it there deploys it too.
+- Commit-hash tags can't be overwritten; only `latest` moves. To roll back, point `latest` at an older commit's image and redeploy.
+- CI signs in to AWS with GitHub's OIDC token (no stored keys), as `blue-report-github-deploy`, which can only push to the registry and redeploy the `engine` service.
 
-Still to do:
+### 11.2 Setup status
 
-1. Set the real values of the two R2 SSM parameters (they hold a placeholder). v2 reuses v1's R2 bucket, so v1's keys from Secrets Manager can be copied; see the commands in `infra/engine_secrets.tf`.
-2. Before the first deploy, make sure v2 publishes to different R2 keys from v1 (section 9.3).
+Applied 2026-11-26: events bucket, ECR repository, security group, log group, IAM roles, SSM parameters (values set), task definition, `engine` service, GitHub OIDC provider and deploy role. The AWS provider was upgraded from 6.57.1 to 6.74.0 first, with no changes to v1. That apply also created v1's ECR lifecycle policy (keep the last 20 images), which had been in v1's code but never applied.
+
+The engine publishes to v1's R2 bucket under `engine/` (`PUBLISH_PREFIX`), so v1's files are never overwritten.
 
 ## 12. Observability and validation
 
