@@ -59,8 +59,8 @@ resource "aws_ecs_service" "engine" {
   cluster         = aws_ecs_cluster.blue_report.id
   task_definition = aws_ecs_task_definition.engine.arn
 
-  # 0 until the first image has been pushed; then 1.
-  desired_count = 0
+  # Exactly one copy (see the deployment settings below).
+  desired_count = 1
 
   # On-demand Fargate during the parallel run; Spot can come later.
   capacity_provider_strategy {
