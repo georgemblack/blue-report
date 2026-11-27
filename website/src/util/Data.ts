@@ -1,5 +1,10 @@
 const API_URL = "https://data.theblue.report/data/top-links.json";
 
+// v2.theblue.report shows the rankings from the new (v2) back-end, which
+// publishes under "engine/". Every other host uses the current data.
+export const V2_HOST = "v2.theblue.report";
+const V2_API_URL = "https://data.theblue.report/engine/data/top-links.json";
+
 export interface TopLinks {
   generated_at: string;
   top_hour: Link[];
@@ -26,8 +31,8 @@ export interface Post {
   text: string;
 }
 
-export async function fetchTopLinks(): Promise<TopLinks> {
-  const response = await fetch(API_URL);
+export async function fetchTopLinks(host: string): Promise<TopLinks> {
+  const response = await fetch(host === V2_HOST ? V2_API_URL : API_URL);
   return await response.json();
 }
 

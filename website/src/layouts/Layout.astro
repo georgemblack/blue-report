@@ -1,7 +1,11 @@
 ---
 import "../styles/global.css";
+import { V2_HOST } from "../util/Data";
 
 const { subtitle } = Astro.props;
+
+// Keep search engines from indexing the v2 preview as a copy of the site.
+const robots = Astro.url.hostname === V2_HOST ? "noindex, nofollow" : "index, follow";
 ---
 
 <!doctype html>
@@ -16,7 +20,7 @@ const { subtitle } = Astro.props;
       content="The top links on Bluesky, updated hourly"
     />
     <meta name="author" content="George Black" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content={robots} />
     <link rel="canonical" href="https://theblue.report" />
 
     <!-- Open Graph tags -->

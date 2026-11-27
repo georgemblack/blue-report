@@ -8,7 +8,7 @@ import { fetchTopLinks } from "../util/Data";
 
 Astro.response.headers.set("Cache-Control", "public, s-maxage=120");
 
-const snapshot = await fetchTopLinks();
+const snapshot = await fetchTopLinks(Astro.url.hostname);
 ---
 
 <Layout subtitle="The top links on Bluesky, updated hourly">

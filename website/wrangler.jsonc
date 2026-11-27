@@ -11,6 +11,11 @@
       {
         "pattern": "theblue.report",
         "custom_domain": true
+      },
+      // Preview of the site using the v2 back-end's data.
+      {
+        "pattern": "v2.theblue.report",
+        "custom_domain": true
       }
     ],
     "assets": {
