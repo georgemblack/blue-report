@@ -46,6 +46,10 @@ const (
 	shutdownDeadline = 100 * time.Second
 )
 
+// commit is the git commit the binary was built from, set at build time
+// (see the Dockerfile). "dev" means a local build.
+var commit = "dev"
+
 func main() {
 	cfg, err := config.Load(os.Getenv)
 	if err != nil {
@@ -72,7 +76,7 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("starting engine", "events", eventsWhere, "publish", publishWhere)
+	logger.Info("starting engine", "commit", commit, "events", eventsWhere, "publish", publishWhere)
 
 	cursor, err := eventlog.ResumePoint(ctx, events, time.Now(), resumeLookback)
 	if err != nil {

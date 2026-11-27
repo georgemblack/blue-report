@@ -11,9 +11,12 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 
+# The git commit being built, logged by the engine at startup.
+ARG COMMIT=unknown
+
 COPY . .
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -trimpath -ldflags="-s -w" -o /engine ./cmd/engine
+    go build -trimpath -ldflags="-s -w -X main.commit=$COMMIT" -o /engine ./cmd/engine
 
 # Distroless has no shell or package manager, just the CA certificates and
 # time zone data a Go program needs. Runs as a non-root user.
