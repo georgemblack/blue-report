@@ -22,10 +22,14 @@ github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.13 h1:0pHWAgLjLZWSc9Gtdp
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.13/go.mod h1:yVcS5ysT0fDsQKA6mqaI5QU1p9q5bj7NyM4bu91yNmU=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.13 h1:a6vUTTG7Vsf0LTCuy/GPJsLhz3L6YcS1WkwR5Nxyz8g=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.13/go.mod h1:vlylLTRubgSLfSBOy7blRhV2CC1nVY1VDIgV5nlKi5Y=
+github.com/aws/aws-sdk-go-v2/service/dynamodb v1.74.2 h1:FkE6dNfjHM4bG+DzAIkAHrq8K0Fph4Syq93Fsx4ALtg=
+github.com/aws/aws-sdk-go-v2/service/dynamodb v1.74.2/go.mod h1:oRd7AV7QYjEGRMC0Gr7wCd95mo1XgEGaRJP8mpCRr6M=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.26 h1:PgkTkbD4VhN7KX1fQXiNMsSZqPnEfXmi+UuISMDEuy8=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.26/go.mod h1:s/8QtHBYqNVL+E6bD1yltZrmEo+I4S1bt2kQDxP54sY=
 github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.11.14 h1:xZolVZk8AKg8m9Axl7IZreaUEOrFmomgaXjWzpiAiWM=
 github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.11.14/go.mod h1:BbYaE19KUZA0gxBjw3uWWz2v7wMgpxfi1OPLB26Ktw0=
+github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.13.13 h1:cnAQqgDqIA6uBHQcmtnbSRn2Xj7JP3H4okMhP+R2t4g=
+github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.13.13/go.mod h1:66LeC0vh8/dktxGf6a6YzZo/Mz1FB1wmdfPbqNIAGsM=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.13 h1:D67JeihKdQFL5Zks8rFmf0V0sOZO+iAOjQUW03O3R2E=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.13/go.mod h1:lyzwhnQkZD/SVyTZAG8TqE2XSLRndMZtysOl9KM3ErA=
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.13 h1:MJaFheEZeJDd2qGObzRjsCdDTvRzApb6EqwZ5yBHzwE=

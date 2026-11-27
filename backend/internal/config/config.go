@@ -27,6 +27,10 @@ type Config struct {
 	R2AccessKeyID     string
 	R2SecretAccessKey string
 
+	// The DynamoDB table of link titles, shared with v1
+	// (blue-report-url-metadata). Without it, titles are only kept in memory.
+	MetadataTable string
+
 	LogFormat string // "json" (default) or "text"
 }
 
@@ -47,6 +51,7 @@ func Load(getenv func(string) string) (Config, error) {
 		R2AccountID:       getenv("R2_ACCOUNT_ID"),
 		R2AccessKeyID:     getenv("R2_ACCESS_KEY_ID"),
 		R2SecretAccessKey: getenv("R2_SECRET_ACCESS_KEY"),
+		MetadataTable:     getenv("METADATA_TABLE"),
 		LogFormat:         or("LOG_FORMAT", "json"),
 	}
 

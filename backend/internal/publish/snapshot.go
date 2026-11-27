@@ -5,6 +5,7 @@ package publish
 import (
 	"time"
 
+	"github.com/georgemblack/blue-report/backend/internal/hydrate"
 	"github.com/georgemblack/blue-report/backend/internal/ranking"
 	"github.com/georgemblack/blue-report/backend/internal/state"
 )
@@ -44,30 +45,46 @@ type Post struct {
 	Text     string `json:"text"`
 }
 
-// BuildSnapshot turns the actor's rankings into top-links.json. Titles,
-// thumbnails and recommended posts aren't filled in yet; that comes with the
-// hydrator.
-func BuildSnapshot(res state.TopResult, generatedAt time.Time) Snapshot {
+// BuildSnapshot turns the actor's rankings into top-links.json, adding each
+// link's title, thumbnail and recommended posts from info (keyed by URL).
+// Links missing from info get the fallback title and nothing else.
+func BuildSnapshot(res state.TopResult, info map[string]hydrate.Info, generatedAt time.Time) Snapshot {
 	return Snapshot{
 		GeneratedAt: generatedAt.UTC().Format(time.RFC3339),
-		TopHour:     links(res.Ranking.Hour),
-		TopDay:      links(res.Ranking.Day),
-		TopWeek:     links(res.Ranking.Week),
+		TopHour:     links(res.Ranking.Hour, info),
+		TopDay:      links(res.Ranking.Day, info),
+		TopWeek:     links(res.Ranking.Week, info),
 	}
 }
 
-func links(entries []ranking.Entry) []Link {
+func links(entries []ranking.Entry, info map[string]hydrate.Info) []Link {
 	out := make([]Link, 0, len(entries))
 	for i, e := range entries {
-		out = append(out, Link{
+		meta := info[e.URL]
+		link := Link{
 			Rank:             i + 1,
 			URL:              e.URL,
-			Title:            FallbackTitle,
+			Title:            meta.Title,
+			ThumbnailURL:     meta.ThumbnailURL,
 			PostCount:        e.Week.Posts,
 			RepostCount:      e.Week.Reposts,
 			LikeCount:        e.Week.Likes,
 			RecommendedPosts: []Post{},
-		})
+		}
+		if link.Title == "" {
+			link.Title = FallbackTitle
+		}
+		for j, p := range meta.Posts {
+			link.RecommendedPosts = append(link.RecommendedPosts, Post{
+				Rank: j + 1, AtURI: p.AtURI, Username: p.Username, Handle: p.Handle, Text: p.Text,
+			})
+		}
+		out = append(out, link)
 	}
 	return out
+}
+
+// allEntries returns the links in every list, for hydrating.
+func allEntries(r ranking.Result) []ranking.Entry {
+	return append(append(append([]ranking.Entry{}, r.Hour...), r.Day...), r.Week...)
 }

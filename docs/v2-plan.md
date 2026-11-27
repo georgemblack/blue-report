@@ -130,9 +130,9 @@ Rule: **no network or disk work inside the actor.** Everything slow happens in o
 
 ### 5.5 `publisher`
 - Every **5 minutes** (to start; can be tightened later), sends `Top` to the actor and receives the result. Then, outside the actor:
-  - fills in titles, thumbnails and recommended posts from the hydrator's metadata cache
+  - calls the hydrator to fill in titles, thumbnails and recommended posts (section 5.7), and waits for it
   - builds `top-links.json` (same shape as v1; see section 10) and uploads it to R2
-  - passes the current top links to the hydrator, and redirect candidates to the resolver
+  - passes redirect candidates to the resolver
 - Every publish, also checks the feed rule (section 10.2) and republishes the Atom and JSON feeds when it changes.
 - **Starts once the startup rebuild is done**, and publishes straight away. It doesn't wait for the reader to catch up with Jetstream (decided for simplicity: after a long gap, the first few publishes may show slightly older rankings).
 
@@ -147,19 +147,19 @@ Rule: **no network or disk work inside the actor.** Everything slow happens in o
 - On a redirect, sends `Merge(source, destination)` to the actor.
 - Strict timeouts on every request.
 
-### 5.7 `hydrator` (worker pool, small)
-Owns the **metadata cache**: final URL → title, thumbnail URL, recommended posts and when it was fetched. It's guarded by a mutex, because the hydrator writes it and the publisher reads it.
+### 5.7 `hydrator` (part of the publisher)
+**Decided:** hydration runs inside the publisher, before each upload, one link after another. There's no worker pool or shared cache. At a 5-minute interval the extra time is small, and every published link is hydrated. No time limits or concurrency for now; add them if hydration turns out to slow publishing down. Code: `backend/internal/hydrate`.
 
-For each link in the current top N with missing or stale metadata:
+**Shared with v1:** titles live in v1's DynamoDB table (`blue-report-url-metadata`, key `urlHash`), and thumbnails in v1's R2 folder (`thumbnails/<urlHash>.<ext>` at the top of the bucket). `urlHash` is v1's FNV-64a hash of the URL, so each version finds what the other saved.
 
-1. **Title and thumbnail:** check the DynamoDB metadata table. Otherwise use **CardyB** (`https://cardyb.bsky.app/v1/extract?url=<QueryEscape(url)>`), then Cloudflare browser rendering for the `og:title` and `og:image` tags. **No OpenAI.** Fallback title: the file name for PDFs, otherwise `"(No Title)"`. Copy the thumbnail into R2 at `thumbnails/<url hash>.<ext>` and save the title to DynamoDB. Limit concurrent CardyB requests; v1 waits 1 s between calls "so Bluesky doesn't block us".
-2. **Recommended posts:** from the link's top 20 posts by interaction count (from the actor's `Top` result), fetch posts from the Bluesky API and keep up to 3 that meet these rules:
-   - the formatted text isn't empty
+For each link in the published lists:
+
+1. **Title and thumbnail:** links seen in the last publish come from memory. Otherwise, check the table and the thumbnails folder. If either is missing, ask **CardyB** (`https://cardyb.bsky.app/v1/extract?url=<QueryEscape(url)>`), clean the title with v1's `formatTitle`, save it to the table, and copy the image into R2. Wait 1 s after each CardyB call, as v1 does. Links that end up without a title are looked up again on the next publish. Fallback title: `"(No Title)"`. **No OpenAI.** Browser rendering is left out for now (section 16).
+2. **Recommended posts:** from each link's top 20 posts (from the actor's `Top` result), fetch all the posts from Bluesky's `app.bsky.feed.getPosts`, 25 per request, on every publish. Keep up to 3 per link that meet these rules:
+   - the formatted text isn't empty (v1's `formatPost`)
    - English
    - more than 50 likes
    - no more than one per author
-
-   Reuse v1's `formatPost`. **Cache them per link for about 10–15 minutes**, so publishing every minute doesn't call the Bluesky API every minute.
 
 ### 5.8 Reused v1 code
 
@@ -245,7 +245,7 @@ Note: posts are looked up by their **address (AT URI)**, not by CID as in v1. Li
 | Table | Key | Attributes | Used by |
 |---|---|---|---|
 | `…-url-translations` | `source_url` | `destination` (empty if no redirect), `no_redirect`, `checked_at`, `expires_at` | resolver writes; startup reads all of it (paging through results) |
-| `…-url-metadata` | `url_hash` | `title`, `thumbnail_key`, `updated_at` | hydrator |
+| `blue-report-url-metadata` (v1's table, shared) | `urlHash` | `url`, `title` | hydrator |
 | `…-feed` | `url_hash` | `timestamp`, `content` (JSON), `expires_at` (+90d) | publisher |
 
 ### 9.3 Cloudflare R2: published output
@@ -389,3 +389,10 @@ Each phase should end with working, tested code.
 8. **Infrastructure.** Terraform, deploy, alarms and budget. Run the section 12 measurements and adjust task size.
 9. **Parallel run.** Run alongside v1, compare outputs, fix differences.
 10. **Switch-over** (separate, owner-approved). Point the website (`website/src/util/Data.ts`) and feedgen (`feedgen/wrangler.jsonc`, R2 binding) at v2 data, remove the sites page, then retire v1 later.
+
+## 16. Later
+
+Not needed for the parallel run or switch-over, but planned:
+
+- **Browser rendering for previews.** Bring back v1's fallback to Cloudflare Browser Rendering (read `og:title` and `og:image`) for pages CardyB can't handle. Needs a Cloudflare API token in SSM.
+- **Spam and junk filtering.** Run links, and the posts recommended for them, through Cloudflare's clef to filter out spam and junk before publishing.

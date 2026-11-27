@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.48.1
 	github.com/aws/aws-sdk-go-v2/config v1.33.22
 	github.com/aws/aws-sdk-go-v2/credentials v1.21.4
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.74.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.116.1
 	github.com/bluesky-social/jetstream v0.4.6
 	github.com/coder/websocket v1.8.15
@@ -21,6 +22,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.26 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.11.14 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.13.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/signin v1.14.1 // indirect

@@ -1,5 +1,6 @@
 // Command engine reads Bluesky's Jetstream, keeps the rankings in memory,
-// saves every counted event as Parquet files, and publishes top-links.json.
+// saves every counted event as Parquet files, and publishes top-links.json
+// with each link's title, thumbnail and recommended posts.
 //
 // Configuration comes from environment variables; see internal/config. With
 // none set, it runs locally, using folders under local-data/ in place of S3
@@ -18,6 +19,7 @@ import (
 	"github.com/georgemblack/blue-report/backend/internal/config"
 	"github.com/georgemblack/blue-report/backend/internal/event"
 	"github.com/georgemblack/blue-report/backend/internal/eventlog"
+	"github.com/georgemblack/blue-report/backend/internal/hydrate"
 	"github.com/georgemblack/blue-report/backend/internal/publish"
 	"github.com/georgemblack/blue-report/backend/internal/state"
 	"github.com/georgemblack/blue-report/backend/internal/stream"
@@ -68,15 +70,17 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	ctx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSignals()
 
-	events, eventsWhere, err := eventStore(ctx, cfg)
+	awsCfg, err := awsConfig(ctx)
 	if err != nil {
 		return err
 	}
-	published, publishWhere, err := publishStore(ctx, cfg)
+	events, eventsWhere := eventStore(awsCfg, cfg)
+	published, thumbnails, publishWhere, err := publishStores(ctx, cfg)
 	if err != nil {
 		return err
 	}
-	logger.Info("starting engine", "commit", commit, "events", eventsWhere, "publish", publishWhere)
+	titles, titlesWhere := titleStore(awsCfg, cfg)
+	logger.Info("starting engine", "commit", commit, "events", eventsWhere, "publish", publishWhere, "titles", titlesWhere)
 
 	cursor, err := eventlog.ResumePoint(ctx, events, time.Now(), resumeLookback)
 	if err != nil {
@@ -118,7 +122,8 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	defer stopPublishing()
 	publisherDone := make(chan struct{})
 	go func() {
-		publish.NewPublisher(actor, published, publishInterval, logger).Run(publishCtx)
+		hydrator := hydrate.New(titles, thumbnails, logger)
+		publish.NewPublisher(actor, hydrator, published, publishInterval, logger).Run(publishCtx)
 		close(publisherDone)
 	}()
 

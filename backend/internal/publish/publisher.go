@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/georgemblack/blue-report/backend/internal/hydrate"
+	"github.com/georgemblack/blue-report/backend/internal/ranking"
 	"github.com/georgemblack/blue-report/backend/internal/state"
 	"github.com/georgemblack/blue-report/backend/internal/store"
 )
@@ -19,17 +21,24 @@ type Ranker interface {
 	Top(ctx context.Context) (state.TopResult, error)
 }
 
+// Hydrator fills in titles, thumbnails and recommended posts. The hydrate
+// package implements it.
+type Hydrator interface {
+	Hydrate(ctx context.Context, entries []ranking.Entry) map[string]hydrate.Info
+}
+
 // Publisher uploads top-links.json on a timer.
 type Publisher struct {
 	ranker   Ranker
+	hydrator Hydrator // nil to publish without titles and the rest
 	store    store.Store
 	logger   *slog.Logger
 	interval time.Duration
 	now      func() time.Time // for tests
 }
 
-func NewPublisher(r Ranker, s store.Store, interval time.Duration, logger *slog.Logger) *Publisher {
-	return &Publisher{ranker: r, store: s, logger: logger, interval: interval, now: time.Now}
+func NewPublisher(r Ranker, h Hydrator, s store.Store, interval time.Duration, logger *slog.Logger) *Publisher {
+	return &Publisher{ranker: r, hydrator: h, store: s, logger: logger, interval: interval, now: time.Now}
 }
 
 // Run publishes straight away, then every interval, until ctx is done. A
@@ -49,14 +58,19 @@ func (p *Publisher) Run(ctx context.Context) {
 	}
 }
 
-// Publish builds top-links.json from the current rankings and uploads it.
+// Publish builds top-links.json from the current rankings, fills in each
+// link's title, thumbnail and recommended posts, and uploads it.
 func (p *Publisher) Publish(ctx context.Context) error {
 	start := p.now()
 	res, err := p.ranker.Top(ctx)
 	if err != nil {
 		return fmt.Errorf("publish: getting rankings: %w", err)
 	}
-	data, err := json.Marshal(BuildSnapshot(res, start))
+	var info map[string]hydrate.Info
+	if p.hydrator != nil {
+		info = p.hydrator.Hydrate(ctx, allEntries(res.Ranking))
+	}
+	data, err := json.Marshal(BuildSnapshot(res, info, start))
 	if err != nil {
 		return fmt.Errorf("publish: encoding top links: %w", err)
 	}

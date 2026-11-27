@@ -79,8 +79,8 @@ resource "aws_iam_role" "engine" {
   assume_role_policy = local.engine_assume_role_policy
 }
 
-# v2: what the engine may do: read, write and list event files. DynamoDB
-# access is added along with the tables.
+# v2: what the engine may do: read, write and list event files, and read
+# and save link titles in v1's metadata table.
 resource "aws_iam_role_policy" "engine" {
   name = "blue-report-engine"
   role = aws_iam_role.engine.id
@@ -100,6 +100,15 @@ resource "aws_iam_role_policy" "engine" {
         Effect   = "Allow"
         Action   = "s3:ListBucket"
         Resource = aws_s3_bucket.events.arn
+      },
+      # Link titles, shared with v1.
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+        ]
+        Resource = aws_dynamodb_table.url_metadata.arn
       },
     ]
   })

@@ -28,11 +28,12 @@ func TestBuckets(t *testing.T) {
 		"R2_ACCOUNT_ID":        "acct",
 		"R2_ACCESS_KEY_ID":     "id",
 		"R2_SECRET_ACCESS_KEY": "secret",
+		"METADATA_TABLE":       "blue-report-url-metadata",
 	}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.EventsBucket != "blue-report-events" || c.PublishBucket != "blue-report" || c.PublishPrefix != "engine/" || c.R2SecretAccessKey != "secret" {
+	if c.MetadataTable != "blue-report-url-metadata" || c.EventsBucket != "blue-report-events" || c.PublishBucket != "blue-report" || c.PublishPrefix != "engine/" || c.R2SecretAccessKey != "secret" {
 		t.Fatalf("got %+v", c)
 	}
 }

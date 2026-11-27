@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/georgemblack/blue-report/backend/internal/hydrate"
 	"github.com/georgemblack/blue-report/backend/internal/ranking"
 	"github.com/georgemblack/blue-report/backend/internal/state"
 	"github.com/georgemblack/blue-report/backend/internal/store"
@@ -37,7 +38,7 @@ func sampleResult() state.TopResult {
 
 // The JSON matches v1's top-links.json exactly, field for field.
 func TestSnapshotJSON(t *testing.T) {
-	data, err := json.Marshal(BuildSnapshot(sampleResult(), when))
+	data, err := json.Marshal(BuildSnapshot(sampleResult(), nil, when))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +54,7 @@ func TestSnapshotJSON(t *testing.T) {
 
 // Empty lists are [] rather than null, so the website can loop over them.
 func TestEmptySnapshot(t *testing.T) {
-	data, _ := json.Marshal(BuildSnapshot(state.TopResult{}, when))
+	data, _ := json.Marshal(BuildSnapshot(state.TopResult{}, nil, when))
 	want := `{"generated_at":"2026-11-26T15:04:05Z","top_hour":[],"top_day":[],"top_week":[]}`
 	if string(data) != want {
 		t.Fatalf("got %s", data)
@@ -84,7 +85,7 @@ func (f *fakeRanker) count() int {
 
 func TestPublish(t *testing.T) {
 	s := store.NewLocal(t.TempDir())
-	p := NewPublisher(&fakeRanker{}, s, 5*time.Minute, discard)
+	p := NewPublisher(&fakeRanker{}, nil, s, 5*time.Minute, discard)
 	p.now = func() time.Time { return when }
 	if err := p.Publish(ctx); err != nil {
 		t.Fatal(err)
@@ -115,7 +116,7 @@ func (r *recordingStore) Put(ctx context.Context, key string, body []byte, meta 
 
 func TestPublishMeta(t *testing.T) {
 	s := &recordingStore{Store: store.NewLocal(t.TempDir())}
-	if err := NewPublisher(&fakeRanker{}, s, 5*time.Minute, discard).Publish(ctx); err != nil {
+	if err := NewPublisher(&fakeRanker{}, nil, s, 5*time.Minute, discard).Publish(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if want := (store.Meta{ContentType: "application/json", CacheControl: "public, max-age=300"}); s.meta != want {
@@ -124,7 +125,7 @@ func TestPublishMeta(t *testing.T) {
 }
 
 func TestPublishError(t *testing.T) {
-	p := NewPublisher(&fakeRanker{err: state.ErrStopped}, store.NewLocal(t.TempDir()), time.Minute, discard)
+	p := NewPublisher(&fakeRanker{err: state.ErrStopped}, nil, store.NewLocal(t.TempDir()), time.Minute, discard)
 	if err := p.Publish(ctx); !errors.Is(err, state.ErrStopped) {
 		t.Fatalf("err = %v", err)
 	}
@@ -134,7 +135,7 @@ func TestPublishError(t *testing.T) {
 // failures.
 func TestRun(t *testing.T) {
 	r := &fakeRanker{err: errors.New("not ready")}
-	p := NewPublisher(r, store.NewLocal(t.TempDir()), 10*time.Millisecond, discard)
+	p := NewPublisher(r, nil, store.NewLocal(t.TempDir()), 10*time.Millisecond, discard)
 	c, cancel := context.WithCancel(ctx)
 	done := make(chan struct{})
 	go func() { p.Run(c); close(done) }()
@@ -151,5 +152,57 @@ func TestRun(t *testing.T) {
 	case <-done:
 	case <-time.After(5 * time.Second):
 		t.Fatal("Run didn't stop")
+	}
+}
+
+// Titles, thumbnails and recommended posts from the hydrator end up in every
+// list the link is in, with posts ranked from 1.
+func TestSnapshotWithInfo(t *testing.T) {
+	info := map[string]hydrate.Info{
+		"https://www.nytimes.com/a.html": {
+			Title:        "A story",
+			ThumbnailURL: "https://data.theblue.report/thumbnails/x.png",
+			Posts: []hydrate.Post{
+				{AtURI: "at://a/1", Username: "Alice", Handle: "alice.bsky.social", Text: "Read this"},
+				{AtURI: "at://b/1", Username: "Bob", Handle: "bob.bsky.social", Text: "And this"},
+			},
+		},
+	}
+	snap := BuildSnapshot(sampleResult(), info, when)
+	for _, list := range [][]Link{snap.TopHour, snap.TopDay, snap.TopWeek} {
+		got := list[0]
+		if got.Title != "A story" || got.ThumbnailURL != "https://data.theblue.report/thumbnails/x.png" ||
+			len(got.RecommendedPosts) != 2 || got.RecommendedPosts[1] != (Post{Rank: 2, AtURI: "at://b/1", Username: "Bob", Handle: "bob.bsky.social", Text: "And this"}) {
+			t.Fatalf("link = %+v", got)
+		}
+	}
+	// The BBC link has no info: fallback title, no posts.
+	if bbc := snap.TopWeek[1]; bbc.Title != FallbackTitle || bbc.ThumbnailURL != "" || bbc.RecommendedPosts == nil {
+		t.Fatalf("bbc = %+v", bbc)
+	}
+}
+
+type fakeHydrator struct{ got []ranking.Entry }
+
+func (f *fakeHydrator) Hydrate(_ context.Context, entries []ranking.Entry) map[string]hydrate.Info {
+	f.got = entries
+	return map[string]hydrate.Info{"https://www.bbc.co.uk/b": {Title: "BBC story"}}
+}
+
+// The publisher hydrates every link it publishes.
+func TestPublishHydrates(t *testing.T) {
+	s := store.NewLocal(t.TempDir())
+	h := &fakeHydrator{}
+	if err := NewPublisher(&fakeRanker{}, h, s, time.Minute, discard).Publish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(h.got) != 4 { // nyt in all three lists, plus bbc
+		t.Fatalf("hydrated %d entries", len(h.got))
+	}
+	data, _ := s.Get(ctx, TopLinksKey)
+	var snap Snapshot
+	json.Unmarshal(data, &snap)
+	if snap.TopWeek[1].Title != "BBC story" {
+		t.Fatalf("week = %+v", snap.TopWeek)
 	}
 }

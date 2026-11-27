@@ -7,35 +7,45 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"github.com/georgemblack/blue-report/backend/internal/config"
+	"github.com/georgemblack/blue-report/backend/internal/hydrate"
 	"github.com/georgemblack/blue-report/backend/internal/store"
 )
 
-// eventStore returns where event files are kept: the S3 bucket if one is
-// configured, otherwise a local folder. It also says which, for logging.
-func eventStore(ctx context.Context, cfg config.Config) (store.Store, string, error) {
-	if cfg.EventsBucket == "" {
-		return store.NewLocal(cfg.DataDir), "folder " + cfg.DataDir, nil
-	}
-	// In ECS, credentials come from the task role and the region from the
-	// environment. us-west-2 is only a fallback for running elsewhere.
+// awsConfig loads AWS settings. In ECS, credentials come from the task role
+// and the region from the environment. us-west-2 is only a fallback for
+// running elsewhere.
+func awsConfig(ctx context.Context) (aws.Config, error) {
 	awsCfg, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
-		return nil, "", fmt.Errorf("loading aws config: %w", err)
+		return aws.Config{}, fmt.Errorf("loading aws config: %w", err)
 	}
 	if awsCfg.Region == "" {
 		awsCfg.Region = "us-west-2"
 	}
-	return store.NewS3(s3.NewFromConfig(awsCfg), cfg.EventsBucket, ""), "s3://" + cfg.EventsBucket, nil
+	return awsCfg, nil
 }
 
-// publishStore returns where public files go: the R2 bucket if one is
-// configured, otherwise a local folder.
-func publishStore(ctx context.Context, cfg config.Config) (store.Store, string, error) {
+// eventStore returns where event files are kept: the S3 bucket if one is
+// configured, otherwise a local folder. It also says which, for logging.
+func eventStore(awsCfg aws.Config, cfg config.Config) (store.Store, string) {
+	if cfg.EventsBucket == "" {
+		return store.NewLocal(cfg.DataDir), "folder " + cfg.DataDir
+	}
+	return store.NewS3(s3.NewFromConfig(awsCfg), cfg.EventsBucket, ""), "s3://" + cfg.EventsBucket
+}
+
+// publishStores returns where public files go: the R2 bucket if one is
+// configured, otherwise a local folder. The first store is for the engine's
+// own files (under PUBLISH_PREFIX); the second is the top of the bucket,
+// where thumbnails shared with v1 live.
+func publishStores(ctx context.Context, cfg config.Config) (published, thumbnails store.Store, where string, err error) {
 	if cfg.PublishBucket == "" {
-		return store.NewLocal(cfg.PublishDir), "folder " + cfg.PublishDir, nil
+		local := store.NewLocal(cfg.PublishDir)
+		return local, local, "folder " + cfg.PublishDir, nil
 	}
 	// R2 speaks the S3 API, at an address that includes the Cloudflare
 	// account ID, with its own access keys and the region "auto".
@@ -44,7 +54,7 @@ func publishStore(ctx context.Context, cfg config.Config) (store.Store, string, 
 		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.R2AccessKeyID, cfg.R2SecretAccessKey, "")),
 	)
 	if err != nil {
-		return nil, "", fmt.Errorf("loading r2 config: %w", err)
+		return nil, nil, "", fmt.Errorf("loading r2 config: %w", err)
 	}
 	client := s3.NewFromConfig(r2Cfg, func(o *s3.Options) {
 		o.BaseEndpoint = aws.String(fmt.Sprintf("https://%s.r2.cloudflarestorage.com", cfg.R2AccountID))
@@ -53,5 +63,16 @@ func publishStore(ctx context.Context, cfg config.Config) (store.Store, string, 
 		o.RequestChecksumCalculation = aws.RequestChecksumCalculationWhenRequired
 		o.ResponseChecksumValidation = aws.ResponseChecksumValidationWhenRequired
 	})
-	return store.NewS3(client, cfg.PublishBucket, cfg.PublishPrefix), fmt.Sprintf("r2://%s/%s", cfg.PublishBucket, cfg.PublishPrefix), nil
+	published = store.NewS3(client, cfg.PublishBucket, cfg.PublishPrefix)
+	thumbnails = store.NewS3(client, cfg.PublishBucket, "")
+	return published, thumbnails, fmt.Sprintf("r2://%s/%s", cfg.PublishBucket, cfg.PublishPrefix), nil
+}
+
+// titleStore returns where link titles are kept: v1's DynamoDB table if one
+// is configured, otherwise memory.
+func titleStore(awsCfg aws.Config, cfg config.Config) (hydrate.Titles, string) {
+	if cfg.MetadataTable == "" {
+		return hydrate.NewMemoryTitles(), "memory"
+	}
+	return hydrate.NewDynamoTitles(dynamodb.NewFromConfig(awsCfg), cfg.MetadataTable), "dynamodb:" + cfg.MetadataTable
 }

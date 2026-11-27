@@ -30,6 +30,8 @@ resource "aws_ecs_task_definition" "engine" {
         # so v1's files are never overwritten.
         { name = "PUBLISH_BUCKET", value = "blue-report" },
         { name = "PUBLISH_PREFIX", value = "engine/" },
+        # v1's table of link titles, shared so neither looks a page up twice.
+        { name = "METADATA_TABLE", value = aws_dynamodb_table.url_metadata.name },
         # Make Go's garbage collector work harder as memory nears the
         # task's limit, instead of the task being killed (~85% of 2 GB).
         { name = "GOMEMLIMIT", value = "1740MiB" },
