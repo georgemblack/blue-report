@@ -1,3 +1,6 @@
+# Shared by v1 and v2: v2's intake also runs in this VPC and its subnets.
+# Keep these resources when retiring v1.
+
 resource "aws_vpc" "blue_report" {
   cidr_block                       = "10.0.0.0/16"
   enable_dns_support               = true

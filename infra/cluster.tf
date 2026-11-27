@@ -34,6 +34,9 @@ resource "aws_cloudwatch_log_stream" "blue_report" {
   log_group_name = aws_cloudwatch_log_group.blue_report.name
 }
 
+# Shared by v1 and v2: v2's service also runs in this cluster, using its
+# Fargate and Fargate Spot capacity providers. Keep the cluster and its
+# capacity providers when retiring v1.
 resource "aws_ecs_cluster" "blue_report" {
   name = "blue-report"
 }

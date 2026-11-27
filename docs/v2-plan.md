@@ -40,7 +40,7 @@ October 2026 at full prices: Fargate intake about $14.70, ElastiCache about $9.5
 | D4 | **ECS Fargate** for compute. Spot or on-demand is still open. |
 | D5 | **Real-time ranking** inside intake, published to R2 every 5 minutes to start (can be tightened later). |
 | D6 | **Parquet** for event storage. The schema is in [event-schema.md](event-schema.md). |
-| D7 | **Build fresh, run in parallel, then switch over.** v2 has **completely separate AWS infrastructure**: nothing shared with v1. |
+| D7 | **Build fresh, run in parallel, then switch over.** v2 has **separate AWS resources**, defined in the same Terraform project as v1 (see section 11). **Exception: v2 reuses v1's VPC and subnets** (`infra/vpc.tf`) **and ECS cluster** (`aws_ecs_cluster.blue_report` and its capacity providers in `infra/cluster.tf`), which must be kept when v1 is retired. |
 | D8 | **One container**: a single Go program with several goroutines (section 5). |
 | D9 | **State has a single owner**: one goroutine owns all ranking and cache state, and others talk to it through channels (the actor pattern). |
 | D10 | **Event schema:** `time_us`, `type` (0 = post including quotes, 1 = repost, 2 = like), `did`, `rkey`, `subject_uri`, `url`. |
@@ -256,15 +256,14 @@ Note: posts are looked up by their **address (AT URI)**, not by CID as in v1. Li
 | `feeds/top-day.json` | JSON Feed | `max-age=600` |
 | `thumbnails/<url hash>.<ext>` | Thumbnail images | `max-age=28800` |
 
-The v2 R2 bucket or prefix and its public hostname are open (section 13). During the parallel run, v2 must not write over v1's objects.
+**Decided: v2 reuses v1's R2 bucket for now.** During the parallel run, v2 must publish under different keys from v1 (for example a separate prefix), never `data/top-links.json` or v1's feed and thumbnail keys, or the two would overwrite each other and the website would flip between them. The publish key needs to be configurable for this.
 
 ### 9.4 Secrets: SSM Parameter Store (SecureString)
-- Cloudflare account ID
-- Cloudflare API token (browser rendering)
-- R2 access key ID
-- R2 secret access key
+- `/blue-report-engine/r2-access-key-id` (created)
+- `/blue-report-engine/r2-secret-access-key` (created)
+- Cloudflare API token (browser rendering): added later, with the resolver and hydrator
 
-They're passed to the container as environment variables via the ECS task definition's `secrets`. There's no OpenAI key and no Secrets Manager.
+Terraform creates them with a placeholder value and ignores the value from then on, so real secrets never appear in Terraform files or state; the real values are set once with the AWS CLI (see `infra/engine_secrets.tf`). They're passed to the container as environment variables via the ECS task definition's `secrets`. The Cloudflare account ID isn't secret (it's part of R2's address), so it's a plain environment variable. There's no OpenAI key and no Secrets Manager.
 
 ## 10. Published data
 
@@ -292,7 +291,8 @@ Keep the newest feed entry's time in memory (loaded at startup), so the 12-hour 
 
 ## 11. Infrastructure (Terraform)
 
-- A new Terraform root with its **own state** (a separate key, or a separate state bucket). It must not touch v1's state.
+- **Same Terraform project as v1** (`infra/`, same state). v2 resources are added in their own files, each with a comment saying it's for v2, and v1's files are deleted after the switch-over. Before adding anything: confirm `terraform plan` shows no changes for v1, then upgrade the AWS provider as its own step and confirm it still shows none.
+- **Names:** no "v2" in resource names. Most obvious `blue-report` names are taken by v1, so v2 names must differ in other ways (decided per resource).
 - **ECS service:**
   - Fargate, ARM64, desired count 1
   - **`deployment_minimum_healthy_percent = 0`, `deployment_maximum_percent = 100`**, so two copies of intake never run at once
@@ -304,6 +304,15 @@ Keep the newest feed entry's time in memory (loaded at startup), so the 12-hour 
 - **Logs:** CloudWatch, 7-day retention.
 - **Networking:** public subnet with a public IP (no NAT gateway, as in v1). IPv6-only is open.
 - **Budget alert** in AWS Budgets.
+
+### 11.1 Pending setup (to do before v2 runs in AWS)
+
+**Applied 2026-11-26** (AWS provider upgraded from 6.57.1 to 6.74.0 first, with no changes to v1): events bucket (`events_bucket.tf`), ECR repository (`container_registry.tf`), security group (`security_group.tf`), log group (`logs.tf`), IAM roles (`engine_iam.tf`), SSM parameters (`engine_secrets.tf`). The same apply also created v1's ECR lifecycle policy (keep the last 20 images), which had been in v1's code but never applied.
+
+Still to do:
+
+1. Set the real values of the two R2 SSM parameters (they hold a placeholder). v2 reuses v1's R2 bucket, so v1's keys from Secrets Manager can be copied; see the commands in `infra/engine_secrets.tf`.
+2. Before the first deploy, make sure v2 publishes to different R2 keys from v1 (section 9.3).
 
 ## 12. Observability and validation
 
@@ -339,13 +348,13 @@ Keep the newest feed entry's time in memory (loaded at startup), so the 12-hour 
 | Fargate Spot or on-demand? | On-demand during the parallel run; revisit after measurements. |
 | Parquet library? | Pure Go (`github.com/parquet-go/parquet-go`) for writing and the startup rebuild, keeping builds free of C compilation. DuckDB only for ad-hoc analysis and the future backfill. |
 | Separate AWS account for v2? | Same account, separate resources with a `blue-report-v2` prefix. |
-| v2 R2 bucket and public hostname during the parallel run? | New R2 bucket `blue-report-v2` on a temporary hostname (e.g. `data-v2.theblue.report`). |
+| v2 R2 bucket and public hostname during the parallel run? | **Decided:** reuse v1's R2 bucket for now, publishing under different keys from v1 (section 9.3). |
 | Event retention beyond 7 days? | Keep everything; Intelligent-Tiering, then Glacier IR after 30 days. |
 | What if S3 writes keep failing? | Stop reading Jetstream once the waiting-batch limit is hit; resume from the resume point. |
 | IPv6-only networking (saves about $3.65/month)? | IPv4 for now; check whether Jetstream, CardyB, the Bluesky API and Cloudflare support IPv6. |
 | Redirect candidate threshold? | A final URL with ≥ 1,000 user entries in the ranking state that isn't already checked. Configurable. |
 | Publish links without a title? | Yes, with the fallback title. |
-| Where the code lives in this repo? | A new top-level `backend/` directory (Go module `github.com/georgemblack/blue-report/backend`) with `backend/infra/` for Terraform. Leave `services/` and `infra/` untouched. |
+| Where the code lives in this repo? | A new top-level `backend/` directory (Go module `github.com/georgemblack/blue-report/backend`). Leave `services/` untouched. Terraform goes in the existing `infra/` project, alongside v1 (decided). |
 
 ## 14. Out of scope
 
