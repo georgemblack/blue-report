@@ -94,3 +94,23 @@ resource "aws_dynamodb_table" "redirects" {
     enabled        = true
   }
 }
+
+# v2: the engine's feed of top links. Items look like v1's blue-report-feed
+# items, plus an expiry, so v1's entries can be copied over at switch-over.
+# Items expire after 90 days.
+resource "aws_dynamodb_table" "feed_entries" {
+  name         = "blue-report-feed-entries"
+  hash_key     = "urlHash"
+  billing_mode = "PAY_PER_REQUEST"
+
+  attribute {
+    name = "urlHash"
+    type = "S"
+  }
+
+  # DynamoDB deletes items once the time in expiresAt has passed.
+  ttl {
+    attribute_name = "expiresAt"
+    enabled        = true
+  }
+}

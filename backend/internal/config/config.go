@@ -35,6 +35,15 @@ type Config struct {
 	// (blue-report-redirects). Without it, redirects are only kept in memory.
 	RedirectsTable string
 
+	// The DynamoDB table of feed entries (blue-report-feed-entries). Without
+	// it, the feed is only kept in memory.
+	FeedTable string
+
+	// For Cloudflare Browser Run, which finds titles and images CardyB
+	// can't. Without both, only CardyB is used.
+	CloudflareAccountID string
+	CloudflareAPIToken  string
+
 	LogFormat string // "json" (default) or "text"
 }
 
@@ -47,17 +56,20 @@ func Load(getenv func(string) string) (Config, error) {
 		return fallback
 	}
 	c := Config{
-		EventsBucket:      getenv("EVENTS_BUCKET"),
-		DataDir:           or("DATA_DIR", "local-data"),
-		PublishBucket:     getenv("PUBLISH_BUCKET"),
-		PublishPrefix:     getenv("PUBLISH_PREFIX"),
-		PublishDir:        or("PUBLISH_DIR", "local-data/published"),
-		R2AccountID:       getenv("R2_ACCOUNT_ID"),
-		R2AccessKeyID:     getenv("R2_ACCESS_KEY_ID"),
-		R2SecretAccessKey: getenv("R2_SECRET_ACCESS_KEY"),
-		MetadataTable:     getenv("METADATA_TABLE"),
-		RedirectsTable:    getenv("REDIRECTS_TABLE"),
-		LogFormat:         or("LOG_FORMAT", "json"),
+		EventsBucket:        getenv("EVENTS_BUCKET"),
+		DataDir:             or("DATA_DIR", "local-data"),
+		PublishBucket:       getenv("PUBLISH_BUCKET"),
+		PublishPrefix:       getenv("PUBLISH_PREFIX"),
+		PublishDir:          or("PUBLISH_DIR", "local-data/published"),
+		R2AccountID:         getenv("R2_ACCOUNT_ID"),
+		R2AccessKeyID:       getenv("R2_ACCESS_KEY_ID"),
+		R2SecretAccessKey:   getenv("R2_SECRET_ACCESS_KEY"),
+		MetadataTable:       getenv("METADATA_TABLE"),
+		RedirectsTable:      getenv("REDIRECTS_TABLE"),
+		FeedTable:           getenv("FEED_TABLE"),
+		CloudflareAccountID: getenv("CLOUDFLARE_ACCOUNT_ID"),
+		CloudflareAPIToken:  getenv("CLOUDFLARE_API_TOKEN"),
+		LogFormat:           or("LOG_FORMAT", "json"),
 	}
 
 	if c.PublishBucket != "" {

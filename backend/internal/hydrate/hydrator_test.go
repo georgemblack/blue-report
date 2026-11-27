@@ -11,7 +11,9 @@ import (
 	"slices"
 	"sync"
 	"testing"
+	"time"
 
+	"github.com/georgemblack/blue-report/backend/internal/browserrun"
 	"github.com/georgemblack/blue-report/backend/internal/ranking"
 	"github.com/georgemblack/blue-report/backend/internal/store"
 )
@@ -93,7 +95,7 @@ func (f *fakeWeb) addPost(uri, handle, text string, likes int, langs ...string) 
 }
 
 func newTestHydrator(f *fakeWeb, titles Titles, thumbs store.Store) *Hydrator {
-	h := New(titles, thumbs, discard)
+	h := New(titles, thumbs, nil, discard)
 	h.cardyBURL = f.server.URL
 	h.cardyBDelay = 0
 	h.blueskyURL = f.server.URL
@@ -243,5 +245,73 @@ func TestGetPostsBatches(t *testing.T) {
 	}
 	if !slices.Equal(sizes, []int{25, 25, 10}) {
 		t.Errorf("batch sizes = %v", sizes)
+	}
+}
+
+// fakeBrowser stands in for Browser Run.
+type fakeBrowser struct {
+	result browserrun.Result
+	calls  int
+}
+
+func (b *fakeBrowser) Scrape(context.Context, string, []string) (browserrun.Result, time.Duration, error) {
+	b.calls++
+	return b.result, time.Second, nil
+}
+
+// When CardyB has nothing, Browser Run is tried, preferring the page's
+// og:title over its <title>.
+func TestBrowserRunFallback(t *testing.T) {
+	f := newFakeWeb(t)
+	b := &fakeBrowser{result: browserrun.Result{
+		ogTitle:   {{Attributes: map[string]string{"content": "BREAKING: OG title"}}},
+		pageTitle: {{Text: "Page title"}},
+		ogImage:   {{Attributes: map[string]string{"content": f.server.URL + "/image.png"}}},
+	}}
+	h := newTestHydrator(f, NewMemoryTitles(), store.NewLocal(t.TempDir()))
+	h.browser = b
+	info := h.Hydrate(ctx, []ranking.Entry{{URL: nyt}})
+	if got := info[nyt]; got.Title != "OG title" || got.ThumbnailURL == "" {
+		t.Fatalf("info = %+v", got)
+	}
+
+	b.result = browserrun.Result{pageTitle: {{Text: "Page title"}}}
+	other := "https://example.com/b"
+	if got := h.Hydrate(ctx, []ranking.Entry{{URL: other}})[other]; got.Title != "Page title" {
+		t.Fatalf("info = %+v", got)
+	}
+}
+
+// A link Browser Run finds nothing for is retried with CardyB on every
+// publish, but Browser Run only tries it once while it's published.
+func TestBrowserRunTriedOnce(t *testing.T) {
+	f := newFakeWeb(t)
+	b := &fakeBrowser{result: browserrun.Result{}}
+	h := newTestHydrator(f, NewMemoryTitles(), store.NewLocal(t.TempDir()))
+	h.browser = b
+	for range 3 {
+		h.Hydrate(ctx, []ranking.Entry{{URL: nyt}})
+	}
+	if b.calls != 1 || f.cardyBCalls() != 3 {
+		t.Fatalf("browser run called %d times, CardyB %d times", b.calls, f.cardyBCalls())
+	}
+	// Once the link drops out and comes back, it's tried again.
+	h.Hydrate(ctx, nil)
+	h.Hydrate(ctx, []ranking.Entry{{URL: nyt}})
+	if b.calls != 2 {
+		t.Fatalf("browser run called %d times, want 2", b.calls)
+	}
+}
+
+// Links CardyB fully covers don't use Browser Run.
+func TestBrowserRunNotNeeded(t *testing.T) {
+	f := newFakeWeb(t)
+	f.cards[nyt] = [2]string{"A story", "/image.png"}
+	b := &fakeBrowser{}
+	h := newTestHydrator(f, NewMemoryTitles(), store.NewLocal(t.TempDir()))
+	h.browser = b
+	h.Hydrate(ctx, []ranking.Entry{{URL: nyt}})
+	if b.calls != 0 {
+		t.Fatalf("browser run called %d times", b.calls)
 	}
 }

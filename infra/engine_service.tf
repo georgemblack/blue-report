@@ -34,6 +34,8 @@ resource "aws_ecs_task_definition" "engine" {
         { name = "METADATA_TABLE", value = aws_dynamodb_table.url_metadata.name },
         # Where the redirect resolver saves what it finds.
         { name = "REDIRECTS_TABLE", value = aws_dynamodb_table.redirects.name },
+        # Where the feed of top links is kept.
+        { name = "FEED_TABLE", value = aws_dynamodb_table.feed_entries.name },
         # Make Go's garbage collector work harder as memory nears the
         # task's limit, instead of the task being killed (~85% of 2 GB).
         { name = "GOMEMLIMIT", value = "1740MiB" },
@@ -43,6 +45,9 @@ resource "aws_ecs_task_definition" "engine" {
         { name = "R2_ACCOUNT_ID", valueFrom = aws_ssm_parameter.cloudflare_account_id.arn },
         { name = "R2_ACCESS_KEY_ID", valueFrom = aws_ssm_parameter.r2_access_key_id.arn },
         { name = "R2_SECRET_ACCESS_KEY", valueFrom = aws_ssm_parameter.r2_secret_access_key.arn },
+        # For Browser Run, which finds titles and images CardyB can't.
+        { name = "CLOUDFLARE_ACCOUNT_ID", valueFrom = aws_ssm_parameter.cloudflare_account_id.arn },
+        { name = "CLOUDFLARE_API_TOKEN", valueFrom = aws_ssm_parameter.cloudflare_api_token.arn },
       ]
 
       logConfiguration = {

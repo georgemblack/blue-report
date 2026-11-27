@@ -67,6 +67,7 @@ resource "aws_iam_role_policy" "engine_execution" {
           aws_ssm_parameter.r2_access_key_id.arn,
           aws_ssm_parameter.r2_secret_access_key.arn,
           aws_ssm_parameter.cloudflare_account_id.arn,
+          aws_ssm_parameter.cloudflare_api_token.arn,
         ]
       },
     ]
@@ -80,7 +81,8 @@ resource "aws_iam_role" "engine" {
 }
 
 # v2: what the engine may do: read, write and list event files, read and
-# save link titles in v1's metadata table, and read and save redirects.
+# save link titles in v1's metadata table, read and save redirects, and read
+# and add feed entries.
 resource "aws_iam_role_policy" "engine" {
   name = "blue-report-engine"
   role = aws_iam_role.engine.id
@@ -117,6 +119,14 @@ resource "aws_iam_role_policy" "engine" {
           "dynamodb:PutItem",
         ]
         Resource = aws_dynamodb_table.redirects.arn
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:Scan",
+          "dynamodb:PutItem",
+        ]
+        Resource = aws_dynamodb_table.feed_entries.arn
       },
     ]
   })

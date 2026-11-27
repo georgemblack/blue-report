@@ -47,8 +47,8 @@ resource "aws_ssm_parameter" "cloudflare_account_id" {
   }
 }
 
-# v2: Cloudflare API token, for Browser Rendering (and later spam filtering).
-# Not used yet. Set it the same way, copying from v1's
+# v2: Cloudflare API token, for Browser Run (and later spam filtering). It
+# needs the "Browser Run - Edit" permission. Set it the same way, copying from v1's
 # blue-report/cloudflare-api-token in Secrets Manager.
 resource "aws_ssm_parameter" "cloudflare_api_token" {
   name  = "/blue-report-engine/cloudflare-api-token"

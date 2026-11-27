@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/georgemblack/blue-report/backend/internal/feed"
 	"github.com/georgemblack/blue-report/backend/internal/hydrate"
 	"github.com/georgemblack/blue-report/backend/internal/ranking"
 	"github.com/georgemblack/blue-report/backend/internal/state"
@@ -27,18 +28,26 @@ type Hydrator interface {
 	Hydrate(ctx context.Context, entries []ranking.Entry) map[string]hydrate.Info
 }
 
-// Publisher uploads top-links.json on a timer.
+// Feed keeps the feed of the day's top links. The feed package implements
+// it.
+type Feed interface {
+	Update(ctx context.Context, top feed.Entry, now time.Time) error
+}
+
+// Publisher uploads top-links.json on a timer, and keeps the feed up to
+// date.
 type Publisher struct {
 	ranker   Ranker
 	hydrator Hydrator // nil to publish without titles and the rest
+	feed     Feed     // nil for no feed
 	store    store.Store
 	logger   *slog.Logger
 	interval time.Duration
 	now      func() time.Time // for tests
 }
 
-func NewPublisher(r Ranker, h Hydrator, s store.Store, interval time.Duration, logger *slog.Logger) *Publisher {
-	return &Publisher{ranker: r, hydrator: h, store: s, logger: logger, interval: interval, now: time.Now}
+func NewPublisher(r Ranker, h Hydrator, f Feed, s store.Store, interval time.Duration, logger *slog.Logger) *Publisher {
+	return &Publisher{ranker: r, hydrator: h, feed: f, store: s, logger: logger, interval: interval, now: time.Now}
 }
 
 // Run publishes straight away, then every interval, until ctx is done. A
@@ -59,7 +68,8 @@ func (p *Publisher) Run(ctx context.Context) {
 }
 
 // Publish builds top-links.json from the current rankings, fills in each
-// link's title, thumbnail and recommended posts, and uploads it.
+// link's title, thumbnail and recommended posts, and uploads it. Then it
+// offers the day's top link to the feed.
 func (p *Publisher) Publish(ctx context.Context) error {
 	start := p.now()
 	res, err := p.ranker.Top(ctx)
@@ -70,7 +80,8 @@ func (p *Publisher) Publish(ctx context.Context) error {
 	if p.hydrator != nil {
 		info = p.hydrator.Hydrate(ctx, allEntries(res.Ranking))
 	}
-	data, err := json.Marshal(BuildSnapshot(res, info, start))
+	snapshot := BuildSnapshot(res, info, start)
+	data, err := json.Marshal(snapshot)
 	if err != nil {
 		return fmt.Errorf("publish: encoding top links: %w", err)
 	}
@@ -87,5 +98,26 @@ func (p *Publisher) Publish(ctx context.Context) error {
 		"hour", len(res.Ranking.Hour), "day", len(res.Ranking.Day), "week", len(res.Ranking.Week),
 		"bytes", len(data),
 		"took_ms", p.now().Sub(start).Milliseconds())
+
+	// A feed problem doesn't count as a failed publish; it's tried again
+	// next time.
+	if p.feed != nil && len(snapshot.TopDay) > 0 {
+		if err := p.feed.Update(ctx, feedEntry(snapshot.TopDay[0]), start); err != nil {
+			p.logger.Warn("couldn't update feed", "error", err)
+		}
+	}
 	return nil
+}
+
+// feedEntry turns a published link into a feed entry. A link without a
+// real title gets an empty one, so the feed waits for its title.
+func feedEntry(l Link) feed.Entry {
+	e := feed.Entry{URL: l.URL, Title: l.Title, Posts: []feed.Post{}}
+	if e.Title == FallbackTitle {
+		e.Title = ""
+	}
+	for _, p := range l.RecommendedPosts {
+		e.Posts = append(e.Posts, feed.Post{Rank: p.Rank, AtURI: p.AtURI, Username: p.Username, Handle: p.Handle, Text: p.Text})
+	}
+	return e
 }

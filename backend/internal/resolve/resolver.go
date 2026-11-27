@@ -52,8 +52,8 @@ func (r *Resolver) Run(ctx context.Context, links <-chan string) {
 // resolve finds where a link redirects to, using the saved answer if there
 // is one, and tells the merger if it's somewhere else.
 func (r *Resolver) resolve(ctx context.Context, url string) {
-	// Apple News pages don't use normal redirects. They'll be handled once
-	// Browser Rendering is added back.
+	// Apple News pages redirect with JavaScript, not normal redirects, so
+	// they're skipped for now. Browser Run could handle them later.
 	if urltools.IsAppleNewsURL(url) {
 		return
 	}

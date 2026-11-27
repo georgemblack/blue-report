@@ -10,7 +10,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
+	"github.com/georgemblack/blue-report/backend/internal/browserrun"
 	"github.com/georgemblack/blue-report/backend/internal/config"
+	"github.com/georgemblack/blue-report/backend/internal/feed"
 	"github.com/georgemblack/blue-report/backend/internal/hydrate"
 	"github.com/georgemblack/blue-report/backend/internal/resolve"
 	"github.com/georgemblack/blue-report/backend/internal/store"
@@ -85,4 +87,22 @@ func redirectStore(awsCfg aws.Config, cfg config.Config) (resolve.Store, string)
 		return resolve.NewMemoryStore(), "memory"
 	}
 	return resolve.NewDynamoStore(dynamodb.NewFromConfig(awsCfg), cfg.RedirectsTable), "dynamodb:" + cfg.RedirectsTable
+}
+
+// feedStore returns where feed entries are kept: DynamoDB if a table is
+// configured, otherwise memory.
+func feedStore(awsCfg aws.Config, cfg config.Config) (feed.Store, string) {
+	if cfg.FeedTable == "" {
+		return feed.NewMemoryStore(), "memory"
+	}
+	return feed.NewDynamoStore(dynamodb.NewFromConfig(awsCfg), cfg.FeedTable), "dynamodb:" + cfg.FeedTable
+}
+
+// browser returns a Browser Run client if Cloudflare credentials are
+// configured, otherwise nil (CardyB only).
+func browser(cfg config.Config) (hydrate.Browser, bool) {
+	if cfg.CloudflareAccountID == "" || cfg.CloudflareAPIToken == "" {
+		return nil, false
+	}
+	return browserrun.New(cfg.CloudflareAccountID, cfg.CloudflareAPIToken), true
 }

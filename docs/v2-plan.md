@@ -15,7 +15,7 @@ Read [event-schema.md](event-schema.md) alongside this. It defines the v1 and v2
 ## 2. The current system (v1) in brief
 
 - **intake:** a Fargate service that reads the Bluesky Jetstream. It uses ElastiCache Valkey to map posts to links and to count interactions per link, writes JSON Lines events to S3, and sends links with ≥1,000 interactions to SQS.
-- **link_aggregation:** a Fargate Spot task, hourly. It re-reads the last 7 days of events from S3, applies redirect translations from DynamoDB, ranks links, fetches titles and thumbnails (CardyB → Cloudflare browser rendering → OpenAI for PDFs), and publishes `top-links.json` plus the Atom and JSON feeds to R2.
+- **link_aggregation:** a Fargate Spot task, hourly. It re-reads the last 7 days of events from S3, applies redirect translations from DynamoDB, ranks links, fetches titles and thumbnails (CardyB → Cloudflare Browser Rendering, now called Browser Run → OpenAI for PDFs), and publishes `top-links.json` plus the Atom and JSON feeds to R2.
 - **site_aggregation:** daily. Ranks top domains over 30 days and publishes `top-sites.json`.
 - **link_redirect:** every 20 minutes. Takes URLs from SQS, follows redirects, and saves translations to DynamoDB.
 - The website (Astro) and feedgen run on Cloudflare Workers and read data from R2 (`data.theblue.report`).
@@ -61,7 +61,7 @@ October 2026 at full prices: Fargate intake about $14.70, ElastiCache about $9.5
 Bluesky Jetstream ────► │ reader ─► state actor ─► writer ─────────────────────────────► S3 (Parquet)    │
                         │              ▲   │                                                           │
                         │   publisher ─┘   └─► resolver ─────────────────────────────► DynamoDB          │
-                        │      │                hydrator ──► CardyB / browser rendering / Bluesky API    │
+                        │      │                hydrator ──► CardyB / Browser Run / Bluesky API         │
                         │      └──────────────────────────────────────────────────────► R2 (JSON, feeds) │
                         └───────────────────────────────────────────────────────────────────────────────┘
                                                                    R2 ◄── Cloudflare Worker (website, feedgen)
@@ -138,7 +138,7 @@ Rule: **no network or disk work inside the actor.** Everything slow happens in o
 - First checks DynamoDB (`blue-report-redirects`). A saved answer that hasn't expired is used as is.
 - Otherwise follows HTTP redirects (v1's `urltools.FindRedirect`, 1-second timeouts), cleans the destination, and saves the answer for **10 days**: the destination, or empty for "doesn't redirect".
 - On a redirect, sends `Merge(source, destination)` to the actor. The destination is where the redirects finally end, so the actor never follows chains.
-- Apple News URLs are skipped until browser rendering is added back (section 16).
+- Apple News URLs are skipped for now (section 16).
 - DynamoDB is the resolver's only memory. After a restart, the rebuild hands every popular link to the resolver again, and it answers from DynamoDB.
 
 ### 5.7 `hydrator` (part of the publisher)
@@ -148,7 +148,7 @@ Rule: **no network or disk work inside the actor.** Everything slow happens in o
 
 For each link in the published lists:
 
-1. **Title and thumbnail:** links seen in the last publish come from memory. Otherwise, check the table and the thumbnails folder. If either is missing, ask **CardyB** (`https://cardyb.bsky.app/v1/extract?url=<QueryEscape(url)>`), clean the title with v1's `formatTitle`, save it to the table, and copy the image into R2. Wait 1 s after each CardyB call, as v1 does. Links that end up without a title are looked up again on the next publish. Fallback title: `"(No Title)"`. **No OpenAI.** Browser rendering is left out for now (section 16).
+1. **Title and thumbnail:** links seen in the last publish come from memory. Otherwise, check the table and the thumbnails folder. If either is missing, ask **CardyB** (`https://cardyb.bsky.app/v1/extract?url=<QueryEscape(url)>`), clean the title with v1's `formatTitle`, save it to the table, and copy the image into R2. Wait 1 s after each CardyB call, as v1 does. Links that end up without a title are looked up again on the next publish. If CardyB is missing the title or image, try **Cloudflare Browser Run** (`POST /accounts/<id>/browser-run/scrape` for `og:title`, `og:image` and `<title>`), at most once per link while it's published, since it's billed by browser time. Fallback title: `"(No Title)"`. **No OpenAI.**
 2. **Recommended posts:** from each link's top 20 posts (from the actor's `Top` result), fetch all the posts from Bluesky's `app.bsky.feed.getPosts`, 25 per request, on every publish. Keep up to 3 per link that meet these rules:
    - the formatted text isn't empty (v1's `formatPost`)
    - English
@@ -160,7 +160,7 @@ For each link in the published lists:
 Copy these into the new module rather than importing them, so v1 stays independent and untouched:
 - `urltools` (Clean, Ignore, FindRedirect, Apple helpers, Hostname) and its tests
 - the Bluesky client (GetPost)
-- `rendering` (Cloudflare browser rendering)
+- `rendering` (Cloudflare Browser Rendering, now Browser Run), rewritten as `browserrun`
 - the CardyB and title logic in `card.go`, without the LLM step and with the escaping fix
 - `formatTitle` and `formatPost`
 - Atom and JSON feed generation (`feed.go`)
@@ -237,7 +237,7 @@ Note: posts are looked up by their **address (AT URI)**, not by CID as in v1. Li
 |---|---|---|---|
 | `blue-report-redirects` | `urlHash` (FNV-64a of the URL) | `url`, `destination` (empty if no redirect), `expiresAt` (TTL, +10d) | resolver |
 | `blue-report-url-metadata` (v1's table, shared) | `urlHash` | `url`, `title` | hydrator |
-| `…-feed` | `url_hash` | `timestamp`, `content` (JSON), `expires_at` (+90d) | publisher |
+| `blue-report-feed-entries` | `urlHash` | `timestamp`, `content` (JSON, as in v1's `blue-report-feed`), `expiresAt` (TTL, +90d) | publisher |
 
 ### 9.3 Cloudflare R2: published output
 | Key | Content | Cache-Control |
@@ -252,7 +252,7 @@ Note: posts are looked up by their **address (AT URI)**, not by CID as in v1. Li
 ### 9.4 Secrets: SSM Parameter Store (SecureString)
 - `/blue-report-engine/r2-access-key-id` (created)
 - `/blue-report-engine/r2-secret-access-key` (created)
-- Cloudflare API token (browser rendering): added later, with the resolver and hydrator
+- Cloudflare API token (Browser Run - Edit permission): `/blue-report-engine/cloudflare-api-token`
 
 Terraform creates them with a placeholder value and ignores the value from then on, so real secrets never appear in Terraform files or state; the real values are set once with the AWS CLI (see `infra/engine_secrets.tf`). They're passed to the container as environment variables via the ECS task definition's `secrets`. The Cloudflare account ID isn't secret (it's part of R2's address), so it's a plain environment variable. There's no OpenAI key and no Secrets Manager.
 
@@ -276,9 +276,10 @@ Link = { "rank", "url", "title", "thumbnail_url", "post_count", "repost_count", 
 Carry over v1's rules (`publish.go`, `storage/feed.go`):
 - If the top link of the day isn't already in the feed, **and** no feed entry was added in the last 12 h, add it (with its recommended posts).
 - Entries expire after 90 days (DynamoDB TTL replaces v1's manual cleanup).
-- Regenerate and upload the Atom and JSON feeds when the feed changes.
-
-Keep the newest feed entry's time in memory (loaded at startup), so the 12-hour check doesn't scan DynamoDB every minute.
+- Regenerate and upload the Atom and JSON feeds (`engine/feeds/top-day.xml` and `.json`) when the feed changes, and on the first publish after startup.
+- A link without a real title yet isn't added; it can be added on a later publish.
+- The table is read on every publish (about 180 small items), rather than keeping state in memory.
+- At switch-over, copy v1's entries from `blue-report-feed` into `blue-report-feed-entries` (same item shape, plus `expiresAt`).
 
 ## 11. Infrastructure (Terraform)
 
@@ -385,5 +386,5 @@ Each phase should end with working, tested code.
 
 Not needed for the parallel run or switch-over, but planned:
 
-- **Browser rendering for previews.** Bring back v1's fallback to Cloudflare Browser Rendering (read `og:title` and `og:image`) for pages CardyB can't handle. Needs a Cloudflare API token in SSM.
+- **Browser Run for Apple News links.** The resolver skips `apple.news` links, which redirect with JavaScript. Browser Run could resolve them (as v1 did with Browser Rendering).
 - **Spam and junk filtering.** Run links, and the posts recommended for them, through Cloudflare's clef to filter out spam and junk before publishing.

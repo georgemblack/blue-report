@@ -1,6 +1,7 @@
 // Command engine reads Bluesky's Jetstream, keeps the rankings in memory,
 // saves every counted event as Parquet files, and publishes top-links.json
-// with each link's title, thumbnail and recommended posts. Popular links are
+// with each link's title, thumbnail and recommended posts, along with a feed
+// of the day's top links. Popular links are
 // checked for redirects, so short links count toward the article they lead
 // to.
 //
@@ -21,6 +22,7 @@ import (
 	"github.com/georgemblack/blue-report/backend/internal/config"
 	"github.com/georgemblack/blue-report/backend/internal/event"
 	"github.com/georgemblack/blue-report/backend/internal/eventlog"
+	"github.com/georgemblack/blue-report/backend/internal/feed"
 	"github.com/georgemblack/blue-report/backend/internal/hydrate"
 	"github.com/georgemblack/blue-report/backend/internal/publish"
 	"github.com/georgemblack/blue-report/backend/internal/resolve"
@@ -49,6 +51,9 @@ const (
 	// ECS gives the container 120 seconds after SIGTERM. Stop retrying
 	// uploads a little before that so we can log what wasn't saved.
 	shutdownDeadline = 100 * time.Second
+
+	// Where published files can be read, for the feeds' own addresses.
+	publicURL = "https://data.theblue.report/"
 )
 
 // commit is the git commit the binary was built from, set at build time
@@ -84,7 +89,10 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	}
 	titles, titlesWhere := titleStore(awsCfg, cfg)
 	redirects, redirectsWhere := redirectStore(awsCfg, cfg)
-	logger.Info("starting engine", "commit", commit, "events", eventsWhere, "publish", publishWhere, "titles", titlesWhere, "redirects", redirectsWhere)
+	feedEntries, feedWhere := feedStore(awsCfg, cfg)
+	browser, browserOn := browser(cfg)
+	logger.Info("starting engine", "commit", commit, "events", eventsWhere, "publish", publishWhere,
+		"titles", titlesWhere, "redirects", redirectsWhere, "feed", feedWhere, "browser_run", browserOn)
 
 	cursor, err := eventlog.ResumePoint(ctx, events, time.Now(), resumeLookback)
 	if err != nil {
@@ -131,8 +139,9 @@ func run(cfg config.Config, logger *slog.Logger) error {
 	defer stopPublishing()
 	publisherDone := make(chan struct{})
 	go func() {
-		hydrator := hydrate.New(titles, thumbnails, logger)
-		publish.NewPublisher(actor, hydrator, published, publishInterval, logger).Run(publishCtx)
+		hydrator := hydrate.New(titles, thumbnails, browser, logger)
+		topFeed := feed.New(feedEntries, published, publicURL+cfg.PublishPrefix, logger)
+		publish.NewPublisher(actor, hydrator, topFeed, published, publishInterval, logger).Run(publishCtx)
 		close(publisherDone)
 	}()
 

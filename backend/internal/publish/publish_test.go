@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/georgemblack/blue-report/backend/internal/feed"
 	"github.com/georgemblack/blue-report/backend/internal/hydrate"
 	"github.com/georgemblack/blue-report/backend/internal/ranking"
 	"github.com/georgemblack/blue-report/backend/internal/state"
@@ -85,7 +86,7 @@ func (f *fakeRanker) count() int {
 
 func TestPublish(t *testing.T) {
 	s := store.NewLocal(t.TempDir())
-	p := NewPublisher(&fakeRanker{}, nil, s, 5*time.Minute, discard)
+	p := NewPublisher(&fakeRanker{}, nil, nil, s, 5*time.Minute, discard)
 	p.now = func() time.Time { return when }
 	if err := p.Publish(ctx); err != nil {
 		t.Fatal(err)
@@ -116,7 +117,7 @@ func (r *recordingStore) Put(ctx context.Context, key string, body []byte, meta 
 
 func TestPublishMeta(t *testing.T) {
 	s := &recordingStore{Store: store.NewLocal(t.TempDir())}
-	if err := NewPublisher(&fakeRanker{}, nil, s, 5*time.Minute, discard).Publish(ctx); err != nil {
+	if err := NewPublisher(&fakeRanker{}, nil, nil, s, 5*time.Minute, discard).Publish(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if want := (store.Meta{ContentType: "application/json", CacheControl: "public, max-age=300"}); s.meta != want {
@@ -125,7 +126,7 @@ func TestPublishMeta(t *testing.T) {
 }
 
 func TestPublishError(t *testing.T) {
-	p := NewPublisher(&fakeRanker{err: state.ErrStopped}, nil, store.NewLocal(t.TempDir()), time.Minute, discard)
+	p := NewPublisher(&fakeRanker{err: state.ErrStopped}, nil, nil, store.NewLocal(t.TempDir()), time.Minute, discard)
 	if err := p.Publish(ctx); !errors.Is(err, state.ErrStopped) {
 		t.Fatalf("err = %v", err)
 	}
@@ -135,7 +136,7 @@ func TestPublishError(t *testing.T) {
 // failures.
 func TestRun(t *testing.T) {
 	r := &fakeRanker{err: errors.New("not ready")}
-	p := NewPublisher(r, nil, store.NewLocal(t.TempDir()), 10*time.Millisecond, discard)
+	p := NewPublisher(r, nil, nil, store.NewLocal(t.TempDir()), 10*time.Millisecond, discard)
 	c, cancel := context.WithCancel(ctx)
 	done := make(chan struct{})
 	go func() { p.Run(c); close(done) }()
@@ -193,7 +194,7 @@ func (f *fakeHydrator) Hydrate(_ context.Context, entries []ranking.Entry) map[s
 func TestPublishHydrates(t *testing.T) {
 	s := store.NewLocal(t.TempDir())
 	h := &fakeHydrator{}
-	if err := NewPublisher(&fakeRanker{}, h, s, time.Minute, discard).Publish(ctx); err != nil {
+	if err := NewPublisher(&fakeRanker{}, h, nil, s, time.Minute, discard).Publish(ctx); err != nil {
 		t.Fatal(err)
 	}
 	if len(h.got) != 4 { // nyt in all three lists, plus bbc
@@ -204,5 +205,24 @@ func TestPublishHydrates(t *testing.T) {
 	json.Unmarshal(data, &snap)
 	if snap.TopWeek[1].Title != "BBC story" {
 		t.Fatalf("week = %+v", snap.TopWeek)
+	}
+}
+
+type fakeFeed struct{ got []feed.Entry }
+
+func (f *fakeFeed) Update(_ context.Context, top feed.Entry, _ time.Time) error {
+	f.got = append(f.got, top)
+	return nil
+}
+
+// The day's top link is offered to the feed. Without a real title, its
+// title is left empty so the feed waits for one.
+func TestPublishOffersTopDayLink(t *testing.T) {
+	f := &fakeFeed{}
+	if err := NewPublisher(&fakeRanker{}, &fakeHydrator{}, f, store.NewLocal(t.TempDir()), time.Minute, discard).Publish(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if len(f.got) != 1 || f.got[0].URL != sampleResult().Ranking.Day[0].URL || f.got[0].Title != "" {
+		t.Fatalf("feed got %+v", f.got)
 	}
 }

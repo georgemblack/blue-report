@@ -1,16 +1,19 @@
 // Package hydrate fills in what the rankings don't know about a link: its
 // title, a thumbnail, and a few posts worth reading about it.
 //
-// It shares v1's titles (DynamoDB) and thumbnails (R2), so links v1 has
-// already seen need no new lookups.
+// Titles and preview images come from CardyB, or from Browser Run when
+// CardyB can't read a page. It shares v1's titles (DynamoDB) and thumbnails
+// (R2), so links v1 has already seen need no new lookups.
 package hydrate
 
 import (
+	"cmp"
 	"context"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/georgemblack/blue-report/backend/internal/browserrun"
 	"github.com/georgemblack/blue-report/backend/internal/ranking"
 	"github.com/georgemblack/blue-report/backend/internal/store"
 )
@@ -35,11 +38,25 @@ const (
 	minPostLikes = 50 // a post needs more likes than this
 )
 
+// Browser loads pages in a real browser (Cloudflare Browser Run). The
+// browserrun package implements it.
+type Browser interface {
+	Scrape(ctx context.Context, url string, selectors []string) (browserrun.Result, time.Duration, error)
+}
+
+// What Browser Run is asked to find on a page.
+const (
+	ogTitle   = `meta[property="og:title"]`
+	ogImage   = `meta[property="og:image"]`
+	pageTitle = "title"
+)
+
 // Hydrator looks up Info for the links being published. It's used by the
 // publisher only, one call at a time.
 type Hydrator struct {
 	titles     Titles
 	thumbnails store.Store // the R2 bucket, without the engine's prefix
+	browser    Browser     // nil to use CardyB only
 	logger     *slog.Logger
 	client     *http.Client
 
@@ -50,6 +67,11 @@ type Hydrator struct {
 	// Title and thumbnail for each link in the last publish, so they're only
 	// looked up when a link first appears.
 	pages map[string]page
+
+	// Links in the last publish that Browser Run has already tried. Links
+	// without a title are looked up on every publish, but Browser Run costs
+	// money, so it only tries each link once while it's published.
+	browsed map[string]bool
 }
 
 type page struct {
@@ -57,10 +79,12 @@ type page struct {
 	thumbnail string
 }
 
-func New(titles Titles, thumbnails store.Store, logger *slog.Logger) *Hydrator {
+// New returns a Hydrator. browser may be nil.
+func New(titles Titles, thumbnails store.Store, browser Browser, logger *slog.Logger) *Hydrator {
 	return &Hydrator{
 		titles:     titles,
 		thumbnails: thumbnails,
+		browser:    browser,
 		logger:     logger,
 		// A timeout so one stuck request can't stop publishing for good.
 		client:      &http.Client{Timeout: 30 * time.Second},
@@ -68,6 +92,7 @@ func New(titles Titles, thumbnails store.Store, logger *slog.Logger) *Hydrator {
 		cardyBDelay: time.Second,
 		blueskyURL:  "https://public.api.bsky.app",
 		pages:       map[string]page{},
+		browsed:     map[string]bool{},
 	}
 }
 
@@ -95,6 +120,11 @@ func (h *Hydrator) Hydrate(ctx context.Context, entries []ranking.Entry) map[str
 	}
 	// Forget links that are no longer published.
 	h.pages = remember
+	for url := range h.browsed {
+		if _, ok := pages[url]; !ok {
+			delete(h.browsed, url)
+		}
+	}
 
 	posts := h.recommend(ctx, entries)
 	info := make(map[string]Info, len(pages))
@@ -106,7 +136,7 @@ func (h *Hydrator) Hydrate(ctx context.Context, entries []ranking.Entry) map[str
 }
 
 // lookup finds a link's title and thumbnail: first what's already saved,
-// then from CardyB, saving what it finds.
+// then from CardyB, then from Browser Run, saving what it finds.
 func (h *Hydrator) lookup(ctx context.Context, url string) page {
 	key := urlKey(url)
 	var p page
@@ -124,7 +154,11 @@ func (h *Hydrator) lookup(ctx context.Context, url string) page {
 	title, image, err := h.card(ctx, url)
 	if err != nil {
 		h.logger.Info("couldn't get link preview", "url", url, "error", err)
-		return p
+	}
+	if (cmp.Or(p.title, title) == "" || cmp.Or(p.thumbnail, image) == "") && h.browser != nil && !h.browsed[url] {
+		h.browsed[url] = true
+		bTitle, bImage := h.browse(ctx, url)
+		title, image = cmp.Or(title, bTitle), cmp.Or(image, bImage)
 	}
 	if p.title == "" {
 		if p.title = formatTitle(title); p.title != "" {
@@ -139,6 +173,20 @@ func (h *Hydrator) lookup(ctx context.Context, url string) page {
 		}
 	}
 	return p
+}
+
+// browse loads a page with Browser Run and returns its title and preview
+// image.
+func (h *Hydrator) browse(ctx context.Context, url string) (title, image string) {
+	res, used, err := h.browser.Scrape(ctx, url, []string{ogTitle, ogImage, pageTitle})
+	if err != nil {
+		h.logger.Info("couldn't load page with browser run", "url", url, "browser_ms", used.Milliseconds(), "error", err)
+		return "", ""
+	}
+	title = cmp.Or(res.Attr(ogTitle, "content"), res.Text(pageTitle))
+	image = res.Attr(ogImage, "content")
+	h.logger.Info("loaded page with browser run", "url", url, "title", title != "", "image", image != "", "browser_ms", used.Milliseconds())
+	return title, image
 }
 
 // recommend picks up to three posts for each link from its most active
