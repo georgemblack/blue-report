@@ -106,7 +106,6 @@ Wait a week or so after the switch, in case something needs v1. Then remove v1's
 - **`blue-report-assets`, v1's events bucket,** until the backfill is finished and checked. After that, decide whether to delete v1's event files or keep them in cold storage.
 
 **Then tidy up the repository:**
-- Delete `services/`.
-- Remove v1's GitHub workflows.
+- Delete `services/`, along with any v1 build or deploy scripts.
 - Update `README.md`, `RANKING.md` and the docs to describe v2 only.
 - Remove the "v2:" notes from Terraform comments once there's nothing left to tell apart.
