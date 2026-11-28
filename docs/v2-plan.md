@@ -1,5 +1,12 @@
 # The Blue Report v2: Rebuild Plan
 
+> **Status: done (2026-11-27).** Build steps 1–8 are complete, and the v2 engine is running in production alongside v1 (step 9, the parallel run). The rest of the work continues in:
+> - [migration.md](migration.md): monitoring, comparing with v1, switching over and shutting v1 down
+> - [backfill.md](backfill.md): copying v1's event history into the v2 events bucket
+> - [future-enhancements.md](future-enhancements.md): ideas for later, such as more Browser Run and spam filtering
+>
+> This document is kept as the record of what was decided and why. Some details changed during the build; the code and the docs above are the source of truth.
+
 This document is the plan for rebuilding the Blue Report backend from scratch. It's written for whoever (person or agent) builds it. It records **what has been decided and why**, **what's still open**, and **the order to build in**.
 
 Read [event-schema.md](event-schema.md) alongside this. It defines the v1 and v2 event formats in S3.

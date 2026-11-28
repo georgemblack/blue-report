@@ -66,7 +66,7 @@ Carol quotes Alice's post. It's stored as a post (`type` 0), with Alice's link a
 
 | | |
 |---|---|
-| Bucket | New v2 bucket (name to be decided; nothing is shared with v1) |
+| Bucket | `blue-report-events` (nothing is shared with v1) |
 | Key format | `events/date=YYYY-MM-DD/hour=HH/<max time_us>.parquet` |
 | File format | [Apache Parquet](https://parquet.apache.org/), zstd compression |
 | Written | Every few minutes, plus once on shutdown |
@@ -112,21 +112,21 @@ The same three events as above, in v2:
 - **What gets saved:** the same filters as v1. English posts with a link not on the ignore list, plus reposts, likes and quotes of posts intake had cached.
 - **Duplicates are possible.** After a restart, intake resumes from the newest saved `time_us`, so a few events can be saved twice. Use `(did, type, rkey)` to remove them. The rankings aren't affected, because each user only counts once per link and type anyway.
 - **Deletions are still not recorded.**
-- **Final URLs.** `url` is stored before redirect lookup, so improvements to redirect handling apply to old data automatically. To get the final URL, look up `url` in the v2 URL translations table in DynamoDB, and repeat for the result in case of a chain.
+- **Final URLs.** `url` is stored before redirect lookup, so improvements to redirect handling apply to old data automatically. Only popular links are checked for redirects. To get a link's final URL, look it up in the `blue-report-redirects` DynamoDB table (key: FNV-64a hash of `url`, in hex). An empty `destination` means it doesn't redirect, and answers expire after 10 days.
 
 ### Reading it with DuckDB
 
 ```sql
 -- All events for one hour, with a readable timestamp
 SELECT make_timestamp(time_us) AS ts, type, did, url
-FROM read_parquet('s3://<v2-bucket>/events/date=2026-11-26/hour=15/*.parquet');
+FROM read_parquet('s3://blue-report-events/events/date=2026-11-26/hour=15/*.parquet');
 
 -- Top links in the last day, counting each user once per link and type
 SELECT url,
        count(DISTINCT did) FILTER (type = 0) AS posts,
        count(DISTINCT did) FILTER (type = 1) AS reposts,
        count(DISTINCT did) FILTER (type = 2) AS likes
-FROM read_parquet('s3://<v2-bucket>/events/date=*/hour=*/*.parquet', hive_partitioning = true)
+FROM read_parquet('s3://blue-report-events/events/date=*/hour=*/*.parquet', hive_partitioning = true)
 WHERE time_us > (epoch_us(now()) - 24 * 3600 * 1000000)
 GROUP BY url
 ORDER BY 10 * posts + 10 * reposts + likes DESC
