@@ -26,7 +26,7 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		WriteInterval:    10 * time.Minute,
+		WriteInterval:    30 * time.Minute,
 		MaxBuffer:        100_000,
 		SweepInterval:    10 * time.Minute,
 		StatsInterval:    time.Minute,
