@@ -235,7 +235,7 @@ Note: posts are looked up by their **address (AT URI)**, not by CID as in v1. Li
 
 ### 9.1 S3: events bucket
 - Layout and columns: [event-schema.md](event-schema.md).
-- Write about every **5 minutes** (configurable) or when the buffer hits N events, whichever comes first.
+- Write about every **10 minutes** (configurable) or when the buffer hits N events, whichever comes first. Every 5 minutes made overnight files smaller than 128 KB, which S3 never moves to cheaper storage.
 - Encryption: SSE-S3. Block all public access.
 - **Lifecycle:** keep at least 7 days for rebuilds. Retention beyond that is open (section 13); the default is to keep everything, moving to cheaper storage after 30 days.
 
